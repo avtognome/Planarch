@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Compass, LayoutDashboard, Headphones, Swords, BookOpen, Users, Dices, Settings, Search, ChevronDown, ArrowUpRight, Play, Pause, Volume2, VolumeX, Plus, Grip, MoreHorizontal, CloudRain, Waves, Wind, Flame, Check, Save, X, Music, SlidersHorizontal, PanelTop, RotateCcw, Download, Trash2, Sun, Moon, PanelLeftClose, PanelLeft, SkipForward } from 'lucide-react';
+import { Compass, LayoutDashboard, Headphones, Swords, BookOpen, Users, Dices, Settings, Search, ChevronDown, ChevronUp, ArrowUpRight, Play, Pause, Volume2, VolumeX, Plus, Grip, MoreHorizontal, CloudRain, Waves, Wind, Flame, Check, Save, X, Music, SlidersHorizontal, PanelTop, RotateCcw, Download, Trash2, Sun, Moon, PanelLeftClose, PanelLeft, SkipForward, Shield, Eye } from 'lucide-react';
+import { type Character, seedCharacters } from './models';
 import './style.css';
 import './features.css';
 import './theme.css';
@@ -61,7 +62,7 @@ export default function App() {
     const cloud = useCloudStatus();
     useEffect(() => { void bootSupabase(); }, []);
     const [campaigns, setCampaigns] = useSaved<string[]>('wf-campaigns', startingCampaigns), [campaign, setCampaign] = useSaved('wf-campaign', startingCampaigns[0] || ''), campaignKey = campaign || '__new__';
-    const [page, setPage] = useState('Dashboard'), [scene, setScene] = useSaved('wf-scene', 0), [layers, setLayers] = useSaved('wf-layers', [72, 36, 48, 0]), [master, setMaster] = useSaved('wf-master', 70), [music, setMusic] = useSaved('wf-music', 45), [playing, setPlaying] = useState(false), [muted, setMuted] = useState(false), [filter, setFilter] = useState('All scenes'), [query, setQuery] = useState(''), [layout, setLayout] = useSaved('wf-layout', 'Session'), [orders, setOrders] = useSaved<Record<string, string[]>>('wf-orders', { Session: ['combat', 'atmosphere', 'journal', 'dice'], Combat: ['combat', 'dice', 'atmosphere', 'journal'], Exploration: ['atmosphere', 'journal', 'dice', 'combat'] }), [edit, setEdit] = useState(false), [wide, setWide] = useSaved<Record<string, boolean>>('wf-wide', {}), [note, setNote] = useSaved(`wf-note:${campaignKey}`, ''), [round, setRound] = useSaved(`wf-round:${campaignKey}`, 1), [turn, setTurn] = useSaved(`wf-turn:${campaignKey}`, 0), [hp, setHp] = useSaved(`wf-hp:${campaignKey}`, []), [dice, setDice] = useState('1d20+3'), [roll, setRoll] = useState<number | null>(null), [history, setHistory] = useSaved<string[]>('wf-rolls', []), [rollMode, setRollMode] = useState<'normal' | 'adv' | 'disadv'>('normal'), [targetDC, setTargetDC] = useState<number | null>(null), [critState, setCritState] = useState<'nat20' | 'nat1' | null>(null), [modal, setModal] = useState(startingCampaigns.length ? '' : 'campaign'), [toast, setToast] = useState(''), [source, setSource] = useSaved('wf-source', ''), [sourceInput, setSourceInput] = useState(''), [custom, setCustom] = useSaved<Scene[]>('wf-custom', []), [sceneName, setSceneName] = useState(''), [concentration, setConcentration] = useSaved('wf-concentration', true), [campaignName, setCampaignName] = useState(''), [campaignError, setCampaignError] = useState(''), [deleteCampaignText, setDeleteCampaignText] = useState(''), [deleteCampaignError, setDeleteCampaignError] = useState('');
+    const [page, setPage] = useState('Dashboard'), [scene, setScene] = useSaved('wf-scene', 0), [layers, setLayers] = useSaved('wf-layers', [72, 36, 48, 0]), [master, setMaster] = useSaved('wf-master', 70), [music, setMusic] = useSaved('wf-music', 45), [playing, setPlaying] = useState(false), [muted, setMuted] = useState(false), [filter, setFilter] = useState('All scenes'), [query, setQuery] = useState(''), [layout, setLayout] = useSaved('wf-layout', 'Session'), [orders, setOrders] = useSaved<Record<string, string[]>>('wf-orders', { Session: ['combat', 'atmosphere', 'journal', 'dice'], Combat: ['combat', 'dice', 'atmosphere', 'journal'], Exploration: ['atmosphere', 'journal', 'dice', 'combat'] }), [edit, setEdit] = useState(false), [wide, setWide] = useSaved<Record<string, boolean>>('wf-wide', {}), [collapsed, setCollapsed] = useSaved<Record<string, boolean>>('wf-collapsed-widgets', {}), [note, setNote] = useSaved(`wf-note:${campaignKey}`, ''), [round, setRound] = useSaved(`wf-round:${campaignKey}`, 1), [turn, setTurn] = useSaved(`wf-turn:${campaignKey}`, 0), [hp, setHp] = useSaved(`wf-hp:${campaignKey}`, []), [dice, setDice] = useState('1d20+3'), [roll, setRoll] = useState<number | null>(null), [history, setHistory] = useSaved<string[]>('wf-rolls', []), [rollMode, setRollMode] = useState<'normal' | 'adv' | 'disadv'>('normal'), [targetDC, setTargetDC] = useState<number | null>(null), [critState, setCritState] = useState<'nat20' | 'nat1' | null>(null), [rollOverlay, setRollOverlay] = useState<{ label: string; expression: string; total: number; breakdown: string; crit: 'nat20' | 'nat1' | null } | null>(null), [modal, setModal] = useState(startingCampaigns.length ? '' : 'campaign'), [toast, setToast] = useState(''), [source, setSource] = useSaved('wf-source', ''), [sourceInput, setSourceInput] = useState(''), [custom, setCustom] = useSaved<Scene[]>('wf-custom', []), [sceneName, setSceneName] = useState(''), [concentration, setConcentration] = useSaved('wf-concentration', true), [campaignName, setCampaignName] = useState(''), [campaignError, setCampaignError] = useState(''), [deleteCampaignText, setDeleteCampaignText] = useState(''), [deleteCampaignError, setDeleteCampaignError] = useState('');
     const [sourceName, setSourceName] = useState(''), [sourceCategory, setSourceCategory] = useState('EXPLORATION'), [keepMix, setKeepMix] = useState(true), [providerStopped, setProviderStopped] = useState(false), [playerCollapsed, setPlayerCollapsed] = useState(false);
     const [youtubeDeckA, setYoutubeDeckA] = useSaved('wf-youtube-deck-a', ''), [youtubeDeckB, setYoutubeDeckB] = useSaved('wf-youtube-deck-b', ''), [youtubeVolumeA, setYoutubeVolumeA] = useSaved('wf-youtube-volume-a', 75), [youtubeVolumeB, setYoutubeVolumeB] = useSaved('wf-youtube-volume-b', 75), [youtubeMaster, setYoutubeMaster] = useSaved('wf-youtube-master', 80), [youtubeCrossfade, setYoutubeCrossfade] = useSaved('wf-youtube-crossfade', 50), [youtubeMixerOpen, setYoutubeMixerOpen] = useState(false), [youtubeStopSignal, setYoutubeStopSignal] = useState(0);
     const [battle, setBattle] = useSaved<Combatant[]>(`wf-battle:${campaignKey}`, []), [battleTitle, setBattleTitle] = useSaved(`wf-battle-title:${campaignKey}`, 'No active encounter'), [battleId, setBattleId] = useSaved(`wf-battle-id:${campaignKey}`, ''), [battleActive, setBattleActive] = useSaved(`wf-battle-active:${campaignKey}`, false);
@@ -144,6 +145,20 @@ export default function App() {
         }
     }, []);
     const audio = useRef<AudioContext | null>(null), gains = useRef<GainNode[]>([]), drag = useRef('');
+    const [characterVersion, setCharacterVersion] = useState(0);
+    useEffect(() => {
+        if (!rollOverlay) return;
+        const timer = setTimeout(() => setRollOverlay(null), 4500);
+        return () => clearTimeout(timer);
+    }, [rollOverlay]);
+    const partyCharacters: Character[] = (() => {
+        try {
+            const raw = localStorage.getItem(`wf-characters:${campaignKey}`);
+            return raw ? JSON.parse(raw) : [];
+        } catch {
+            return [];
+        }
+    })();
     const allScenes = [...scenes, ...custom], active = allScenes[scene] || scenes[0], youtubeSources = custom.filter(item => item.source?.provider === 'YouTube');
     const notify = (s: string) => { setToast(s); setTimeout(() => setToast(''), 3000); };
     const createCampaign = () => {
@@ -222,15 +237,23 @@ export default function App() {
         const mute = () => setMuted(value => !value);
         const openYouTubeMixer = () => setYoutubeMixerOpen(true);
         const closeYouTubeMixer = () => setYoutubeMixerOpen(false);
+        const onCustomRoll = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (detail && detail.expression) {
+                rollDice(detail.expression, detail.label || detail.expression);
+            }
+        };
         window.addEventListener('wayfinder-audio-toggle', toggle);
         window.addEventListener('wayfinder-audio-mute', mute);
         window.addEventListener('wayfinder-youtube-mixer-open', openYouTubeMixer);
         window.addEventListener('wayfinder-youtube-mixer-close', closeYouTubeMixer);
+        window.addEventListener('wayfinder-dice-roll', onCustomRoll);
         return () => {
             window.removeEventListener('wayfinder-audio-toggle', toggle);
             window.removeEventListener('wayfinder-audio-mute', mute);
             window.removeEventListener('wayfinder-youtube-mixer-open', openYouTubeMixer);
             window.removeEventListener('wayfinder-youtube-mixer-close', closeYouTubeMixer);
+            window.removeEventListener('wayfinder-dice-roll', onCustomRoll);
         };
     }, []);
     async function toggleAudio() {
@@ -287,7 +310,7 @@ export default function App() {
         }
         notify(`${selected.name} loaded`);
     };
-    const rollDice = (overrideDice?: string) => {
+    const rollDice = (overrideDice?: string, rollLabel?: string) => {
         const expression = (overrideDice || dice).trim();
         const clean = expression.replace(/\s+/g, '');
         const tokens = clean.match(/([+-]?[^+-]+)/g);
@@ -348,55 +371,85 @@ export default function App() {
         }
 
         setRoll(total);
-        if (singleD20Roll !== null) {
-            setCritState(singleD20Roll === 20 ? 'nat20' : singleD20Roll === 1 ? 'nat1' : null);
-        } else {
-            setCritState(null);
-        }
+        const crit = singleD20Roll !== null ? (singleD20Roll === 20 ? 'nat20' : singleD20Roll === 1 ? 'nat1' : null) : null;
+        setCritState(crit);
 
         const entry = `${expression}: ${breakdowns.join(' ')} = ${total}`;
         setHistory(h => [entry, ...h].slice(0, 8));
+
+        if (rollLabel) {
+            setRollOverlay({
+                label: rollLabel,
+                expression,
+                total,
+                breakdown: breakdowns.join(' '),
+                crit,
+            });
+        }
     };
-    const addDieToExpression = (die: number) => {
+    const handleDieClick = (die: number, isShift: boolean) => {
         const clean = dice.trim();
-        if (!clean || clean === '0') {
-            setDice(`1d${die}`);
-            return;
-        }
-        const tokens = clean.replace(/\s+/g, '').match(/([+-]?[^+-]+)/g);
-        if (!tokens) {
-            setDice(`1d${die}`);
-            return;
-        }
+        const tokens = clean.replace(/\s+/g, '').match(/([+-]?[^+-]+)/g) || [];
 
-        let found = false;
-        const newTokens = tokens.map(t => {
-            const sign = t.startsWith('-') ? '-' : (t.startsWith('+') ? '+' : '');
-            const body = t.replace(/^[+-]/, '');
-            const m = body.match(/^(\d*)d(\d+)$/i);
-            if (m && Number(m[2]) === die && sign !== '-') {
-                found = true;
-                const count = (Number(m[1]) || 1) + 1;
-                return (sign ? sign : '') + count + 'd' + die;
+        const formatTokens = (toks: string[]) => {
+            return toks.map((t, i) => {
+                const sign = t.startsWith('+') ? '+' : (t.startsWith('-') ? '-' : '');
+                const body = t.replace(/^[+-]/, '');
+                if (i === 0) return (sign === '-' ? '-' : '') + body;
+                return ` ${sign === '-' ? '-' : '+'} ${body}`;
+            }).join('').trim();
+        };
+
+        if (isShift) {
+            if (!tokens.length) {
+                setDice(`1d${die}`);
+                return;
             }
-            return t;
-        });
+            let found = false;
+            const newTokens = tokens.map(t => {
+                const sign = t.startsWith('-') ? '-' : (t.startsWith('+') ? '+' : '');
+                const body = t.replace(/^[+-]/, '');
+                const m = body.match(/^(\d*)d(\d+)$/i);
+                if (m && Number(m[2]) === die && sign !== '-') {
+                    found = true;
+                    const count = (Number(m[1]) || 1) + 1;
+                    return (sign ? sign : '') + count + 'd' + die;
+                }
+                return t;
+            });
 
-        if (!found) {
-            const last = newTokens[newTokens.length - 1];
-            if (/^[+-]?\d+$/.test(last) && !last.toLowerCase().includes('d')) {
-                newTokens.splice(newTokens.length - 1, 0, `+1d${die}`);
+            if (!found) {
+                const last = newTokens[newTokens.length - 1];
+                if (/^[+-]?\d+$/.test(last) && !last.toLowerCase().includes('d')) {
+                    newTokens.splice(newTokens.length - 1, 0, `+1d${die}`);
+                } else {
+                    newTokens.push(`+1d${die}`);
+                }
+            }
+            setDice(formatTokens(newTokens));
+        } else {
+            const hasDie = tokens.some(t => {
+                const body = t.replace(/^[+-]/, '');
+                const m = body.match(/^(\d*)d(\d+)$/i);
+                return m && Number(m[2]) === die;
+            });
+
+            if (hasDie) {
+                const remaining = tokens.filter(t => {
+                    const body = t.replace(/^[+-]/, '');
+                    const m = body.match(/^(\d*)d(\d+)$/i);
+                    return !(m && Number(m[2]) === die);
+                });
+                const hasRemainingDice = remaining.some(t => t.toLowerCase().includes('d'));
+                if (!hasRemainingDice) {
+                    setDice('');
+                } else {
+                    setDice(formatTokens(remaining));
+                }
             } else {
-                newTokens.push(`+1d${die}`);
+                setDice(`1d${die}`);
             }
         }
-
-        const formatted = newTokens.map((t, i) => {
-            if (i === 0) return t;
-            if (t.startsWith('+') || t.startsWith('-')) return ` ${t[0]} ${t.slice(1)}`;
-            return ` + ${t}`;
-        }).join('');
-        setDice(formatted);
     };
     const applyModifier = (delta: number) => {
         const trimmed = dice.trim();
@@ -419,16 +472,17 @@ export default function App() {
     const exportData = () => { const data = Object.fromEntries(Object.keys(localStorage).filter(k => k.startsWith('wf-')).map(k => [k, JSON.parse(localStorage.getItem(k)!)])); const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = 'wayfinder-backup.json'; a.click(); URL.revokeObjectURL(url); notify('Backup exported'); };
     function mixer(compact = false) { return <div className={compact ? 'mini-mixer' : 'layer-list'}>{layerNames.map((n, i) => { const Icon = icons[i]; return <div className="layer" key={n}><div className="layer-icon"><Icon size={18}/></div><div className="layer-content"><div className="between"><span>{n}</span><small>{layers[i]}%</small></div><input aria-label={`${n} volume`} type="range" value={layers[i]} onChange={e => setLayers(layers.map((v, j) => j === i ? +e.target.value : v))}/></div><button className="icon-button" aria-label={`Mute ${n}`} onClick={() => setLayers(layers.map((v, j) => j === i ? (v ? 0 : 50) : v))}>{layers[i] ? <Volume2 size={16}/> : <VolumeX size={16}/>}</button></div>; })}</div>; }
     function widget(id: string) {
-        return <section key={id} className={`widget ${wide[id] ? 'wide' : ''}`} onDragOver={event => edit && event.preventDefault()} onDrop={() => reorder(id)}>
-      <div className="widget-head"><div className="inline"><span draggable={edit} onDragStart={() => { drag.current = id; }} className={edit ? 'drag-handle enabled' : 'drag-handle'} title={edit ? 'Drag to rearrange' : 'Unlock layout to rearrange'}><Grip size={16}/></span>{id === 'combat' ? <Swords size={17}/> : id === 'atmosphere' ? <Headphones size={17}/> : id === 'journal' ? <BookOpen size={17}/> : <Dices size={17}/>}<h3>{({ combat: 'Live encounter', atmosphere: 'Atmosphere', journal: 'Session journal', dice: 'Dice tray' } as Record<string, string>)[id]}</h3></div><button aria-label={`Resize ${id} widget`} className="icon-button" onClick={() => setWide({ ...wide, [id]: !wide[id] })}><PanelTop size={16}/></button></div>
-      {id === 'combat' ? <CombatTracker battle={battle} setBattle={setBattle} battleTitle={battleTitle} battleActive={battleActive} round={round} setRound={setRound} turn={turn} setTurn={setTurn} onReference={openReference} onOpenEncounters={() => setPage('Encounters')} onEnd={endEncounter} notify={notify}/> : id === 'atmosphere' ? <><div className={`mini-art ${active.art}`}><div><span className="eyebrow">CURRENT SCENE</span><h2>{active.name}</h2></div><button className="play-circle" aria-label="Toggle ambience" onClick={toggleAudio}>{playing ? <Pause size={20}/> : <Play size={20}/>}</button></div>{mixer(true)}<button className="text-button widget-link" onClick={() => setPage('Atmosphere Studio')}>Open Atmosphere Studio <ArrowUpRight size={15}/></button></> : id === 'journal' ? <><div className="between journal-meta"><span className="badge subtle">Session notes</span><small><Check size={12}/> Autosaved locally</small></div><textarea aria-label="Session journal" value={note} onChange={event => setNote(event.target.value)}/><div className="widget-bottom between"><small>Private notes · {campaign}</small><button className="text-button" onClick={() => setNote(note + '\n• ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' — ')}>+ Timestamp</button></div></> : <><div className="dice-types">{[4, 6, 8, 10, 12, 20, 100].map(die => <button className={dice.toLowerCase().includes(`d${die}`) ? 'selected' : ''} key={die} onClick={() => addDieToExpression(die)} title={`Add 1d${die} to expression`}><Dices size={20}/><span>d{die}</span></button>)}</div><div className="dice-bar"><div className="dice-mode-toggle">{([['normal', 'Normal'], ['adv', 'Advantage'], ['disadv', 'Disadvantage']] as const).map(([m, label]) => <button key={m} className={rollMode === m ? 'active' : ''} onClick={() => setRollMode(m)}>{label}</button>)}</div><div className="dice-dc-pills"><span className="dc-tag">TARGET DC</span>{([null, 10, 15, 20] as const).map(dc => <button key={String(dc)} className={targetDC === dc ? 'active' : ''} onClick={() => setTargetDC(dc)}>{dc === null ? 'Off' : dc}</button>)}</div></div><div className="dice-entry"><input aria-label="Dice expression" value={dice} onChange={event => setDice(event.target.value)} onKeyDown={event => event.key === 'Enter' && rollDice()}/><button type="button" className="dice-clear-btn" onClick={() => setDice('1d20')} title="Reset to 1d20">Reset</button><div className="quick-mods">{[1, 2, 3, 5].map(v => <button key={v} type="button" className="mod-btn" onClick={() => applyModifier(v)}>+{v}</button>)}<button type="button" className="mod-btn" onClick={() => applyModifier(-1)}>-1</button></div><button className="primary roll-action-btn" onClick={() => rollDice()}>Roll dice</button></div><div className={`roll-result ${critState ? critState : ''} ${targetDC !== null && roll !== null ? (roll >= targetDC ? 'roll-pass' : 'roll-fail') : ''}`}><strong>{roll ?? '—'}</strong><div className="roll-details"><div className="roll-tags"><span>{roll === null ? 'Your next roll awaits' : 'Latest result'}</span>{critState === 'nat20' && <span className="crit-badge crit-nat20">NAT 20 · CRITICAL!</span>}{critState === 'nat1' && <span className="crit-badge crit-nat1">NAT 1 · FUMBLE!</span>}{targetDC !== null && roll !== null && <span className={`dc-badge ${roll >= targetDC ? 'dc-pass' : 'dc-fail'}`}>{roll >= targetDC ? `PASS (DC ${targetDC})` : `FAIL (DC ${targetDC})`}</span>}</div><small>{history[0] || 'Try 2d6+3, or choose a die above.'}</small></div></div><div className="roll-history">{history.slice(1, 4).map((entry, index) => <small key={index}>{entry}</small>)}</div></>}
+        const isCollapsed = Boolean(collapsed[id]);
+        return <section key={id} className={`widget ${wide[id] ? 'wide' : ''} ${isCollapsed ? 'widget-collapsed' : ''}`} onDragOver={event => edit && event.preventDefault()} onDrop={() => reorder(id)}>
+      <div className="widget-head"><div className="inline"><span draggable={edit} onDragStart={() => { drag.current = id; }} className={edit ? 'drag-handle enabled' : 'drag-handle'} title={edit ? 'Drag to rearrange' : 'Unlock layout to rearrange'}><Grip size={16}/></span>{id === 'combat' ? <Swords size={17}/> : id === 'atmosphere' ? <Headphones size={17}/> : id === 'journal' ? <BookOpen size={17}/> : <Dices size={17}/>}<h3>{({ combat: 'Live encounter', atmosphere: 'Atmosphere', journal: 'Session journal', dice: 'Dice tray' } as Record<string, string>)[id]}</h3></div><div className="inline widget-controls"><button aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${id} widget`} className="icon-button" onClick={() => setCollapsed({ ...collapsed, [id]: !isCollapsed })} title={isCollapsed ? 'Expand widget' : 'Collapse widget'}>{isCollapsed ? <ChevronDown size={16}/> : <ChevronUp size={16}/>}</button><button aria-label={`Resize ${id} widget`} className="icon-button" onClick={() => setWide({ ...wide, [id]: !wide[id] })} title="Toggle wide span"><PanelTop size={16}/></button></div></div>
+      {!isCollapsed && (id === 'combat' ? <CombatTracker battle={battle} setBattle={setBattle} battleTitle={battleTitle} battleActive={battleActive} round={round} setRound={setRound} turn={turn} setTurn={setTurn} onReference={openReference} onOpenEncounters={() => setPage('Encounters')} onEnd={endEncounter} notify={notify}/> : id === 'atmosphere' ? <><div className={`mini-art ${active.art}`}><div><span className="eyebrow">CURRENT SCENE</span><h2>{active.name}</h2></div><button className="play-circle" aria-label="Toggle ambience" onClick={toggleAudio}>{playing ? <Pause size={20}/> : <Play size={20}/>}</button></div>{mixer(true)}<button className="text-button widget-link" onClick={() => setPage('Atmosphere Studio')}>Open Atmosphere Studio <ArrowUpRight size={15}/></button></> : id === 'journal' ? <><div className="between journal-meta"><span className="badge subtle">Session notes</span><small><Check size={12}/> Autosaved locally</small></div><textarea aria-label="Session journal" value={note} onChange={event => setNote(event.target.value)}/><div className="widget-bottom between"><small>Private notes · {campaign}</small><button className="text-button" onClick={() => setNote(note + '\n• ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' — ')}>+ Timestamp</button></div></> : <><div className="dice-types">{[4, 6, 8, 10, 12, 20, 100].map(die => <button className={dice.toLowerCase().includes(`d${die}`) ? 'selected' : ''} key={die} onClick={e => handleDieClick(die, e.shiftKey)} title={`Click to select/deselect · Shift+Click to add/increment d${die}`}><Dices size={20}/><span>d{die}</span></button>)}</div><div className="dice-bar"><div className="dice-mode-toggle">{([['normal', 'Normal'], ['adv', 'Advantage'], ['disadv', 'Disadvantage']] as const).map(([m, label]) => <button key={m} className={rollMode === m ? 'active' : ''} onClick={() => setRollMode(m)}>{label}</button>)}</div><div className="dice-dc-pills"><span className="dc-tag">TARGET DC</span>{([null, 10, 15, 20] as const).map(dc => <button key={String(dc)} className={targetDC === dc ? 'active' : ''} onClick={() => setTargetDC(dc)}>{dc === null ? 'Off' : dc}</button>)}</div></div><div className="dice-entry"><input aria-label="Dice expression" value={dice} placeholder="Choose dice or type (e.g. 1d20+5d6)" onChange={event => setDice(event.target.value)} onKeyDown={event => event.key === 'Enter' && rollDice()}/><button type="button" className="dice-clear-btn" onClick={() => setDice('')} title="Clear all dice">Clear</button><div className="quick-mods">{[1, 2, 3, 5].map(v => <button key={v} type="button" className="mod-btn" onClick={() => applyModifier(v)}>+{v}</button>)}<button type="button" className="mod-btn" onClick={() => applyModifier(-1)}>-1</button></div><button className="primary roll-action-btn" onClick={() => rollDice()}>Roll dice</button></div><div className={`roll-result ${critState ? critState : ''} ${targetDC !== null && roll !== null ? (roll >= targetDC ? 'roll-pass' : 'roll-fail') : ''}`}><strong>{roll ?? '—'}</strong><div className="roll-details"><div className="roll-tags"><span>{roll === null ? 'Your next roll awaits' : 'Latest result'}</span>{critState === 'nat20' && <span className="crit-badge crit-nat20">NAT 20 · CRITICAL!</span>}{critState === 'nat1' && <span className="crit-badge crit-nat1">NAT 1 · FUMBLE!</span>}{targetDC !== null && roll !== null && <span className={`dc-badge ${roll >= targetDC ? 'dc-pass' : 'dc-fail'}`}>{roll >= targetDC ? `PASS (DC ${targetDC})` : `FAIL (DC ${targetDC})`}</span>}</div><small>{history[0] || 'Try 2d6+3, or choose a die above.'}</small></div></div><div className="roll-history">{history.slice(1, 4).map((entry, index) => <small key={index}>{entry}</small>)}</div></>)}
     </section>;
     }
     return <div className={`app theme-${theme}${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}><aside className="sidebar"><div className="brand"><div className="brand-mark"><Compass size={28}/></div><div>WAYFINDER<small>THE DM COMMAND CENTER</small></div><button className="icon-button collapse-sidebar-button" aria-label="Collapse sidebar" title="Collapse sidebar" onClick={() => setSidebarCollapsed(true)}><PanelLeftClose size={18}/></button></div><div className="campaign-switch"><small>ACTIVE CAMPAIGN</small><select aria-label="Active campaign" value={campaign} disabled={!campaigns.length} onChange={e => { setCampaign(e.target.value); setPage('Dashboard'); }}>{!campaigns.length && <option value="">No campaigns yet</option>}{campaigns.map(name => <option key={name} value={name}>{name}</option>)}</select><div className="campaign-actions"><button className="new-campaign-button" onClick={() => { setCampaignName(''); setCampaignError(''); setModal('campaign'); }}><Plus size={14}/>New campaign</button><button className="delete-campaign-button" disabled={!campaign} aria-label="Delete active campaign" onClick={() => { setDeleteCampaignText(''); setDeleteCampaignError(''); setModal('delete-campaign'); }}><Trash2 size={13}/></button></div><span className="campaign-status">● &nbsp;{battleActive ? 'Encounter in progress' : 'Ready to plan'}</span></div><div className="nav-label">WORKSPACE</div><nav>{[[LayoutDashboard, 'Dashboard'], [Headphones, 'Atmosphere Studio']].map(([Icon, n]) => <button key={String(n)} className={page === n ? 'active' : ''} onClick={() => setPage(String(n))}>{React.createElement(Icon as typeof Compass, { size: 19 })}{String(n)}{n === 'Atmosphere Studio' && <span className="tiny-dot"/>}</button>)}</nav><div className="nav-label">CAMPAIGN TOOLS</div><nav className="campaign-nav">{[[Swords, 'Encounters'], [Users, 'Characters & NPCs'], [BookOpen, 'Campaign wiki'], [BookOpen, 'Compendium']].map(([Icon, n]) => <button disabled={!campaign} className={page === n ? 'active' : ''} key={String(n)} onClick={() => setPage(String(n))}>{React.createElement(Icon as typeof Compass, { size: 18 })}{String(n)}</button>)}</nav><div className="sidebar-bottom"><div className="local-status"><span /> {cloud.user ? 'Supabase workspace' : 'Local-first workspace'}<small>{cloud.transfer || (cloud.user ? cloud.status + (cloud.pending ? ` · ${cloud.pending} pending` : '') : 'Connect Supabase in Settings for cloud sync.')}</small></div><button onClick={() => setModal('settings')}><Settings size={17}/> Settings & backup</button><div className="profile"><div className="avatar">DM</div><div>Dungeon Master<small>Private workspace</small></div><MoreHorizontal size={18}/></div></div></aside><main><header className="topbar"><button className="icon-button toggle-sidebar-button" aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => setSidebarCollapsed(!sidebarCollapsed)}><PanelLeft size={18}/></button><div className="breadcrumb">Workspace <span>/</span> <strong>{page}</strong></div><button className="search-button" onClick={() => setModal('search')}><Search size={16}/> Quick search <kbd>⌘ K</kbd></button><button className="theme-toggle icon-button" aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'} title={theme === 'light' ? 'Dark theme' : 'Light theme'} onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>{theme === 'light' ? <Moon size={17}/> : <Sun size={17}/>}</button><span className={`saved ${saveError ? "form-error" : ""}`}><Check size={14}/> {saveError ? 'Storage full · export a backup' : cloud.transfer ? 'Cloud transfer…' : cloud.user ? cloud.status === 'synced' ? 'Saved to Supabase' : cloud.status === 'conflict' ? 'Sync conflict · open Settings' : cloud.status === 'error' ? 'Cloud sync error' : cloud.status === 'offline' ? 'Offline · saved locally' : 'Syncing to Supabase…' : 'All changes saved locally'}</span></header><div className="content"><div className="page-heading"><div><div className="eyebrow">{page === 'Dashboard' ? 'YOUR TABLE. YOUR WORLD.' : page === 'Atmosphere Studio' ? 'SET THE SCENE.' : campaign.toUpperCase() + ' · CAMPAIGN TOOLS'}</div><h1>{page === 'Dashboard' ? 'Behind the screen.' : page}<span className="heading-star">✧</span></h1><p>{page === 'Dashboard' ? 'A little less bookkeeping. A little more adventure.' : page === 'Atmosphere Studio' ? 'Every great story deserves a soundscape.' : page === 'Encounters' ? 'Prepare the challenge. Run it with confidence.' : page === 'Characters & NPCs' ? 'Remember the people who make your world.' : page === 'Compendium' ? 'Your sourcebook. Every creature, spell, and possibility.' : 'Keep the clues, places, and stories connected.'}</p></div><div className="inline">{page === 'Dashboard' ? <button className={edit ? 'primary' : 'secondary'} onClick={() => {
                 setEdit(!edit);
                 if (edit)
                     notify('Workspace layout saved');
-            }}>{edit ? <Check size={16}/> : <SlidersHorizontal size={16}/>} {edit ? 'Save layout' : 'Customize layout'}</button> : page === 'Atmosphere Studio' ? <button className="primary" onClick={() => setModal('scene')}><Plus size={17}/> Save current scene</button> : <span className="badge subtle">Campaign records · autosaved</span>}</div></div>{page === 'Dashboard' ? <><div className={`session-banner ${battleActive ? 'battle-mode' : ''}`}><div className="session-emblem">{battleActive ? <Swords size={26}/> : <Compass size={26}/>}</div><div className="session-info"><div className="session-eyebrow"><span className="eyebrow">{campaign.toUpperCase()}</span><span className={`session-pill ${battleActive ? 'live' : ''}`}><span /> {battleActive ? 'Encounter Active' : 'Campaign Ready'}</span></div><h2>{battleActive ? battleTitle : 'Behind The DM Screen'}</h2>{battleActive ? <div className="session-combat-meta"><span className="combat-chip round-chip">Round <strong>{round}</strong></span><span className="combat-chip turn-chip">Turn: <strong>{battle[turn]?.name || 'Initiative'}</strong></span>{battle[turn] && <span className="combat-chip hp-chip">{battle[turn].hp} / {battle[turn].maxHp} HP</span>}</div> : <p className="session-subtitle">Active Scene: <strong>{active.name}</strong> · Quick shortcuts ready for your session.</p>}</div><div className="session-actions">{battleActive ? <><button className="primary session-action-btn" onClick={advanceTurn} title="Next Turn"><SkipForward size={14}/> Next Turn</button><button className="secondary session-action-btn" onClick={() => setModal('journal')} title="Session Notes"><BookOpen size={14}/> Notes</button><button className="danger-text session-action-btn" onClick={endEncounter} title="End Encounter">End Battle</button></> : <><button className="secondary session-action-btn" onClick={toggleAudio} title={playing ? 'Pause Ambience' : 'Play Ambience'}>{playing ? <Pause size={14}/> : <Play size={14}/>} {playing ? 'Pause audio' : 'Play scene'}</button><button className="secondary session-action-btn" onClick={() => setPage('Encounters')} title="Plan Encounters"><Swords size={14}/> Encounters</button><button className="icon-button session-notes-btn" aria-label="Open session notes" title="Open session notes" onClick={() => setModal('journal')}><ArrowUpRight size={18}/></button></>}</div></div><div className="workspace-toolbar"><div className="tabs">{['Session', 'Combat', 'Exploration'].map(t => <button key={t} onClick={() => setLayout(t)} className={layout === t ? 'selected' : ''}>{t}</button>)}</div><span>{edit ? 'Drag the grip to reorder · use the panel icon to resize' : '4 widgets'} <span className="dim">/</span> <button className="text-button" onClick={() => { setOrders({ ...orders, [layout]: ['combat', 'atmosphere', 'journal', 'dice'] }); setWide({}); notify('Layout reset'); }}>Reset layout</button></span></div><div className={`widget-grid ${edit ? 'editing' : ''}`}>{(orders[layout] || orders.Session).map(widget)}</div></> : page === 'Compendium' ? <Compendium campaign={campaign} focus={compendiumFocus} onFocusHandled={() => setCompendiumFocus('')} notify={notify}/> : page !== 'Atmosphere Studio' ? <CampaignTools key={campaign + '-' + page} page={page} campaign={campaign} onStart={startEncounter} onUpdate={updateActiveEncounter} activeEncounterId={battleId} battleActive={battleActive} notify={notify} onReference={openReference}/> : <><div className="studio-grid"><div className="scene-library"><div className="section-heading"><h3>Scene library <span>{allScenes.length}</span></h3><span className="badge subtle">Campaign + global</span></div><div className="scene-filters">{['All scenes', 'Exploration', 'Roleplay', 'Tension', 'Combat'].map(f => <button className={f === filter ? 'selected' : ''} key={f} onClick={() => setFilter(f)}>{f}</button>)}</div><div className="scene-grid">{allScenes.map((s, i) => (filter === 'All scenes' || s.tag.toLowerCase() === filter.toLowerCase()) && <div className="scene-wrapper" key={i}><button className={`scene-card ${i === scene ? 'chosen' : ''}`} onClick={() => activate(i)}><div className={`scene-art ${s.art}`}><span className="art-stars">✦</span><span className="scene-tag">{s.tag}</span>{i === scene ? <div className="scene-current"><Check size={14}/> Loaded</div> : <div className="scene-play"><Play size={20}/></div>}</div><div className="scene-info"><h3>{s.name}</h3><p>{s.desc}</p><span>{s.source ? s.source.provider + ' source' : '4 ambience layers'} <span>·</span> {i < 5 ? 'Global library' : 'Your library'}</span></div></button>{s.source?.provider === 'YouTube' && <div className="scene-deck-actions"><button aria-label={`Load ${s.name} to YouTube deck A`} onClick={() => loadYouTubeDeck(s.source!.identity, 'A')}>A</button><button aria-label={`Load ${s.name} to YouTube deck B`} onClick={() => loadYouTubeDeck(s.source!.identity, 'B')}>B</button></div>}{i >= scenes.length && <button className="scene-remove icon-button" aria-label={`Remove ${s.name}`} onClick={() => {
+            }}>{edit ? <Check size={16}/> : <SlidersHorizontal size={16}/>} {edit ? 'Save layout' : 'Customize layout'}</button> : page === 'Atmosphere Studio' ? <button className="primary" onClick={() => setModal('scene')}><Plus size={17}/> Save current scene</button> : <span className="badge subtle">Campaign records · autosaved</span>}</div></div>{page === 'Dashboard' ? <><div className={`session-banner ${battleActive ? 'battle-mode' : ''}`}><div className="session-emblem">{battleActive ? <Swords size={26}/> : <Compass size={26}/>}</div><div className="session-info"><div className="session-eyebrow"><span className="eyebrow">{campaign.toUpperCase()}</span><span className={`session-pill ${battleActive ? 'live' : ''}`}><span /> {battleActive ? 'Encounter Active' : 'Campaign Ready'}</span></div><h2>{battleActive ? battleTitle : 'Behind The DM Screen'}</h2>{battleActive ? <div className="session-combat-meta"><span className="combat-chip round-chip">Round <strong>{round}</strong></span><span className="combat-chip turn-chip">Turn: <strong>{battle[turn]?.name || 'Initiative'}</strong></span>{battle[turn] && <span className="combat-chip hp-chip">{battle[turn].hp} / {battle[turn].maxHp} HP</span>}</div> : <p className="session-subtitle">Active Scene: <strong>{active.name}</strong> · Quick shortcuts ready for your session.</p>}</div><div className="session-actions">{battleActive ? <><button className="primary session-action-btn" onClick={advanceTurn} title="Next Turn"><SkipForward size={14}/> Next Turn</button><button className="secondary session-action-btn" onClick={() => setModal('journal')} title="Session Notes"><BookOpen size={14}/> Notes</button><button className="danger-text session-action-btn" onClick={endEncounter} title="End Encounter">End Battle</button></> : <><button className="secondary session-action-btn" onClick={toggleAudio} title={playing ? 'Pause Ambience' : 'Play Ambience'}>{playing ? <Pause size={14}/> : <Play size={14}/>} {playing ? 'Pause audio' : 'Play scene'}</button><button className="secondary session-action-btn" onClick={() => setPage('Encounters')} title="Plan Encounters"><Swords size={14}/> Encounters</button><button className="icon-button session-notes-btn" aria-label="Open session notes" title="Open session notes" onClick={() => setModal('journal')}><ArrowUpRight size={18}/></button></>}</div></div>{partyCharacters.filter(c => c.kind === 'Player').length > 0 && <div className="party-status-strip" aria-label="Party status overview"><div className="party-strip-heading"><div className="inline"><Shield size={14}/><span>PARTY VITALS</span></div><button className="text-button party-manage-btn" onClick={() => setPage('Characters & NPCs')}>Manage party <ArrowUpRight size={13}/></button></div><div className="party-cards-grid">{partyCharacters.filter(c => c.kind === 'Player').map(pc => <div key={pc.id} className="party-card"><div className="party-card-avatar">{pc.portrait ? <img src={pc.portrait} alt="" /> : pc.name.slice(0, 1)}</div><div className="party-card-info"><strong>{pc.name}</strong><small>{pc.role || 'Player Character'}</small></div><div className="party-card-stats"><span className="party-stat ac-stat" title="Armor Class"><Shield size={12}/><strong>{pc.ac ?? 10}</strong><small>AC</small></span><span className="party-stat pp-stat" title="Passive Perception"><Eye size={12}/><strong>{pc.passivePerception ?? 10}</strong><small>PP</small></span><span className="party-stat hp-stat" title="Hit Points"><small>HP</small><strong>{pc.hp}</strong></span></div></div>)}</div></div>}<div className="workspace-toolbar"><div className="tabs">{['Session', 'Combat', 'Exploration'].map(t => <button key={t} onClick={() => setLayout(t)} className={layout === t ? 'selected' : ''}>{t}</button>)}</div><span>{edit ? 'Drag the grip to reorder · use the panel icon to resize' : '4 widgets'} <span className="dim">/</span> <button className="text-button" onClick={() => { setOrders({ ...orders, [layout]: ['combat', 'atmosphere', 'journal', 'dice'] }); setWide({}); notify('Layout reset'); }}>Reset layout</button></span></div><div className={`widget-grid ${edit ? 'editing' : ''}`}>{(orders[layout] || orders.Session).map(widget)}</div></> : page === 'Compendium' ? <Compendium campaign={campaign} focus={compendiumFocus} onFocusHandled={() => setCompendiumFocus('')} notify={notify}/> : page !== 'Atmosphere Studio' ? <CampaignTools key={campaign + '-' + page} page={page} campaign={campaign} onStart={startEncounter} onUpdate={updateActiveEncounter} activeEncounterId={battleId} battleActive={battleActive} notify={notify} onReference={openReference}/> : <><div className="studio-grid"><div className="scene-library"><div className="section-heading"><h3>Scene library <span>{allScenes.length}</span></h3><span className="badge subtle">Campaign + global</span></div><div className="scene-filters">{['All scenes', 'Exploration', 'Roleplay', 'Tension', 'Combat'].map(f => <button className={f === filter ? 'selected' : ''} key={f} onClick={() => setFilter(f)}>{f}</button>)}</div><div className="scene-grid">{allScenes.map((s, i) => (filter === 'All scenes' || s.tag.toLowerCase() === filter.toLowerCase()) && <div className="scene-wrapper" key={i}><button className={`scene-card ${i === scene ? 'chosen' : ''}`} onClick={() => activate(i)}><div className={`scene-art ${s.art}`}><span className="art-stars">✦</span><span className="scene-tag">{s.tag}</span>{i === scene ? <div className="scene-current"><Check size={14}/> Loaded</div> : <div className="scene-play"><Play size={20}/></div>}</div><div className="scene-info"><h3>{s.name}</h3><p>{s.desc}</p><span>{s.source ? s.source.provider + ' source' : '4 ambience layers'} <span>·</span> {i < 5 ? 'Global library' : 'Your library'}</span></div></button>{s.source?.provider === 'YouTube' && <div className="scene-deck-actions"><button aria-label={`Load ${s.name} to YouTube deck A`} onClick={() => loadYouTubeDeck(s.source!.identity, 'A')}>A</button><button aria-label={`Load ${s.name} to YouTube deck B`} onClick={() => loadYouTubeDeck(s.source!.identity, 'B')}>B</button></div>}{i >= scenes.length && <button className="scene-remove icon-button" aria-label={`Remove ${s.name}`} onClick={() => {
                         setCustom(custom.filter((_, j) => j !== i - scenes.length));
                         if (scene === i) {
                             setScene(0);
@@ -519,5 +573,23 @@ export default function App() {
                         sessionStorage.setItem('wayfinder-youtube-key', e.target.value);
                     }
                     catch { }
-                }}/><small>No key? You can still open a title search and paste a matching video.</small></div><div className="settings-note">React + TypeScript + Vite<br />Netlify: npm run build → dist<br />Keyboard: Ctrl / ⌘ K to search, Esc to close</div></>}</div></div>}</div>;
+                }}/><small>No key? You can still open a title search and paste a matching video.</small></div><div className="settings-note">React + TypeScript + Vite<br />Netlify: npm run build → dist<br />Keyboard: Ctrl / ⌘ K to search, Esc to close</div></>}</div></div>}
+    {rollOverlay && <div className="quick-roll-overlay" role="status" aria-live="polite">
+      <div className="quick-roll-header">
+        <span className="quick-roll-label">{rollOverlay.label}</span>
+        <button className="quick-roll-close" onClick={() => setRollOverlay(null)} aria-label="Close roll overlay"><X size={13}/></button>
+      </div>
+      <div className="quick-roll-body">
+        <div className={`quick-roll-total ${rollOverlay.crit ? rollOverlay.crit : ''}`}>
+          {rollOverlay.total}
+        </div>
+        <div className="quick-roll-meta">
+          {rollOverlay.crit === 'nat20' && <span className="crit-badge crit-nat20">NAT 20</span>}
+          {rollOverlay.crit === 'nat1' && <span className="crit-badge crit-nat1">NAT 1</span>}
+          <div className="quick-roll-expr">{rollOverlay.expression}</div>
+          <small className="quick-roll-breakdown">{rollOverlay.breakdown}</small>
+        </div>
+      </div>
+    </div>}
+  </div>;
 }

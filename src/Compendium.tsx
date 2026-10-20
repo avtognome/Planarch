@@ -14,11 +14,40 @@ function FieldBody({value}:{value:FieldValue}){
  return <p className="reference-text">{String(value??'')}</p>;
 }
 
-function ability(value:FieldValue){
+export function ability(value:FieldValue){
  const score=Number(plain(value));
  if(!Number.isFinite(score))return plain(value)||'—';
  const modifier=Math.floor((score-10)/2);
  return `${score} (${modifier>=0?'+':''}${modifier})`;
+}
+
+function InteractiveActionText({text}:{text:string}){
+ const triggerRoll=(expr:string,label:string)=>{
+  if(typeof window!=='undefined'){
+   window.dispatchEvent(new CustomEvent('wayfinder-dice-roll',{detail:{expression:expr,label}}));
+  }
+ };
+ const regex=/(([+-]\d+)\s+to\s+hit)|(\b\d{1,2}d\d{1,3}(?:\s*[+-]\s*\d+)?\b)/gi;
+ let lastIndex=0,match;
+ const parts:React.ReactNode[]=[];
+ let key=0;
+ while((match=regex.exec(text))!==null){
+  if(match.index>lastIndex){
+   parts.push(<span key={key++}>{text.substring(lastIndex,match.index)}</span>);
+  }
+  if(match[1]){
+   const atkMod=match[2],label=match[1],expr=`1d20${atkMod}`;
+   parts.push(<button key={key++} type="button" className="dice-inline-btn attack-roll-btn" onClick={()=>triggerRoll(expr,`Attack (${label})`)} title={`Roll attack: ${expr}`}>ATK {atkMod}</button>);
+  }else if(match[3]){
+   const dmgExpr=match[3].replace(/\s+/g,''),label=match[3];
+   parts.push(<button key={key++} type="button" className="dice-inline-btn damage-roll-btn" onClick={()=>triggerRoll(dmgExpr,`Damage (${label})`)} title={`Roll damage: ${dmgExpr}`}>DMG {label}</button>);
+  }
+  lastIndex=regex.lastIndex;
+ }
+ if(lastIndex<text.length){
+  parts.push(<span key={key++}>{text.substring(lastIndex)}</span>);
+ }
+ return <>{parts}</>;
 }
 
 function MonsterEntries({value}:{value:FieldValue}){
@@ -26,18 +55,25 @@ function MonsterEntries({value}:{value:FieldValue}){
  return <>{values.map((entry,index)=>{
   if(entry&&typeof entry==='object'){
    const object=entry as Record<string,FieldValue>,name=plain(object.name),body=plain(object.text||object['#text']);
-   return <div className="monster-entry" key={index}>{name&&<strong>{name}. </strong>}{body||<FieldBody value={entry}/>}</div>;
+   return <div className="monster-entry" key={index}>{name&&<strong>{name}. </strong>}{body?<InteractiveActionText text={body}/>:<FieldBody value={entry}/>}</div>;
   }
-  return <p className="monster-entry" key={index}>{plain(entry)}</p>;
+  const str=plain(entry);
+  return <p className="monster-entry" key={index}><InteractiveActionText text={str}/></p>;
  })}</>;
 }
 
-function MonsterSection({title,value}:{title:string,value:FieldValue|undefined}){
+function MonsterSection({title,value,collapsible=false}:{title:string,value:FieldValue|undefined,collapsible?:boolean}){
  if(!value||!plain(value))return null;
+ if(collapsible){
+  return <details className="compendium-accordion monster-accordion" open>
+   <summary className="accordion-summary"><span>{title}</span></summary>
+   <div className="accordion-content"><MonsterEntries value={value}/></div>
+  </details>;
+ }
  return <section className="monster-section"><h3>{title}</h3><MonsterEntries value={value}/></section>;
 }
 
-function MonsterStatBlock({record}:{record:CompendiumRecord}){
+export function MonsterStatBlock({record,collapsibleSections=false}:{record:CompendiumRecord,collapsibleSections?:boolean}){
  const f=record.fields,size=sizeNames[plain(f.size)]||plain(f.size),typeLine=[size,plain(f.type)].filter(Boolean).join(' '),details=['save','skill','vulnerable','resist','immune','conditionImmune','senses','languages','cr'];
  return <div className="monster-stat-block" aria-label={`${record.name} monster stat block`}>
   <p className="monster-meta"><em>{typeLine}{typeLine&&plain(f.alignment)?', ':''}{plain(f.alignment)}</em></p>
@@ -47,11 +83,11 @@ function MonsterStatBlock({record}:{record:CompendiumRecord}){
   <div className="monster-abilities">{['str','dex','con','int','wis','cha'].map(key=><div key={key}><strong>{key.toUpperCase()}</strong><span>{ability(f[key])}</span></div>)}</div>
   <div className="monster-rule"/>
   <div className="monster-details">{details.map(key=>plain(f[key])&&<p key={key}><strong>{monsterLabels[key]}</strong> {plain(f[key])}{key==='senses'&&plain(f.passive)?`, passive Perception ${plain(f.passive)}`:''}</p>)}</div>
-  {plain(f.trait)&&<div className="monster-traits"><MonsterEntries value={f.trait}/></div>}
-  <MonsterSection title="Actions" value={f.action}/>
-  <MonsterSection title="Reactions" value={f.reaction}/>
-  <MonsterSection title="Legendary Actions" value={f.legendary}/>
-  <MonsterSection title="Spellcasting" value={f.spells}/>
+  {plain(f.trait)&&(collapsibleSections ? <details className="compendium-accordion monster-accordion" open><summary className="accordion-summary"><span>Traits</span></summary><div className="accordion-content"><MonsterEntries value={f.trait}/></div></details> : <div className="monster-traits"><MonsterEntries value={f.trait}/></div>)}
+  <MonsterSection title="Actions" value={f.action} collapsible={collapsibleSections}/>
+  <MonsterSection title="Reactions" value={f.reaction} collapsible={collapsibleSections}/>
+  <MonsterSection title="Legendary Actions" value={f.legendary} collapsible={collapsibleSections}/>
+  <MonsterSection title="Spellcasting" value={f.spells} collapsible={collapsibleSections}/>
   <div className="monster-footer">{plain(f.environment)&&<span><strong>Environment</strong> {plain(f.environment)}</span>}{plain(f.description)&&<span>{plain(f.description)}</span>}</div>
  </div>;
 }
@@ -86,7 +122,7 @@ function ClassProgression({value}:{value:FieldValue|undefined}){
  return <section className="dnd-section class-progression"><h3>Class Progression</h3>{levels.map((level,index)=>{if(!level||typeof level!=='object')return <ReferenceEntries key={index} value={level}/>;const object=level as Record<string,FieldValue>,levelNumber=plain(object['@_level']);return <div className="class-level" key={index}><h4>{levelNumber?`Level ${levelNumber}`:'Class Features'}</h4>{object.feature&&<ReferenceEntries value={object.feature}/>}</div>})}</section>;
 }
 
-function ReferenceStatBlock({record}:{record:CompendiumRecord}){
+export function ReferenceStatBlock({record}:{record:CompendiumRecord}){
  const f=record.fields;
  if(record.kind==='spell'){
   const level=plain(f.level),school=schoolNames[plain(f.school)]||plain(f.school),subtitle=level==='0'?`${school?school+' ':''}cantrip`:`${level?`${level}${level==='1'?'st':level==='2'?'nd':level==='3'?'rd':'th'}-level `:''}${school}`;

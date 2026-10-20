@@ -289,42 +289,120 @@ export default function App() {
     };
     const rollDice = (overrideDice?: string) => {
         const expression = (overrideDice || dice).trim();
-        const m = expression.match(/^(\d{0,2})d(4|6|8|10|12|20|100)([+-]\d+)?$/i);
-        if (!m) {
-            notify('Use dice notation, such as 2d6+3 or 1d20');
-            return;
-        }
-        const count = Number(m[1]) || 1;
-        const sides = Number(m[2]);
-        const mod = Number(m[3] || 0);
-
-        if (sides === 20 && count === 1 && rollMode !== 'normal') {
-            const r1 = 1 + Math.floor(Math.random() * 20);
-            const r2 = 1 + Math.floor(Math.random() * 20);
-            const chosen = rollMode === 'adv' ? Math.max(r1, r2) : Math.min(r1, r2);
-            const total = chosen + mod;
-            setRoll(total);
-            setCritState(chosen === 20 ? 'nat20' : chosen === 1 ? 'nat1' : null);
-            const entry = `${expression} (${rollMode === 'adv' ? 'ADV' : 'DIS'} [${r1}, ${r2}])${mod ? (mod > 0 ? `+${mod}` : mod) : ''} = ${total}`;
-            setHistory(h => [entry, ...h].slice(0, 8));
+        const clean = expression.replace(/\s+/g, '');
+        const tokens = clean.match(/([+-]?[^+-]+)/g);
+        if (!tokens || !tokens.length) {
+            notify('Use dice notation, such as 1d20+5d6 or 2d6+3');
             return;
         }
 
-        const values = Array.from({ length: count }, () => 1 + Math.floor(Math.random() * sides));
-        const total = values.reduce((a, b) => a + b, 0) + mod;
+        let total = 0;
+        const breakdowns: string[] = [];
+        let singleD20Roll: number | null = null;
+        let isSingleD20 = false;
+
+        const diceTokens = tokens.filter(t => t.toLowerCase().includes('d'));
+        if (tokens.length === 1 && diceTokens.length === 1) {
+            const m = diceTokens[0].match(/^[+]?(\d*)d(20)$/i);
+            if (m && (m[1] === '' || m[1] === '1'))
+                isSingleD20 = true;
+        }
+
+        for (const token of tokens) {
+            const sign = token.startsWith('-') ? -1 : 1;
+            const body = token.replace(/^[+-]/, '');
+            const diceMatch = body.match(/^(\d*)d(4|6|8|10|12|20|100)$/i);
+
+            if (diceMatch) {
+                const count = Number(diceMatch[1]) || 1;
+                const sides = Number(diceMatch[2]);
+                if (count < 1 || count > 50) {
+                    notify('Max 50 dice per pool');
+                    return;
+                }
+
+                if (isSingleD20 && sides === 20 && count === 1 && rollMode !== 'normal') {
+                    const r1 = 1 + Math.floor(Math.random() * 20);
+                    const r2 = 1 + Math.floor(Math.random() * 20);
+                    const chosen = rollMode === 'adv' ? Math.max(r1, r2) : Math.min(r1, r2);
+                    singleD20Roll = chosen;
+                    total += sign * chosen;
+                    breakdowns.push(`${sign < 0 ? '-' : (breakdowns.length ? '+' : '')}${body}(${rollMode === 'adv' ? 'ADV' : 'DIS'} [${r1}, ${r2}] = ${chosen})`);
+                } else {
+                    const rolls = Array.from({ length: count }, () => 1 + Math.floor(Math.random() * sides));
+                    const sum = rolls.reduce((a, b) => a + b, 0);
+                    if (sides === 20 && count === 1 && !singleD20Roll)
+                        singleD20Roll = rolls[0];
+                    total += sign * sum;
+                    const rollStr = rolls.length > 1 ? `[${rolls.join('+')}]` : `${rolls[0]}`;
+                    breakdowns.push(`${sign < 0 ? '-' : (breakdowns.length ? '+' : '')}${count > 1 ? `${count}d${sides}` : `d${sides}`}(${rollStr})`);
+                }
+            } else if (/^\d+$/.test(body)) {
+                const val = Number(body);
+                total += sign * val;
+                breakdowns.push(`${sign < 0 ? '-' : (breakdowns.length ? '+' : '')}${val}`);
+            } else {
+                notify('Invalid dice expression. Example: 1d20+5d6 or 2d6+3');
+                return;
+            }
+        }
+
         setRoll(total);
-        if (sides === 20 && count === 1) {
-            setCritState(values[0] === 20 ? 'nat20' : values[0] === 1 ? 'nat1' : null);
+        if (singleD20Roll !== null) {
+            setCritState(singleD20Roll === 20 ? 'nat20' : singleD20Roll === 1 ? 'nat1' : null);
         } else {
             setCritState(null);
         }
-        const entry = `${expression}: ${values.join(' + ')}${mod ? (mod > 0 ? `+${mod}` : mod) : ''} = ${total}`;
+
+        const entry = `${expression}: ${breakdowns.join(' ')} = ${total}`;
         setHistory(h => [entry, ...h].slice(0, 8));
     };
+    const addDieToExpression = (die: number) => {
+        const clean = dice.trim();
+        if (!clean || clean === '0') {
+            setDice(`1d${die}`);
+            return;
+        }
+        const tokens = clean.replace(/\s+/g, '').match(/([+-]?[^+-]+)/g);
+        if (!tokens) {
+            setDice(`1d${die}`);
+            return;
+        }
+
+        let found = false;
+        const newTokens = tokens.map(t => {
+            const sign = t.startsWith('-') ? '-' : (t.startsWith('+') ? '+' : '');
+            const body = t.replace(/^[+-]/, '');
+            const m = body.match(/^(\d*)d(\d+)$/i);
+            if (m && Number(m[2]) === die && sign !== '-') {
+                found = true;
+                const count = (Number(m[1]) || 1) + 1;
+                return (sign ? sign : '') + count + 'd' + die;
+            }
+            return t;
+        });
+
+        if (!found) {
+            const last = newTokens[newTokens.length - 1];
+            if (/^[+-]?\d+$/.test(last) && !last.toLowerCase().includes('d')) {
+                newTokens.splice(newTokens.length - 1, 0, `+1d${die}`);
+            } else {
+                newTokens.push(`+1d${die}`);
+            }
+        }
+
+        const formatted = newTokens.map((t, i) => {
+            if (i === 0) return t;
+            if (t.startsWith('+') || t.startsWith('-')) return ` ${t[0]} ${t.slice(1)}`;
+            return ` + ${t}`;
+        }).join('');
+        setDice(formatted);
+    };
     const applyModifier = (delta: number) => {
-        const m = dice.trim().match(/^(\d{0,2}d\d+)([+-]\d+)?$/i);
-        const base = m ? m[1] : '1d20';
-        const currentMod = m ? Number(m[2] || 0) : 0;
+        const trimmed = dice.trim();
+        const m = trimmed.match(/^([\s\S]*?)([+-]\d+)?$/);
+        const base = m && m[1] ? m[1].trim() : '1d20';
+        const currentMod = m && m[2] ? Number(m[2]) : 0;
         const nextMod = currentMod + delta;
         const modStr = nextMod > 0 ? `+${nextMod}` : nextMod < 0 ? `${nextMod}` : '';
         setDice(`${base}${modStr}`);
@@ -343,7 +421,7 @@ export default function App() {
     function widget(id: string) {
         return <section key={id} className={`widget ${wide[id] ? 'wide' : ''}`} onDragOver={event => edit && event.preventDefault()} onDrop={() => reorder(id)}>
       <div className="widget-head"><div className="inline"><span draggable={edit} onDragStart={() => { drag.current = id; }} className={edit ? 'drag-handle enabled' : 'drag-handle'} title={edit ? 'Drag to rearrange' : 'Unlock layout to rearrange'}><Grip size={16}/></span>{id === 'combat' ? <Swords size={17}/> : id === 'atmosphere' ? <Headphones size={17}/> : id === 'journal' ? <BookOpen size={17}/> : <Dices size={17}/>}<h3>{({ combat: 'Live encounter', atmosphere: 'Atmosphere', journal: 'Session journal', dice: 'Dice tray' } as Record<string, string>)[id]}</h3></div><button aria-label={`Resize ${id} widget`} className="icon-button" onClick={() => setWide({ ...wide, [id]: !wide[id] })}><PanelTop size={16}/></button></div>
-      {id === 'combat' ? <CombatTracker battle={battle} setBattle={setBattle} battleTitle={battleTitle} battleActive={battleActive} round={round} setRound={setRound} turn={turn} setTurn={setTurn} onReference={openReference} onOpenEncounters={() => setPage('Encounters')} onEnd={endEncounter} notify={notify}/> : id === 'atmosphere' ? <><div className={`mini-art ${active.art}`}><div><span className="eyebrow">CURRENT SCENE</span><h2>{active.name}</h2></div><button className="play-circle" aria-label="Toggle ambience" onClick={toggleAudio}>{playing ? <Pause size={20}/> : <Play size={20}/>}</button></div>{mixer(true)}<button className="text-button widget-link" onClick={() => setPage('Atmosphere Studio')}>Open Atmosphere Studio <ArrowUpRight size={15}/></button></> : id === 'journal' ? <><div className="between journal-meta"><span className="badge subtle">Session notes</span><small><Check size={12}/> Autosaved locally</small></div><textarea aria-label="Session journal" value={note} onChange={event => setNote(event.target.value)}/><div className="widget-bottom between"><small>Private notes · {campaign}</small><button className="text-button" onClick={() => setNote(note + '\n• ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' — ')}>+ Timestamp</button></div></> : <><div className="dice-types">{[4, 6, 8, 10, 12, 20, 100].map(die => <button className={dice.startsWith(`1d${die}`) ? 'selected' : ''} key={die} onClick={() => setDice(`1d${die}`)}><Dices size={20}/><span>d{die}</span></button>)}</div><div className="dice-bar"><div className="dice-mode-toggle">{([['normal', 'Normal'], ['adv', 'Advantage'], ['disadv', 'Disadvantage']] as const).map(([m, label]) => <button key={m} className={rollMode === m ? 'active' : ''} onClick={() => setRollMode(m)}>{label}</button>)}</div><div className="dice-dc-pills"><span className="dc-tag">TARGET DC</span>{([null, 10, 15, 20] as const).map(dc => <button key={String(dc)} className={targetDC === dc ? 'active' : ''} onClick={() => setTargetDC(dc)}>{dc === null ? 'Off' : dc}</button>)}</div></div><div className="dice-entry"><input aria-label="Dice expression" value={dice} onChange={event => setDice(event.target.value)} onKeyDown={event => event.key === 'Enter' && rollDice()}/><div className="quick-mods">{[1, 2, 3, 5].map(v => <button key={v} type="button" className="mod-btn" onClick={() => applyModifier(v)}>+{v}</button>)}<button type="button" className="mod-btn" onClick={() => applyModifier(-1)}>-1</button></div><button className="primary roll-action-btn" onClick={() => rollDice()}>Roll dice</button></div><div className={`roll-result ${critState ? critState : ''} ${targetDC !== null && roll !== null ? (roll >= targetDC ? 'roll-pass' : 'roll-fail') : ''}`}><strong>{roll ?? '—'}</strong><div className="roll-details"><div className="roll-tags"><span>{roll === null ? 'Your next roll awaits' : 'Latest result'}</span>{critState === 'nat20' && <span className="crit-badge crit-nat20">NAT 20 · CRITICAL!</span>}{critState === 'nat1' && <span className="crit-badge crit-nat1">NAT 1 · FUMBLE!</span>}{targetDC !== null && roll !== null && <span className={`dc-badge ${roll >= targetDC ? 'dc-pass' : 'dc-fail'}`}>{roll >= targetDC ? `PASS (DC ${targetDC})` : `FAIL (DC ${targetDC})`}</span>}</div><small>{history[0] || 'Try 2d6+3, or choose a die above.'}</small></div></div><div className="roll-history">{history.slice(1, 4).map((entry, index) => <small key={index}>{entry}</small>)}</div></>}
+      {id === 'combat' ? <CombatTracker battle={battle} setBattle={setBattle} battleTitle={battleTitle} battleActive={battleActive} round={round} setRound={setRound} turn={turn} setTurn={setTurn} onReference={openReference} onOpenEncounters={() => setPage('Encounters')} onEnd={endEncounter} notify={notify}/> : id === 'atmosphere' ? <><div className={`mini-art ${active.art}`}><div><span className="eyebrow">CURRENT SCENE</span><h2>{active.name}</h2></div><button className="play-circle" aria-label="Toggle ambience" onClick={toggleAudio}>{playing ? <Pause size={20}/> : <Play size={20}/>}</button></div>{mixer(true)}<button className="text-button widget-link" onClick={() => setPage('Atmosphere Studio')}>Open Atmosphere Studio <ArrowUpRight size={15}/></button></> : id === 'journal' ? <><div className="between journal-meta"><span className="badge subtle">Session notes</span><small><Check size={12}/> Autosaved locally</small></div><textarea aria-label="Session journal" value={note} onChange={event => setNote(event.target.value)}/><div className="widget-bottom between"><small>Private notes · {campaign}</small><button className="text-button" onClick={() => setNote(note + '\n• ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' — ')}>+ Timestamp</button></div></> : <><div className="dice-types">{[4, 6, 8, 10, 12, 20, 100].map(die => <button className={dice.toLowerCase().includes(`d${die}`) ? 'selected' : ''} key={die} onClick={() => addDieToExpression(die)} title={`Add 1d${die} to expression`}><Dices size={20}/><span>d{die}</span></button>)}</div><div className="dice-bar"><div className="dice-mode-toggle">{([['normal', 'Normal'], ['adv', 'Advantage'], ['disadv', 'Disadvantage']] as const).map(([m, label]) => <button key={m} className={rollMode === m ? 'active' : ''} onClick={() => setRollMode(m)}>{label}</button>)}</div><div className="dice-dc-pills"><span className="dc-tag">TARGET DC</span>{([null, 10, 15, 20] as const).map(dc => <button key={String(dc)} className={targetDC === dc ? 'active' : ''} onClick={() => setTargetDC(dc)}>{dc === null ? 'Off' : dc}</button>)}</div></div><div className="dice-entry"><input aria-label="Dice expression" value={dice} onChange={event => setDice(event.target.value)} onKeyDown={event => event.key === 'Enter' && rollDice()}/><button type="button" className="dice-clear-btn" onClick={() => setDice('1d20')} title="Reset to 1d20">Reset</button><div className="quick-mods">{[1, 2, 3, 5].map(v => <button key={v} type="button" className="mod-btn" onClick={() => applyModifier(v)}>+{v}</button>)}<button type="button" className="mod-btn" onClick={() => applyModifier(-1)}>-1</button></div><button className="primary roll-action-btn" onClick={() => rollDice()}>Roll dice</button></div><div className={`roll-result ${critState ? critState : ''} ${targetDC !== null && roll !== null ? (roll >= targetDC ? 'roll-pass' : 'roll-fail') : ''}`}><strong>{roll ?? '—'}</strong><div className="roll-details"><div className="roll-tags"><span>{roll === null ? 'Your next roll awaits' : 'Latest result'}</span>{critState === 'nat20' && <span className="crit-badge crit-nat20">NAT 20 · CRITICAL!</span>}{critState === 'nat1' && <span className="crit-badge crit-nat1">NAT 1 · FUMBLE!</span>}{targetDC !== null && roll !== null && <span className={`dc-badge ${roll >= targetDC ? 'dc-pass' : 'dc-fail'}`}>{roll >= targetDC ? `PASS (DC ${targetDC})` : `FAIL (DC ${targetDC})`}</span>}</div><small>{history[0] || 'Try 2d6+3, or choose a die above.'}</small></div></div><div className="roll-history">{history.slice(1, 4).map((entry, index) => <small key={index}>{entry}</small>)}</div></>}
     </section>;
     }
     return <div className={`app theme-${theme}${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}><aside className="sidebar"><div className="brand"><div className="brand-mark"><Compass size={28}/></div><div>WAYFINDER<small>THE DM COMMAND CENTER</small></div><button className="icon-button collapse-sidebar-button" aria-label="Collapse sidebar" title="Collapse sidebar" onClick={() => setSidebarCollapsed(true)}><PanelLeftClose size={18}/></button></div><div className="campaign-switch"><small>ACTIVE CAMPAIGN</small><select aria-label="Active campaign" value={campaign} disabled={!campaigns.length} onChange={e => { setCampaign(e.target.value); setPage('Dashboard'); }}>{!campaigns.length && <option value="">No campaigns yet</option>}{campaigns.map(name => <option key={name} value={name}>{name}</option>)}</select><div className="campaign-actions"><button className="new-campaign-button" onClick={() => { setCampaignName(''); setCampaignError(''); setModal('campaign'); }}><Plus size={14}/>New campaign</button><button className="delete-campaign-button" disabled={!campaign} aria-label="Delete active campaign" onClick={() => { setDeleteCampaignText(''); setDeleteCampaignError(''); setModal('delete-campaign'); }}><Trash2 size={13}/></button></div><span className="campaign-status">● &nbsp;{battleActive ? 'Encounter in progress' : 'Ready to plan'}</span></div><div className="nav-label">WORKSPACE</div><nav>{[[LayoutDashboard, 'Dashboard'], [Headphones, 'Atmosphere Studio']].map(([Icon, n]) => <button key={String(n)} className={page === n ? 'active' : ''} onClick={() => setPage(String(n))}>{React.createElement(Icon as typeof Compass, { size: 19 })}{String(n)}{n === 'Atmosphere Studio' && <span className="tiny-dot"/>}</button>)}</nav><div className="nav-label">CAMPAIGN TOOLS</div><nav className="campaign-nav">{[[Swords, 'Encounters'], [Users, 'Characters & NPCs'], [BookOpen, 'Campaign wiki'], [BookOpen, 'Compendium']].map(([Icon, n]) => <button disabled={!campaign} className={page === n ? 'active' : ''} key={String(n)} onClick={() => setPage(String(n))}>{React.createElement(Icon as typeof Compass, { size: 18 })}{String(n)}</button>)}</nav><div className="sidebar-bottom"><div className="local-status"><span /> {cloud.user ? 'Supabase workspace' : 'Local-first workspace'}<small>{cloud.transfer || (cloud.user ? cloud.status + (cloud.pending ? ` · ${cloud.pending} pending` : '') : 'Connect Supabase in Settings for cloud sync.')}</small></div><button onClick={() => setModal('settings')}><Settings size={17}/> Settings & backup</button><div className="profile"><div className="avatar">DM</div><div>Dungeon Master<small>Private workspace</small></div><MoreHorizontal size={18}/></div></div></aside><main><header className="topbar"><button className="icon-button toggle-sidebar-button" aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => setSidebarCollapsed(!sidebarCollapsed)}><PanelLeft size={18}/></button><div className="breadcrumb">Workspace <span>/</span> <strong>{page}</strong></div><button className="search-button" onClick={() => setModal('search')}><Search size={16}/> Quick search <kbd>⌘ K</kbd></button><button className="theme-toggle icon-button" aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'} title={theme === 'light' ? 'Dark theme' : 'Light theme'} onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>{theme === 'light' ? <Moon size={17}/> : <Sun size={17}/>}</button><span className={`saved ${saveError ? "form-error" : ""}`}><Check size={14}/> {saveError ? 'Storage full · export a backup' : cloud.transfer ? 'Cloud transfer…' : cloud.user ? cloud.status === 'synced' ? 'Saved to Supabase' : cloud.status === 'conflict' ? 'Sync conflict · open Settings' : cloud.status === 'error' ? 'Cloud sync error' : cloud.status === 'offline' ? 'Offline · saved locally' : 'Syncing to Supabase…' : 'All changes saved locally'}</span></header><div className="content"><div className="page-heading"><div><div className="eyebrow">{page === 'Dashboard' ? 'YOUR TABLE. YOUR WORLD.' : page === 'Atmosphere Studio' ? 'SET THE SCENE.' : campaign.toUpperCase() + ' · CAMPAIGN TOOLS'}</div><h1>{page === 'Dashboard' ? 'Behind the screen.' : page}<span className="heading-star">✧</span></h1><p>{page === 'Dashboard' ? 'A little less bookkeeping. A little more adventure.' : page === 'Atmosphere Studio' ? 'Every great story deserves a soundscape.' : page === 'Encounters' ? 'Prepare the challenge. Run it with confidence.' : page === 'Characters & NPCs' ? 'Remember the people who make your world.' : page === 'Compendium' ? 'Your sourcebook. Every creature, spell, and possibility.' : 'Keep the clues, places, and stories connected.'}</p></div><div className="inline">{page === 'Dashboard' ? <button className={edit ? 'primary' : 'secondary'} onClick={() => {

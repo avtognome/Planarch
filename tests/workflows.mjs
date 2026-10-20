@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 import React from 'react';
 import 'fake-indexeddb/auto';
@@ -13,8 +14,8 @@ for(const filename of fs.readdirSync('src').filter(n=>/\.tsx?$/.test(n)&&n!=='ma
 }
 const store=new Map();globalThis.localStorage={getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k),key:i=>[...store.keys()][i],get length(){return store.size}};
 globalThis.window={addEventListener(){},removeEventListener(){},dispatchEvent(){}};globalThis.IS_REACT_ACT_ENVIRONMENT=true;
-const {parseProviderSource}=await import(path.join(out,'sources.js'));
-const conditionRules=await import(path.join(out,'conditions.js'));
+const {parseProviderSource}=await import(pathToFileURL(path.join(out,'sources.js')).href);
+const conditionRules=await import(pathToFileURL(path.join(out,'conditions.js')).href);
 assert.deepEqual(conditionRules.DND_CONDITIONS,['Blinded','Charmed','Deafened','Exhaustion','Frightened','Grappled','Incapacitated','Invisible','Paralyzed','Petrified','Poisoned','Prone','Restrained','Stunned','Unconscious']);
 assert.equal(conditionRules.setCondition('Prone','Exhaustion 3'),'Prone, Exhaustion 3');assert.equal(conditionRules.setCondition('Prone, Exhaustion 3','Exhaustion 5'),'Prone, Exhaustion 5');assert.equal(conditionRules.removeCondition('Prone, Poisoned','Prone'),'Poisoned');
 console.log('PASS conditions: complete official 2014/2024 list, exhaustion levels and custom-compatible helpers');
@@ -27,8 +28,8 @@ store.set('wf-campaign',JSON.stringify('Sagara'));
 store.set('wf-encounters:Sagara',JSON.stringify([{id:'treeline'}]));
 store.set('wf-characters:Sagara',JSON.stringify([{id:'cen'},{id:'rubikainen'}]));
 store.set('wf-wiki:Sagara',JSON.stringify([{id:'shore'},{id:'copy'}]));
-const {default:App}=await import(path.join(out,'App.js'));
-const storage=await import(path.join(out,'storage.js'));
+const {default:App}=await import(pathToFileURL(path.join(out,'App.js')).href);
+const storage=await import(pathToFileURL(path.join(out,'storage.js')).href);
 let render;await act(async()=>{render=TestRenderer.create(React.createElement(App))});
 const text=node=>typeof node==='string'?node:node?.children?.map(text).join('')||'';
 const root=()=>render.root;
@@ -80,9 +81,9 @@ await click('Settings & backup');await change(field('YouTube API key'),'test-res
 globalThis.fetch=async url=>String(url).startsWith('https://open.spotify.com')?Response.json({title:'Matched Song'}):Response.json({items:[{id:{videoId:'lmnopqrstuv'},snippet:{title:'Matched Song Official Audio',channelTitle:'Artist Official'}}]});
 await click('Find YouTube matches');assert.ok(button('Use this version'));await click('Use this version');assert.equal(saved('wf-custom').at(-1).source.identity,'youtube:lmnopqrstuv');assert.ok(field('Load Matched Song to YouTube deck A'));assert.ok(field('Load Matched Song to YouTube deck B'));globalThis.fetch=originalFetch;
 console.log('PASS Spotify → YouTube: metadata lookup, no-key fallback, API result confirmation and YouTube source saving');
-const data=await import(path.join(out,'compendiumData.js'));const parser=await import(path.join(out,'compendiumParser.js'));
+const data=await import(pathToFileURL(path.join(out,'compendiumData.js')).href);const parser=await import(pathToFileURL(path.join(out,'compendiumParser.js')).href);
 const sample=parser.parseCompendium('<compendium><monster><name>Test Beast (Legacy)</name><hp>59 (7d10+21)</hp><dex>13</dex><cr>1</cr><environment>Forest, Urban</environment><action><name>Claw</name><text>Attack action</text></action><action><name>Bite</name><text>Another action</text></action></monster><spell><name>Test Spell [5.5e]</name><level>1</level><school>EV</school><time>1 action</time><range>60 feet</range><text>A spell</text></spell><item><name>Test Blade</name><type>M</type><detail>rare</detail><dmg1>1d8</dmg1><dmgType>S</dmgType><text>A magic blade.</text></item><class><name>Test Class</name><hd>10</hd><trait><name>Overview</name><text>Class overview.</text></trait><autolevel level="1"><feature><name>First Feature</name><text>Level one feature.</text></feature></autolevel></class><race><name>Test Ancestry</name><size>M</size><speed>30</speed><ability>Dex +2</ability><trait><name>Quick Step</name><text>Ancestry feature.</text></trait></race><feat><name>Test Feat</name><prerequisite>Level 4</prerequisite><text>A feat benefit.</text></feat><background><name>Test Background</name><proficiency>Insight</proficiency><trait><name>Feature</name><text>A background feature.</text></trait></background></compendium>');assert.equal(sample.length,7);assert.equal(sample[0].edition,'Legacy');assert.equal(sample[1].edition,'5.5e');assert.equal(sample[0].fields.action.length,2);assert.equal(data.monsterToCombatant(sample[0],'test').hp,59);assert.equal(data.monsterToCombatant(sample[0],'test').modifier,1);assert.equal(data.monsterToCombatant(sample[0],'test').cr,'1');assert.throws(()=>parser.parseCompendium('<compendium>'));assert.throws(()=>parser.parseCompendium('<!DOCTYPE compendium [<!ENTITY x "bad">]><compendium/>'));
-const balance=await import(path.join(out,'encounterBalance.js'));assert.equal(balance.crToXP('1/2'),100);assert.deepEqual(balance.encounterBudgets('2024',5,4),{Low:2000,Moderate:3000,High:4400});const generated2014=balance.randomizeMonsterRecords(sample,{ruleset:'2014',difficulty:'Easy',partyLevel:2,partySize:4,environment:'Forest',rng:()=>0});assert.equal(generated2014[0].name,'Test Beast (Legacy)');assert.throws(()=>balance.randomizeMonsterRecords(sample,{ruleset:'2024',difficulty:'Low',partyLevel:2,partySize:4,environment:'Arctic',rng:()=>0}),/No rated monsters/);const rated=balance.evaluateEncounter({ruleset:'2014',difficulty:'Easy',partyLevel:2,partySize:4,members:[{...data.monsterToCombatant(sample[0],'rated'),xp:200}]});assert.equal(rated.rating,'Easy');
+const balance=await import(pathToFileURL(path.join(out,'encounterBalance.js')).href);assert.equal(balance.crToXP('1/2'),100);assert.deepEqual(balance.encounterBudgets('2024',5,4),{Low:2000,Moderate:3000,High:4400});const generated2014=balance.randomizeMonsterRecords(sample,{ruleset:'2014',difficulty:'Easy',partyLevel:2,partySize:4,environment:'Forest',rng:()=>0});assert.equal(generated2014[0].name,'Test Beast (Legacy)');assert.throws(()=>balance.randomizeMonsterRecords(sample,{ruleset:'2024',difficulty:'Low',partyLevel:2,partySize:4,environment:'Arctic',rng:()=>0}),/No rated monsters/);const rated=balance.evaluateEncounter({ruleset:'2014',difficulty:'Easy',partyLevel:2,partySize:4,members:[{...data.monsterToCombatant(sample[0],'rated'),xp:200}]});assert.equal(rated.rating,'Easy');
 console.log('PASS encounter balance: official 2014/2024 budgets, CR XP, environment filters and random generation');
 await data.writeBatch('test-generation',sample);const counts=Object.fromEntries(sample.map(entry=>[entry.kind,(sample.filter(candidate=>candidate.kind===entry.kind).length)]));const sampleMeta={generation:'test-generation',name:'sample.xml',count:sample.length,counts,index:sample.map(data.indexRecord)};await data.activateLibrary(sampleMeta);assert.equal((await data.readRecord('test-generation',sample[0].id)).name,'Test Beast (Legacy)');
 await click('Compendium');assert.ok(root().findAllByType('button').some(n=>text(n).includes('Test Beast')));const selectBeast=root().findAllByType('button').find(n=>text(n).includes('Test Beast'));await act(()=>selectBeast.props.onClick());const statBlock=field('Test Beast (Legacy) monster stat block');assert.equal(statBlock.findAllByType('details').length,0);assert.ok(text(statBlock).includes('DEX13 (+1)'));assert.ok(text(statBlock).includes('Actions'));await click('Add monster');assert.ok(saved('wf-encounters:Sagara').some(e=>e.members.some(m=>m.reference?.name==='Test Beast (Legacy)'&&m.hp===59)));

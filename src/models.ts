@@ -1,0 +1,10 @@
+export type Ruleset='2014'|'2024';
+export type Combatant={id:string,name:string,role:'Player'|'Monster',hp:number,maxHp:number,initiative:number,modifier:number,conditions:string,concentration:string,cr?:string,xp?:number,reference?:{id:string,name:string},turnState?:'ready'|'delayed'};
+export type Encounter={id:string,name:string,description:string,environment:string,difficulty:string,ruleset?:Ruleset,partyLevel:number,partySize:number,members:Combatant[],status:'Prepared'|'Completed'};
+export type Character={id:string,name:string,kind:'Player'|'NPC',role:string,portrait:string,personality:string,motivation:string,relationships:string,notes:string,hp:number,initiative:number};
+export type WikiImage={id:string,name:string,data:string,caption:string};
+export type WikiPage={id:string,title:string,category:string,body:string,tags:string,updated:string,thumbnail?:string,images?:WikiImage[]};
+export const uid=()=>crypto.randomUUID();
+export const seedEncounters=(_campaign:string):Encounter[]=>[];
+export const seedCharacters=(_campaign:string):Character[]=>[];
+export const seedPages=(_campaign:string):WikiPage[]=>[];

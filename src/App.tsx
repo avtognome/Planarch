@@ -1,0 +1,401 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Compass, LayoutDashboard, Headphones, Swords, BookOpen, Users, Dices, Settings, Search, ChevronDown, ArrowUpRight, Play, Pause, Volume2, VolumeX, Plus, Grip, MoreHorizontal, CloudRain, Waves, Wind, Flame, Check, Save, X, Music, SlidersHorizontal, PanelTop, RotateCcw, Download, Trash2, Sun, Moon } from 'lucide-react';
+import './style.css';
+import './features.css';
+import './theme.css';
+import CampaignTools from './CampaignTools';
+import Compendium from './Compendium';
+import CombatTracker from './CombatTracker';
+import SourcePicker from './SourcePicker';
+import YouTubeMixer from './YouTubeMixer';
+import { useSaved, writeSavedValue } from './storage';
+import CloudSettings, { useCloudStatus } from './CloudSettings';
+import { bootSupabase } from './supabaseCloud';
+import { saveAudio, readAudio } from './cloudFiles';
+import { parseProviderSource, type Scene } from './sources';
+import { seedEncounters, seedPages, uid, type Combatant, type Encounter, type WikiPage } from './models';
+import { cleanBundledCampaignTemplates } from './campaigns';
+const scenes: Scene[] = [{ name: 'The Drowned Coast', tag: 'EXPLORATION', art: 'coast', desc: 'Salt in the air. Something beneath the waves.', layers: [72, 36, 48, 0] }, { name: 'Whispers in the Pines', tag: 'EXPLORATION', art: 'forest', desc: 'An old path through an older forest.', layers: [12, 68, 0, 0] }, { name: 'The Last Hearth', tag: 'ROLEPLAY', art: 'tavern', desc: 'Warm fire. Cold ale. Familiar strangers.', layers: [0, 0, 0, 76] }, { name: 'Beneath the Ruins', tag: 'TENSION', art: 'ruins', desc: 'The silence here has a weight of its own.', layers: [20, 45, 0, 15] }, { name: 'A Storm Approaches', tag: 'COMBAT', art: 'storm', desc: 'A dark horizon. Nowhere left to run.', layers: [90, 80, 50, 0] }];
+const campaignPrefixes = ['encounters', 'characters', 'wiki', 'battle', 'battle-title', 'battle-id', 'battle-active', 'note', 'round', 'turn', 'hp'];
+function campaignHasContent(name: string) {
+    for (const prefix of ['encounters', 'characters', 'wiki', 'battle'])
+        try {
+            const value = JSON.parse(localStorage.getItem(`wf-${prefix}:${name}`) || 'null');
+            if (Array.isArray(value) && value.length)
+                return true;
+        }
+        catch { }
+    try {
+        if (String(JSON.parse(localStorage.getItem(`wf-note:${name}`) || 'null') || '').trim())
+            return true;
+    }
+    catch { }
+    return false;
+}
+function discoverCampaigns() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('wf-campaigns') || 'null');
+        if (Array.isArray(saved))
+            return [...new Set(saved.filter(name => typeof name === 'string' && name.trim()).map(name => name.trim()))];
+    }
+    catch { }
+    const names: string[] = [];
+    try {
+        const active = JSON.parse(localStorage.getItem('wf-campaign') || 'null');
+        if (typeof active === 'string' && active.trim())
+            names.push(active.trim());
+    }
+    catch { }
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i) || '', match = key.match(new RegExp(`^wf-(?:${campaignPrefixes.join('|')}):(.+)$`));
+        if (match)
+            names.push(match[1]);
+    }
+    return [...new Set(names)].filter(name => !['Sagara', 'Icewind Dale', 'Padukuhan Waluh'].includes(name) || campaignHasContent(name));
+}
+cleanBundledCampaignTemplates();
+const startingCampaigns = discoverCampaigns();
+const icons = [CloudRain, Wind, Waves, Flame];
+const layerNames = ['Rainfall', 'Forest wind', 'Ocean surf', 'Hearth fire'];
+export default function App() {
+    const cloud = useCloudStatus();
+    useEffect(() => { void bootSupabase(); }, []);
+    const [campaigns, setCampaigns] = useSaved<string[]>('wf-campaigns', startingCampaigns), [campaign, setCampaign] = useSaved('wf-campaign', startingCampaigns[0] || ''), campaignKey = campaign || '__new__';
+    const [page, setPage] = useState('Dashboard'), [scene, setScene] = useSaved('wf-scene', 0), [layers, setLayers] = useSaved('wf-layers', [72, 36, 48, 0]), [master, setMaster] = useSaved('wf-master', 70), [music, setMusic] = useSaved('wf-music', 45), [playing, setPlaying] = useState(false), [muted, setMuted] = useState(false), [filter, setFilter] = useState('All scenes'), [query, setQuery] = useState(''), [layout, setLayout] = useSaved('wf-layout', 'Session'), [orders, setOrders] = useSaved<Record<string, string[]>>('wf-orders', { Session: ['combat', 'atmosphere', 'journal', 'dice'], Combat: ['combat', 'dice', 'atmosphere', 'journal'], Exploration: ['atmosphere', 'journal', 'dice', 'combat'] }), [edit, setEdit] = useState(false), [wide, setWide] = useSaved<Record<string, boolean>>('wf-wide', {}), [note, setNote] = useSaved(`wf-note:${campaignKey}`, ''), [round, setRound] = useSaved(`wf-round:${campaignKey}`, 1), [turn, setTurn] = useSaved(`wf-turn:${campaignKey}`, 0), [hp, setHp] = useSaved(`wf-hp:${campaignKey}`, []), [dice, setDice] = useState('1d20+3'), [roll, setRoll] = useState<number | null>(null), [history, setHistory] = useSaved<string[]>('wf-rolls', []), [modal, setModal] = useState(startingCampaigns.length ? '' : 'campaign'), [toast, setToast] = useState(''), [source, setSource] = useSaved('wf-source', ''), [sourceInput, setSourceInput] = useState(''), [custom, setCustom] = useSaved<Scene[]>('wf-custom', []), [sceneName, setSceneName] = useState(''), [concentration, setConcentration] = useSaved('wf-concentration', true), [campaignName, setCampaignName] = useState(''), [campaignError, setCampaignError] = useState(''), [deleteCampaignText, setDeleteCampaignText] = useState(''), [deleteCampaignError, setDeleteCampaignError] = useState('');
+    const [sourceName, setSourceName] = useState(''), [sourceCategory, setSourceCategory] = useState('EXPLORATION'), [keepMix, setKeepMix] = useState(true), [providerStopped, setProviderStopped] = useState(false), [playerCollapsed, setPlayerCollapsed] = useState(false);
+    const [youtubeDeckA, setYoutubeDeckA] = useSaved('wf-youtube-deck-a', ''), [youtubeDeckB, setYoutubeDeckB] = useSaved('wf-youtube-deck-b', ''), [youtubeVolumeA, setYoutubeVolumeA] = useSaved('wf-youtube-volume-a', 75), [youtubeVolumeB, setYoutubeVolumeB] = useSaved('wf-youtube-volume-b', 75), [youtubeMaster, setYoutubeMaster] = useSaved('wf-youtube-master', 80), [youtubeCrossfade, setYoutubeCrossfade] = useSaved('wf-youtube-crossfade', 50), [youtubeMixerOpen, setYoutubeMixerOpen] = useState(false), [youtubeStopSignal, setYoutubeStopSignal] = useState(0);
+    const [battle, setBattle] = useSaved<Combatant[]>(`wf-battle:${campaignKey}`, []), [battleTitle, setBattleTitle] = useSaved(`wf-battle-title:${campaignKey}`, 'No active encounter'), [battleId, setBattleId] = useSaved(`wf-battle-id:${campaignKey}`, ''), [battleActive, setBattleActive] = useSaved(`wf-battle-active:${campaignKey}`, false);
+    const preCombatView = useRef<{
+        layout: string;
+        wide: Record<string, boolean>;
+    } | null>(null);
+    useEffect(() => {
+        let blobURL = '';
+        let cancelled = false;
+        const load = async () => {
+            const saved = await readAudio().catch(() => null);
+            if (cancelled || !saved)
+                return;
+            const el = document.getElementById('local-audio') as HTMLAudioElement | null;
+            if (el) {
+                if (blobURL)
+                    URL.revokeObjectURL(blobURL);
+                blobURL = URL.createObjectURL(saved.file);
+                el.src = blobURL;
+            }
+        };
+        if (page === 'Atmosphere Studio')
+            void load();
+        window.addEventListener('wayfinder-audio-changed', load);
+        return () => {
+            cancelled = true;
+            window.removeEventListener('wayfinder-audio-changed', load);
+            if (blobURL)
+                URL.revokeObjectURL(blobURL);
+        };
+    }, [page]);
+    const [compendiumFocus, setCompendiumFocus] = useState(''), [youtubeKey, setYoutubeKey] = useState(() => {
+        try {
+            return sessionStorage.getItem('wayfinder-youtube-key') || '';
+        }
+        catch {
+            return '';
+        }
+    });
+    const openReference = (id: string) => { setCompendiumFocus(id); setPage('Compendium'); };
+    const [theme, setTheme] = useSaved<'light' | 'dark'>('wf-theme', 'light'), [saveError, setSaveError] = useState(false);
+    useEffect(() => { const failed = () => { setSaveError(true); notify('Browser storage is full or unavailable. Export a backup before closing.'); }; window.addEventListener('wayfinder-save-error', failed); return () => window.removeEventListener('wayfinder-save-error', failed); }, []);
+    const startEncounter = (e: Encounter) => { const sorted = [...e.members].sort((a, b) => b.initiative - a.initiative); preCombatView.current = { layout, wide }; setBattle(sorted); setBattleTitle(e.name); setBattleId(e.id); setBattleActive(true); setRound(1); setTurn(0); setPage('Dashboard'); setLayout('Combat'); setWide(current => ({ ...current, combat: true })); notify(`${e.name} started · combat workspace activated`); };
+    const updateActiveEncounter = (e: Encounter) => {
+        if (!battleActive || battleId !== e.id)
+            return;
+        const activeId = battle[turn]?.id;
+        const next = e.members.map(prepared => {
+            const active = battle.find(member => member.id === prepared.id);
+            return active ? { ...prepared, hp: active.hp, maxHp: Math.max(prepared.maxHp, active.hp), turnState: active.turnState } : prepared;
+        });
+        setBattle(next);
+        setBattleTitle(e.name);
+        const activeIndex = next.findIndex(member => member.id === activeId);
+        setTurn(activeIndex >= 0 ? activeIndex : Math.min(turn, Math.max(0, next.length - 1)));
+        notify(`${e.name} roster updated · HP and round ${round} preserved`);
+    };
+    const endEncounter = () => { const key = `wf-encounters:${campaign}`; const stored: Encounter[] = JSON.parse(localStorage.getItem(key) || 'null') || seedEncounters(campaign); writeSavedValue(key, stored.map(e => e.id === battleId ? { ...e, status: 'Completed' } : e)); const defeated = battle.filter(m => m.role === 'Monster' && m.hp === 0).map(m => m.name); const log = `${battleTitle} ended after ${round} rounds.\nDefeated monsters: ${defeated.join(', ') || 'None recorded'}.`; setNote(note + '\n\n' + log); const wikiKey = `wf-wiki:${campaign}`, pages: WikiPage[] = JSON.parse(localStorage.getItem(wikiKey) || 'null') || seedPages(campaign); writeSavedValue(wikiKey, [...pages, { id: uid(), title: battleTitle + ' · Encounter log', category: 'Session log', body: log, tags: 'combat', updated: new Date().toISOString() }]); setBattleActive(false); notify('Encounter ended; session journal and wiki log updated'); };
+    useEffect(() => {
+        if (source && !custom.some(s => s.source?.url === source)) {
+            try {
+                const provider = parseProviderSource(source);
+                if (!custom.some(s => s.source?.identity === provider.identity))
+                    setCustom(c => [...c, { name: `${provider.provider} soundtrack`, tag: 'EXPLORATION', art: 'coast', desc: 'Saved source from your previous workspace.', layers: [0, 0, 0, 0], source: provider }]);
+            }
+            catch { }
+        }
+    }, []);
+    const audio = useRef<AudioContext | null>(null), gains = useRef<GainNode[]>([]), drag = useRef('');
+    const allScenes = [...scenes, ...custom], active = allScenes[scene] || scenes[0], youtubeSources = custom.filter(item => item.source?.provider === 'YouTube');
+    const notify = (s: string) => { setToast(s); setTimeout(() => setToast(''), 3000); };
+    const createCampaign = () => {
+        const name = campaignName.trim().replace(/\s+/g, ' ');
+        if (!name) {
+            setCampaignError('Give the campaign a name.');
+            return;
+        }
+        if (name.length > 80) {
+            setCampaignError('Use 80 characters or fewer.');
+            return;
+        }
+        if (campaigns.some(item => item.toLowerCase() === name.toLowerCase())) {
+            setCampaignError('That campaign already exists. Choose it from the list.');
+            return;
+        }
+        for (const prefix of campaignPrefixes)
+            localStorage.removeItem(`wf-${prefix}:__new__`);
+        setCampaigns([...campaigns, name]);
+        setCampaign(name);
+        setCampaignName('');
+        setCampaignError('');
+        setModal('');
+        setPage('Dashboard');
+        notify(`${name} is now active`);
+    };
+    const deleteCampaign = () => {
+        if (!campaign || deleteCampaignText.trim() !== campaign) {
+            setDeleteCampaignError(`Type “${campaign}” exactly to confirm.`);
+            return;
+        }
+        const empty: Record<string, unknown> = { encounters: [], characters: [], wiki: [], battle: [], 'battle-title': 'No active encounter', 'battle-id': '', 'battle-active': false, note: '', round: 1, turn: 0, hp: [] };
+        for (const prefix of campaignPrefixes)
+            writeSavedValue(`wf-${prefix}:${campaign}`, empty[prefix]);
+        const remaining = campaigns.filter(name => name !== campaign), deleted = campaign, next = remaining[0] || '';
+        setCampaigns(remaining);
+        setCampaign(next);
+        setDeleteCampaignText('');
+        setDeleteCampaignError('');
+        setPage('Dashboard');
+        if (next) {
+            setModal('');
+            notify(`${deleted} deleted · ${next} is now active`);
+        }
+        else {
+            setCampaignName('');
+            setModal('campaign');
+            notify(`${deleted} deleted`);
+        }
+    };
+    useEffect(() => {
+        const fn = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k' && campaigns.length) {
+                e.preventDefault();
+                if (battleActive)
+                    window.dispatchEvent(new CustomEvent('wayfinder-command-open'));
+                else
+                    setModal('search');
+            }
+            if (e.key === 'Escape' && campaigns.length)
+                setModal('');
+        };
+        window.addEventListener('keydown', fn);
+        return () => window.removeEventListener('keydown', fn);
+    }, [campaigns.length, battleActive]);
+    useEffect(() => {
+        if (!battleActive && preCombatView.current) {
+            setLayout(preCombatView.current.layout);
+            setWide(preCombatView.current.wide);
+            preCombatView.current = null;
+        }
+    }, [battleActive]);
+    useEffect(() => { gains.current.forEach((g, i) => g.gain.setTargetAtTime(playing && !muted ? layers[i] / 100 * master / 100 * .22 : 0, audio.current!.currentTime, .4)); }, [playing, muted, layers, master]);
+    useEffect(() => {
+        const toggle = () => { void toggleAudio(); };
+        const mute = () => setMuted(value => !value);
+        const openYouTubeMixer = () => setYoutubeMixerOpen(true);
+        const closeYouTubeMixer = () => setYoutubeMixerOpen(false);
+        window.addEventListener('wayfinder-audio-toggle', toggle);
+        window.addEventListener('wayfinder-audio-mute', mute);
+        window.addEventListener('wayfinder-youtube-mixer-open', openYouTubeMixer);
+        window.addEventListener('wayfinder-youtube-mixer-close', closeYouTubeMixer);
+        return () => {
+            window.removeEventListener('wayfinder-audio-toggle', toggle);
+            window.removeEventListener('wayfinder-audio-mute', mute);
+            window.removeEventListener('wayfinder-youtube-mixer-open', openYouTubeMixer);
+            window.removeEventListener('wayfinder-youtube-mixer-close', closeYouTubeMixer);
+        };
+    }, []);
+    async function toggleAudio() {
+        if (!audio.current) {
+            const ctx = new AudioContext();
+            audio.current = ctx;
+            for (let i = 0; i < 4; i++) {
+                const buffer = ctx.createBuffer(1, ctx.sampleRate * 6, ctx.sampleRate), data = buffer.getChannelData(0);
+                let last = 0;
+                for (let n = 0; n < data.length; n++) {
+                    let white = Math.random() * 2 - 1;
+                    last = (last + .025 * white) / 1.025;
+                    data[n] = i === 3 ? white * (Math.random() > .998 ? 1 : .08) : i === 0 ? white * .45 : last * 6;
+                }
+                const node = ctx.createBufferSource();
+                node.buffer = buffer;
+                node.loop = true;
+                const f = ctx.createBiquadFilter();
+                f.type = i === 0 ? 'highpass' : 'lowpass';
+                f.frequency.value = [900, 420, 240, 1800][i];
+                const g = ctx.createGain();
+                g.gain.value = 0;
+                node.connect(f).connect(g).connect(ctx.destination);
+                node.start();
+                gains.current.push(g);
+            }
+        }
+        await audio.current.resume();
+        setPlaying(p => !p);
+    }
+    const loadYouTubeDeck = (identity: string, deck: 'A' | 'B') => {
+        if (deck === 'A')
+            setYoutubeDeckA(identity);
+        else
+            setYoutubeDeckB(identity);
+        setYoutubeMixerOpen(true);
+        notify(`Loaded into YouTube deck ${deck}`);
+    };
+    const activate = (i: number) => {
+        const selected = allScenes[i];
+        setScene(i);
+        setLayers(selected.layers);
+        if (selected.source?.provider === 'YouTube') {
+            if (!youtubeDeckA)
+                loadYouTubeDeck(selected.source.identity, 'A');
+            else if (youtubeDeckA !== selected.source.identity && !youtubeDeckB)
+                loadYouTubeDeck(selected.source.identity, 'B');
+            else
+                setYoutubeMixerOpen(true);
+        }
+        else {
+            setProviderStopped(false);
+            setPlayerCollapsed(false);
+        }
+        notify(`${selected.name} loaded`);
+    };
+    const rollDice = () => {
+        const m = dice.trim().match(/^(\d{1,2})d(4|6|8|10|12|20|100)([+-]\d+)?$/i);
+        if (!m || Number(m[1]) < 1 || Number(m[1]) > 50) {
+            notify('Use dice notation, such as 2d6+3');
+            return;
+        }
+        const values = Array.from({ length: Number(m[1]) }, () => 1 + Math.floor(Math.random() * Number(m[2]))), r = values.reduce((a, b) => a + b, 0) + Number(m[3] || 0);
+        setRoll(r);
+        setHistory(h => [`${dice}: ${values.join(' + ')}${m[3] || ''} = ${r}`, ...h].slice(0, 8));
+    };
+    const reorder = (target: string) => {
+        if (!drag.current || target === drag.current)
+            return;
+        const a = [...(orders[layout] || orders.Session)], from = a.indexOf(drag.current), to = a.indexOf(target);
+        a.splice(from, 1);
+        a.splice(to, 0, drag.current);
+        setOrders({ ...orders, [layout]: a });
+        drag.current = '';
+    };
+    const exportData = () => { const data = Object.fromEntries(Object.keys(localStorage).filter(k => k.startsWith('wf-')).map(k => [k, JSON.parse(localStorage.getItem(k)!)])); const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = 'wayfinder-backup.json'; a.click(); URL.revokeObjectURL(url); notify('Backup exported'); };
+    function mixer(compact = false) { return <div className={compact ? 'mini-mixer' : 'layer-list'}>{layerNames.map((n, i) => { const Icon = icons[i]; return <div className="layer" key={n}><div className="layer-icon"><Icon size={18}/></div><div className="layer-content"><div className="between"><span>{n}</span><small>{layers[i]}%</small></div><input aria-label={`${n} volume`} type="range" value={layers[i]} onChange={e => setLayers(layers.map((v, j) => j === i ? +e.target.value : v))}/></div><button className="icon-button" aria-label={`Mute ${n}`} onClick={() => setLayers(layers.map((v, j) => j === i ? (v ? 0 : 50) : v))}>{layers[i] ? <Volume2 size={16}/> : <VolumeX size={16}/>}</button></div>; })}</div>; }
+    function widget(id: string) {
+        return <section key={id} className={`widget ${wide[id] ? 'wide' : ''}`} onDragOver={event => edit && event.preventDefault()} onDrop={() => reorder(id)}>
+      <div className="widget-head"><div className="inline"><span draggable={edit} onDragStart={() => { drag.current = id; }} className={edit ? 'drag-handle enabled' : 'drag-handle'} title={edit ? 'Drag to rearrange' : 'Unlock layout to rearrange'}><Grip size={16}/></span>{id === 'combat' ? <Swords size={17}/> : id === 'atmosphere' ? <Headphones size={17}/> : id === 'journal' ? <BookOpen size={17}/> : <Dices size={17}/>}<h3>{({ combat: 'Live encounter', atmosphere: 'Atmosphere', journal: 'Session journal', dice: 'Dice tray' } as Record<string, string>)[id]}</h3></div><button aria-label={`Resize ${id} widget`} className="icon-button" onClick={() => setWide({ ...wide, [id]: !wide[id] })}><PanelTop size={16}/></button></div>
+      {id === 'combat' ? <CombatTracker battle={battle} setBattle={setBattle} battleTitle={battleTitle} battleActive={battleActive} round={round} setRound={setRound} turn={turn} setTurn={setTurn} onReference={openReference} onOpenEncounters={() => setPage('Encounters')} onEnd={endEncounter} notify={notify}/> : id === 'atmosphere' ? <><div className={`mini-art ${active.art}`}><div><span className="eyebrow">CURRENT SCENE</span><h2>{active.name}</h2></div><button className="play-circle" aria-label="Toggle ambience" onClick={toggleAudio}>{playing ? <Pause size={20}/> : <Play size={20}/>}</button></div>{mixer(true)}<button className="text-button widget-link" onClick={() => setPage('Atmosphere Studio')}>Open Atmosphere Studio <ArrowUpRight size={15}/></button></> : id === 'journal' ? <><div className="between journal-meta"><span className="badge subtle">Session notes</span><small><Check size={12}/> Autosaved locally</small></div><textarea aria-label="Session journal" value={note} onChange={event => setNote(event.target.value)}/><div className="widget-bottom between"><small>Private notes · {campaign}</small><button className="text-button" onClick={() => setNote(note + '\n• ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' — ')}>+ Timestamp</button></div></> : <><div className="dice-types">{[4, 6, 8, 10, 12, 20].map(die => <button className={dice === `1d${die}` ? 'selected' : ''} key={die} onClick={() => setDice(`1d${die}`)}><Dices size={23}/><span>d{die}</span></button>)}</div><div className="dice-entry"><input aria-label="Dice expression" value={dice} onChange={event => setDice(event.target.value)} onKeyDown={event => event.key === 'Enter' && rollDice()}/><button className="primary" onClick={rollDice}>Roll dice</button></div><div className="roll-result"><strong>{roll ?? '—'}</strong><div><span>{roll === null ? 'Your next roll awaits' : 'Latest result'}</span><small>{history[0] || 'Try 2d6+3, or choose a die above.'}</small></div></div><div className="roll-history">{history.slice(1, 4).map((entry, index) => <small key={index}>{entry}</small>)}</div></>}
+    </section>;
+    }
+    return <div className={`app theme-${theme}`}><aside className="sidebar"><div className="brand"><div className="brand-mark"><Compass size={28}/></div><div>WAYFINDER<small>THE DM COMMAND CENTER</small></div></div><div className="campaign-switch"><small>ACTIVE CAMPAIGN</small><select aria-label="Active campaign" value={campaign} disabled={!campaigns.length} onChange={e => { setCampaign(e.target.value); setPage('Dashboard'); }}>{!campaigns.length && <option value="">No campaigns yet</option>}{campaigns.map(name => <option key={name} value={name}>{name}</option>)}</select><div className="campaign-actions"><button className="new-campaign-button" onClick={() => { setCampaignName(''); setCampaignError(''); setModal('campaign'); }}><Plus size={14}/>New campaign</button><button className="delete-campaign-button" disabled={!campaign} aria-label="Delete active campaign" onClick={() => { setDeleteCampaignText(''); setDeleteCampaignError(''); setModal('delete-campaign'); }}><Trash2 size={13}/></button></div><span className="campaign-status">● &nbsp;{battleActive ? 'Encounter in progress' : 'Ready to plan'}</span></div><div className="nav-label">WORKSPACE</div><nav>{[[LayoutDashboard, 'Dashboard'], [Headphones, 'Atmosphere Studio']].map(([Icon, n]) => <button key={String(n)} className={page === n ? 'active' : ''} onClick={() => setPage(String(n))}>{React.createElement(Icon as typeof Compass, { size: 19 })}{String(n)}{n === 'Atmosphere Studio' && <span className="tiny-dot"/>}</button>)}</nav><div className="nav-label">CAMPAIGN TOOLS</div><nav className="campaign-nav">{[[Swords, 'Encounters'], [Users, 'Characters & NPCs'], [BookOpen, 'Campaign wiki'], [BookOpen, 'Compendium']].map(([Icon, n]) => <button disabled={!campaign} className={page === n ? 'active' : ''} key={String(n)} onClick={() => setPage(String(n))}>{React.createElement(Icon as typeof Compass, { size: 18 })}{String(n)}</button>)}</nav><div className="sidebar-bottom"><div className="local-status"><span /> {cloud.user ? 'Supabase workspace' : 'Local-first workspace'}<small>{cloud.transfer || (cloud.user ? cloud.status + (cloud.pending ? ` · ${cloud.pending} pending` : '') : 'Connect Supabase in Settings for cloud sync.')}</small></div><button onClick={() => setModal('settings')}><Settings size={17}/> Settings & backup</button><div className="profile"><div className="avatar">DM</div><div>Dungeon Master<small>Private workspace</small></div><MoreHorizontal size={18}/></div></div></aside><main><header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{page}</strong></div><button className="search-button" onClick={() => setModal('search')}><Search size={16}/> Quick search <kbd>⌘ K</kbd></button><button className="theme-toggle icon-button" aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'} title={theme === 'light' ? 'Dark theme' : 'Light theme'} onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>{theme === 'light' ? <Moon size={17}/> : <Sun size={17}/>}</button><span className={`saved ${saveError ? "form-error" : ""}`}><Check size={14}/> {saveError ? 'Storage full · export a backup' : cloud.transfer ? 'Cloud transfer…' : cloud.user ? cloud.status === 'synced' ? 'Saved to Supabase' : cloud.status === 'conflict' ? 'Sync conflict · open Settings' : cloud.status === 'error' ? 'Cloud sync error' : cloud.status === 'offline' ? 'Offline · saved locally' : 'Syncing to Supabase…' : 'All changes saved locally'}</span></header><div className="content"><div className="page-heading"><div><div className="eyebrow">{page === 'Dashboard' ? 'YOUR TABLE. YOUR WORLD.' : page === 'Atmosphere Studio' ? 'SET THE SCENE.' : campaign.toUpperCase() + ' · CAMPAIGN TOOLS'}</div><h1>{page === 'Dashboard' ? 'Behind the screen.' : page}<span className="heading-star">✧</span></h1><p>{page === 'Dashboard' ? 'A little less bookkeeping. A little more adventure.' : page === 'Atmosphere Studio' ? 'Every great story deserves a soundscape.' : page === 'Encounters' ? 'Prepare the challenge. Run it with confidence.' : page === 'Characters & NPCs' ? 'Remember the people who make your world.' : page === 'Compendium' ? 'Your sourcebook. Every creature, spell, and possibility.' : 'Keep the clues, places, and stories connected.'}</p></div><div className="inline">{page === 'Dashboard' ? <button className={edit ? 'primary' : 'secondary'} onClick={() => {
+                setEdit(!edit);
+                if (edit)
+                    notify('Workspace layout saved');
+            }}>{edit ? <Check size={16}/> : <SlidersHorizontal size={16}/>} {edit ? 'Save layout' : 'Customize layout'}</button> : page === 'Atmosphere Studio' ? <button className="primary" onClick={() => setModal('scene')}><Plus size={17}/> Save current scene</button> : <span className="badge subtle">Campaign records · autosaved</span>}</div></div>{page === 'Dashboard' ? <><div className="session-banner"><div className="session-emblem"><Compass size={30}/></div><div><span className="eyebrow">{campaign.toUpperCase()}</span><h2>{battleActive ? battleTitle : 'Ready for your next session'}</h2><p>{battleActive ? 'Track initiative, damage and concentration from the encounter widget.' : 'Build your cast, prepare an encounter, and keep every session note in one place.'}</p></div><div className="session-pill"><span /> {battleActive ? 'Session in progress' : 'Campaign ready'}</div><button className="icon-button" aria-label="Open session notes" onClick={() => { setModal('journal'); }}><ArrowUpRight size={20}/></button></div><div className="workspace-toolbar"><div className="tabs">{['Session', 'Combat', 'Exploration'].map(t => <button key={t} onClick={() => setLayout(t)} className={layout === t ? 'selected' : ''}>{t}</button>)}</div><span>{edit ? 'Drag the grip to reorder · use the panel icon to resize' : '4 widgets'} <span className="dim">/</span> <button className="text-button" onClick={() => { setOrders({ ...orders, [layout]: ['combat', 'atmosphere', 'journal', 'dice'] }); setWide({}); notify('Layout reset'); }}>Reset layout</button></span></div><div className={`widget-grid ${edit ? 'editing' : ''}`}>{(orders[layout] || orders.Session).map(widget)}</div></> : page === 'Compendium' ? <Compendium campaign={campaign} focus={compendiumFocus} onFocusHandled={() => setCompendiumFocus('')} notify={notify}/> : page !== 'Atmosphere Studio' ? <CampaignTools key={campaign + '-' + page} page={page} campaign={campaign} onStart={startEncounter} onUpdate={updateActiveEncounter} activeEncounterId={battleId} battleActive={battleActive} notify={notify} onReference={openReference}/> : <><div className="studio-grid"><div className="scene-library"><div className="section-heading"><h3>Scene library <span>{allScenes.length}</span></h3><span className="badge subtle">Campaign + global</span></div><div className="scene-filters">{['All scenes', 'Exploration', 'Roleplay', 'Tension', 'Combat'].map(f => <button className={f === filter ? 'selected' : ''} key={f} onClick={() => setFilter(f)}>{f}</button>)}</div><div className="scene-grid">{allScenes.map((s, i) => (filter === 'All scenes' || s.tag.toLowerCase() === filter.toLowerCase()) && <div className="scene-wrapper" key={i}><button className={`scene-card ${i === scene ? 'chosen' : ''}`} onClick={() => activate(i)}><div className={`scene-art ${s.art}`}><span className="art-stars">✦</span><span className="scene-tag">{s.tag}</span>{i === scene ? <div className="scene-current"><Check size={14}/> Loaded</div> : <div className="scene-play"><Play size={20}/></div>}</div><div className="scene-info"><h3>{s.name}</h3><p>{s.desc}</p><span>{s.source ? s.source.provider + ' source' : '4 ambience layers'} <span>·</span> {i < 5 ? 'Global library' : 'Your library'}</span></div></button>{s.source?.provider === 'YouTube' && <div className="scene-deck-actions"><button aria-label={`Load ${s.name} to YouTube deck A`} onClick={() => loadYouTubeDeck(s.source!.identity, 'A')}>A</button><button aria-label={`Load ${s.name} to YouTube deck B`} onClick={() => loadYouTubeDeck(s.source!.identity, 'B')}>B</button></div>}{i >= scenes.length && <button className="scene-remove icon-button" aria-label={`Remove ${s.name}`} onClick={() => {
+                        setCustom(custom.filter((_, j) => j !== i - scenes.length));
+                        if (scene === i) {
+                            setScene(0);
+                            setLayers(scenes[0].layers);
+                        }
+                        else if (scene > i)
+                            setScene(scene - 1);
+                        notify('Scene removed');
+                    }}><X size={12}/></button>}</div>)}</div><div className="source-panel"><div className="inline"><Music size={18}/><h3>Music sources</h3></div><p>Bring your own soundtrack. YouTube sources can run together through the two-channel mixer; Spotify and local audio remain available.</p><div className="inline wrap"><button className="secondary" onClick={() => { setSourceInput(''); setSourceName(''); setModal('source'); }}><Plus size={15}/> Add provider link</button><label className="secondary file-label"><Plus size={15}/> Local audio<input type="file" accept="audio/*" onChange={e => {
+                const file = e.target.files?.[0];
+                if (file) {
+                    if (file.size > 50 * 1024 * 1024) {
+                        notify('Choose audio smaller than 50 MB');
+                        return;
+                    }
+                    saveAudio(file, file.name).then(() => notify(`${file.name} saved; cloud sync will upload it when connected`)).catch(() => notify('Audio could not be saved to this browser'));
+                }
+            }}/></label>{youtubeSources.length > 0 && <button className="secondary" onClick={() => setYoutubeMixerOpen(true)}><SlidersHorizontal size={15}/> Open YouTube mixer</button>}</div><audio id="local-audio" controls onPlay={e => { e.currentTarget.volume = music / 100; }}/><small>Use the A/B buttons on any YouTube scene card to load a deck. Mixer selections and levels sync with your workspace; playback stays on this device.</small></div></div><aside className="studio-console"><div className="console-heading"><span className="eyebrow">LIVE MIXER</span><span className={`status-dot ${playing ? 'on' : ''}`}>{playing ? 'Live' : 'Standby'}</span></div><div className={`console-art ${active.art}`}><Compass size={58}/></div><h2>{active.name}</h2><p className="console-caption">{playing ? 'Procedural ambience is playing' : 'Ready when your story is.'}</p>{active.source && <div className="source-selected"><Music size={16}/><div><strong>{active.source.provider} source selected</strong><small>{active.source.provider === 'YouTube' ? 'Load this source into Deck A or B, then blend both channels.' : 'Source playback uses the persistent player.'}</small></div><button className="text-button" onClick={() => {
+                    if (active.source?.provider === 'YouTube')
+                        setYoutubeMixerOpen(true);
+                    else {
+                        setProviderStopped(false);
+                        setPlayerCollapsed(false);
+                    }
+                }}>{active.source.provider === 'YouTube' ? 'Open mixer' : 'Show player'}</button></div>}<div className="playback"><button className="secondary" aria-label="Reset mix" onClick={() => setLayers(active.layers)}><RotateCcw size={17}/></button><button className="primary" onClick={toggleAudio}>{playing ? <Pause size={18}/> : <Play size={18}/>} {playing ? 'Pause ambience' : active.source ? 'Play ambience' : 'Play scene'}</button><button className="secondary" aria-label="Mute all" onClick={() => setMuted(!muted)}>{muted ? <VolumeX size={17}/> : <Volume2 size={17}/>}</button></div><div className="console-divider"/><div className="between"><h3>Ambience layers</h3><small>Independent mix</small></div>{mixer()}<div className="console-divider"/><div className="between"><h3>Music channel</h3><small>{music}%</small></div><input aria-label="Music volume" type="range" value={music} onChange={e => { setMusic(+e.target.value); (document.getElementById('local-audio') as HTMLAudioElement).volume = +e.target.value / 100; }}/><p className="control-note">Controls local audio. Provider players use their own volume controls.</p><div className="master"><div className="between"><h3><Volume2 size={16}/> Ambience master</h3><strong>{muted ? 'Muted' : master + '%'}</strong></div><input aria-label="Ambience master volume" type="range" value={master} onChange={e => setMaster(+e.target.value)}/></div><div className="console-foot"><span><Check size={13}/> Mix autosaved locally</span><button className="text-button" onClick={() => { setPlaying(false); const el = document.getElementById('local-audio') as HTMLAudioElement | null; el?.pause(); setProviderStopped(true); setYoutubeStopSignal(value => value + 1); notify('Audio stopped'); }}>Stop all</button></div></aside></div></>}</div><footer className="now-playing"><div className="inline"><div className={`now-art ${active.art}`}><Headphones size={19}/></div><div><strong>{active.name}</strong><small>{playing ? 'Ambience playing' : 'Scene ready'} <span>·</span> {campaign}</small></div></div><div className="now-center"><button aria-label="Toggle ambience playback" className="icon-button" onClick={toggleAudio}>{playing ? <Pause size={20}/> : <Play size={20}/>}</button><div className={`equalizer ${playing ? 'animated' : ''}`}>{[8, 18, 12, 25, 16, 22, 10, 18, 27, 15, 20, 10, 23, 17, 12, 21, 9, 18].map((h, i) => <i key={i} style={{ height: h, animationDelay: `${i * .07}s` }}/>)}</div><span>{playing ? 'LIVE MIX' : 'STANDBY'}</span></div><div className="inline"><button className="icon-button" aria-label="Toggle mute" onClick={() => setMuted(!muted)}>{muted ? <VolumeX size={17}/> : <Volume2 size={17}/>}</button><input aria-label="Quick master volume" type="range" value={master} onChange={e => setMaster(+e.target.value)}/><button className="text-button" onClick={() => setPage('Atmosphere Studio')}>Open mixer <ArrowUpRight size={15}/></button></div></footer></main><YouTubeMixer sources={youtubeSources} deckA={youtubeDeckA} deckB={youtubeDeckB} setDeckA={setYoutubeDeckA} setDeckB={setYoutubeDeckB} volumeA={youtubeVolumeA} volumeB={youtubeVolumeB} setVolumeA={setYoutubeVolumeA} setVolumeB={setYoutubeVolumeB} master={youtubeMaster} crossfade={youtubeCrossfade} setMaster={setYoutubeMaster} setCrossfade={setYoutubeCrossfade} open={youtubeMixerOpen} setOpen={setYoutubeMixerOpen} stopSignal={youtubeStopSignal}/>{active.source?.provider === 'Spotify' && !providerStopped && <aside className={`source-player-dock ${playerCollapsed ? 'collapsed' : ''}`} aria-label="Source playback"><div className="source-player-heading"><div><Music size={14}/><strong>{active.name}</strong><small>{active.source.provider}</small></div><button className="icon-button" aria-label={playerCollapsed ? 'Expand source player' : 'Minimize source player'} onClick={() => setPlayerCollapsed(!playerCollapsed)}><ChevronDown size={17}/></button><button className="icon-button" aria-label="Stop source player" onClick={() => setProviderStopped(true)}><X size={16}/></button></div><div className="provider-player"><iframe key={active.source.embed} src={active.source.embed} title={`${active.source.provider}: ${active.name}`} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/><a href={active.source.url} target="_blank" rel="noreferrer">Open in {active.source.provider} <ArrowUpRight size={13}/></a><small>Source volume and playback use the provider controls.</small></div></aside>}{toast && <div role="status" className="toast"><Check size={16}/>{toast}</div>}{modal && <div className="modal-backdrop" onClick={() => campaigns.length && setModal('')}><div className="modal" role="dialog" aria-modal="true" aria-label={modal} onClick={e => e.stopPropagation()}>{(modal !== 'campaign' || campaigns.length > 0) && <button className="modal-close icon-button" aria-label="Close dialog" onClick={() => setModal('')}><X size={20}/></button>}{modal === 'campaign' ? <><div className="campaign-create-icon"><Compass size={28}/></div><span className="eyebrow">{campaigns.length ? 'NEW ADVENTURE' : 'WELCOME TO WAYFINDER'}</span><h2>{campaigns.length ? 'Create a campaign' : 'Name your first campaign'}</h2><p>Campaigns keep encounters, characters, wiki pages, combat state and session notes separate.</p><label>Campaign name<input autoFocus aria-label="New campaign name" value={campaignName} maxLength={80} onChange={e => { setCampaignName(e.target.value); setCampaignError(''); }} onKeyDown={e => e.key === 'Enter' && createCampaign()} placeholder="e.g. The Shattered Crown"/></label>{campaignError && <p role="alert" className="form-error">{campaignError}</p>}<button className="primary campaign-create-submit" disabled={!campaignName.trim()} onClick={createCampaign}><Plus size={16}/>Create and activate</button></> : modal === 'delete-campaign' ? <><div className="campaign-delete-icon"><Trash2 size={25}/></div><span className="eyebrow">DELETE CAMPAIGN</span><h2>Delete {campaign}?</h2><p>This permanently clears its encounters, characters, wiki posts and images, combat state, and session notes from this workspace and queues those empty records for Supabase sync.</p><label>Type the campaign name to confirm<input autoFocus aria-label="Confirm campaign deletion" value={deleteCampaignText} onChange={e => { setDeleteCampaignText(e.target.value); setDeleteCampaignError(''); }} onKeyDown={e => e.key === 'Enter' && deleteCampaign()} placeholder={campaign}/></label>{deleteCampaignError && <p role="alert" className="form-error">{deleteCampaignError}</p>}<button className="danger campaign-delete-submit" disabled={deleteCampaignText.trim() !== campaign} onClick={deleteCampaign}><Trash2 size={16}/>Delete campaign permanently</button></> : modal === 'search' ? <><h2>Find your way</h2><input autoFocus placeholder="Search workspaces or scenes…" value={query} onChange={e => setQuery(e.target.value)}/>{['Dashboard', 'Atmosphere Studio', 'Encounters', 'Characters & NPCs', 'Campaign wiki', 'Compendium', ...allScenes.map(s => s.name)].filter(n => n.toLowerCase().includes(query.toLowerCase())).map(n => <button className="search-result" key={n} onClick={() => {
+                        const i = allScenes.findIndex(s => s.name === n);
+                        if (i >= 0) {
+                            activate(i);
+                            setPage('Atmosphere Studio');
+                        }
+                        else
+                            setPage(n);
+                        setModal('');
+                    }}><Compass size={17}/>{n}<ArrowUpRight size={15}/></button>)}</> : modal === 'scene' ? <><h2>Keep this atmosphere</h2><p>Save all four layer levels as a reusable scene.</p><label>Scene name<input autoFocus value={sceneName} onChange={e => setSceneName(e.target.value)} placeholder="The forgotten sanctuary"/></label><button className="primary" disabled={!sceneName.trim()} onClick={() => { setCustom([...custom, { name: sceneName.trim(), tag: 'EXPLORATION', art: active.art, desc: 'Your own soundscape, ready for the next adventure.', layers: [...layers] }]); setScene(allScenes.length); setSceneName(''); setModal(''); notify('Custom scene saved'); }}><Save size={16}/> Save scene</button></> : modal === 'source' ? <SourcePicker apiKey={youtubeKey} notify={notify} onAdd={({ provider, name, category, keepMix, spotifyOriginal }) => {
+                    const exists = allScenes.findIndex(s => s.source?.identity === provider.identity);
+                    if (exists >= 0) {
+                        activate(exists);
+                        setPage('Atmosphere Studio');
+                        setFilter('All scenes');
+                        setModal('');
+                        notify('This source is already in your library');
+                        return;
+                    }
+                    const added: Scene = { name: name || `${provider.provider} soundtrack ${custom.filter(s => s.source).length + 1}`, tag: category, art: active.art, desc: spotifyOriginal ? 'YouTube version matched from a Spotify song.' : `Your saved ${provider.provider} soundtrack.`, layers: keepMix ? [...layers] : [0, 0, 0, 0], source: provider, spotifyOriginal };
+                    setCustom([...custom, added]);
+                    setScene(allScenes.length);
+                    setLayers(added.layers);
+                    if (provider.provider === 'YouTube') {
+                        if (!youtubeDeckA)
+                            setYoutubeDeckA(provider.identity);
+                        else if (!youtubeDeckB)
+                            setYoutubeDeckB(provider.identity);
+                        setYoutubeMixerOpen(true);
+                    }
+                    else {
+                        setProviderStopped(false);
+                        setPlayerCollapsed(false);
+                    }
+                    setPage('Atmosphere Studio');
+                    setFilter('All scenes');
+                    setModal('');
+                    notify('Source added to atmosphere selection');
+                }}/> : modal === 'journal' ? <><h2>{campaign} · Session notes</h2><textarea value={note} onChange={e => setNote(e.target.value)} aria-label="Expanded journal"/><small>Autosaved to this browser.</small></> : <><h2>Your workspace</h2><p>Connect Supabase to synchronize your workspace across devices. JSON backups remain available; the compendium and uploaded audio are synchronized separately through Cloud Storage.</p><CloudSettings /><button className="secondary" onClick={exportData}><Download size={16}/> Export workspace backup</button><label className="secondary file-label">Import backup<input type="file" accept="application/json" onChange={async (e) => {
+                    try {
+                        const f = e.target.files?.[0];
+                        if (!f)
+                            return;
+                        const data = JSON.parse(await f.text());
+                        if (!data || Array.isArray(data) || typeof data !== 'object')
+                            throw Error();
+                        const expected: Record<string, string> = { 'wf-campaign': 'string', 'wf-campaigns': 'object', 'wf-scene': 'number', 'wf-layers': 'object', 'wf-master': 'number', 'wf-music': 'number', 'wf-layout': 'string', 'wf-orders': 'object', 'wf-wide': 'object', 'wf-note': 'string', 'wf-round': 'number', 'wf-turn': 'number', 'wf-hp': 'object', 'wf-rolls': 'object', 'wf-source': 'string', 'wf-custom': 'object', 'wf-concentration': 'boolean', 'wf-youtube-deck-a': 'string', 'wf-youtube-deck-b': 'string', 'wf-youtube-volume-a': 'number', 'wf-youtube-volume-b': 'number', 'wf-youtube-master': 'number', 'wf-youtube-crossfade': 'number', 'wf-theme': 'string' };
+                        const campaignKey = (k: string) => /^wf-(encounters|characters|wiki|battle|battle-title|battle-id|battle-active|note|round|turn|hp):/.test(k);
+                        for (const [k, v] of Object.entries(data)) {
+                            if (expected[k] && typeof v !== expected[k])
+                                throw Error();
+                        }
+                        for (const [k, v] of Object.entries(data))
+                            if (expected[k] || campaignKey(k))
+                                writeSavedValue(k, v);
+                        notify('Backup imported; cloud sync queued');
+                    }
+                    catch {
+                        notify('Backup could not be imported');
+                    }
+                }}/></label><div className="youtube-settings"><h3>YouTube song matching</h3><p>Add a YouTube Data API key for automatic Spotify-to-YouTube search. The key stays in this tab and is excluded from exported backups. Restrict it to your website origins and the YouTube Data API.</p><input type="password" aria-label="YouTube API key" placeholder="YouTube Data API key (optional)" value={youtubeKey} onChange={e => {
+                    setYoutubeKey(e.target.value);
+                    try {
+                        sessionStorage.setItem('wayfinder-youtube-key', e.target.value);
+                    }
+                    catch { }
+                }}/><small>No key? You can still open a title search and paste a matching video.</small></div><div className="settings-note">React + TypeScript + Vite<br />Netlify: npm run build → dist<br />Keyboard: Ctrl / ⌘ K to search, Esc to close</div></>}</div></div>}</div>;
+}

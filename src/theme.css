@@ -11,14 +11,21 @@ body{background:#090d16}
 .theme-light .campaign-switch{background:#f8fafc;border-color:#e2e8f0;border-radius:8px}
 .theme-light .campaign-switch select{color:#0f172a}
 .theme-light .campaign-status,.theme-light .saved,.theme-light .eyebrow{color:#d97706}
-.theme-light nav button{color:#475569;border-radius:6px;border-left:2px solid transparent}
-.theme-light nav button.active{background:#f1f5f9;color:#0f172a;border:0;border-left:2px solid #d97706}
+.theme-light nav button{color:#475569;border-radius:8px}
+.theme-light nav button.active{background:#f1f5f9;color:#0f172a;font-weight:600}
 .theme-light .new-campaign-button{color:#d97706;border-color:#cbd5e1;border-radius:6px}.theme-light .new-campaign-button:hover{background:#f1f5f9}
 .theme-light .sidebar-bottom>button,.theme-light .profile>svg{color:#64748b}
 .theme-light .avatar,.theme-light .combat-avatar{background:#f1f5f9;border-color:#e2e8f0;color:#d97706}
 .theme-light .topbar{background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-color:#e2e8f0}
 .theme-light .breadcrumb strong{color:#0f172a}.theme-light .search-button{color:#64748b}.theme-light .search-button kbd{border-color:#cbd5e1;background:#f8fafc;border-radius:4px}
-.theme-toggle,.settings-toggle{border:1px solid var(--line)!important;color:var(--accent)!important;background:color-mix(in srgb,var(--panel) 88%,var(--accent))!important;border-radius:8px!important;padding:6px;display:grid;place-items:center}
+.theme-toggle,.settings-toggle{border:1px solid var(--line)!important;color:var(--accent)!important;background:color-mix(in srgb,var(--panel) 88%,var(--accent))!important;border-radius:8px!important;padding:8px;min-width:36px;min-height:36px;display:grid;place-items:center;position:relative}
+@media(pointer:coarse){
+  .theme-toggle,.settings-toggle{min-width:44px;min-height:44px}
+  .collapse-sidebar-button,.toggle-sidebar-button{min-width:44px;min-height:44px}
+  .quick-roll-close{min-width:44px;min-height:44px;padding:10px}
+  .party-manage-btn{min-height:44px;display:inline-flex;align-items:center}
+  .new-campaign-button,.delete-campaign-button{min-height:44px}
+}
 .theme-light .theme-toggle,.theme-light .settings-toggle{background:#ffffff!important;color:#475569!important;border-color:#cbd5e1!important}
 .theme-light .theme-toggle:hover,.theme-light .settings-toggle:hover{background:#f1f5f9!important;color:#0f172a!important}
 .theme-dark .theme-toggle,.theme-dark .settings-toggle{background:#162030!important;color:#94a3b8!important;border-color:#1e293b!important}
@@ -107,7 +114,7 @@ body{background:#090d16}
 .scene-wrapper .scene-card:before{content:counter(scene-list,decimal-leading-zero);align-self:stretch;display:grid;place-items:center;border-right:1px solid var(--line);font:700 13px -apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;letter-spacing:.04em;color:var(--accent);background:color-mix(in srgb,var(--panel) 88%,var(--accent))}
 .scene-wrapper .scene-info{padding:14px 18px;display:grid;grid-template-columns:minmax(145px,.55fr) minmax(170px,1fr) auto;align-items:center;gap:18px;min-width:0}
 .scene-wrapper .scene-info h3{margin:0;font:650 13px -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif}.scene-wrapper .scene-info p{margin:0;min-height:0;line-height:1.55}.scene-wrapper .scene-info>span{margin:0;padding:0;border:0;text-align:right;white-space:nowrap}
-.scene-wrapper .scene-card.chosen{box-shadow:inset 3px 0 0 var(--accent),0 8px 22px #3325090b}
+.scene-wrapper .scene-card.chosen{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 4px 16px rgba(0,0,0,0.06)}
 .scene-wrapper .scene-deck-actions{top:50%;right:38px;transform:translateY(-50%)}
 .scene-wrapper .scene-deck-actions button{background:var(--panel);border-color:var(--accent);color:var(--accent);border-radius:6px}
 .scene-wrapper .scene-remove{top:50%;right:8px;transform:translateY(-50%);background:var(--panel);border-color:var(--line);color:#f87171;border-radius:6px}
@@ -531,3 +538,13 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 @keyframes slideInBottomLeft{0%{transform:translateY(16px) scale(.96);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
 
 @keyframes footerSlideUp{0%{transform:translateY(100%);opacity:0}100%{transform:translateY(0);opacity:1}}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

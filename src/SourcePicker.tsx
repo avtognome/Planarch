@@ -75,10 +75,10 @@ export default function SourcePicker({ apiKey, initialLink = '', initialName = '
   return <>
     <h2>Add an atmosphere source</h2>
     <p>YouTube sources can be loaded into either mixer deck and played together. Spotify links are matched to a full YouTube version, so no Spotify artwork is embedded.</p>
-    <label>Scene title<input autoFocus value={name} onChange={event => setName(event.target.value)} placeholder="Rainy tavern · evening" /></label>
-    <label>Source link<input value={link} onChange={event => { setLink(event.target.value); setMatches([]); setMessage(''); setTrackQuery(''); setYoutubeLink(''); }} placeholder="YouTube video / playlist or Spotify link" /></label>
-    <label>Scene category<select value={category} onChange={event => setCategory(event.target.value)}>{['EXPLORATION', 'ROLEPLAY', 'TENSION', 'COMBAT'].map(tag => <option key={tag}>{tag}</option>)}</select></label>
-    <label className="checkbox-field"><input type="checkbox" checked={keepMix} onChange={event => setKeepMix(event.target.checked)} />Include the current ambience layer mix</label>
+    <label>Scene title<input autoFocus aria-label="Scene title" value={name} onChange={event => setName(event.target.value)} placeholder="Rainy tavern · evening" /></label>
+    <label>Source link<input aria-label="Source link" value={link} onChange={event => { setLink(event.target.value); setMatches([]); setMessage(''); setTrackQuery(''); setYoutubeLink(''); }} placeholder="YouTube video / playlist or Spotify link" /></label>
+    <label>Scene category<select aria-label="Scene category" value={category} onChange={event => setCategory(event.target.value)}>{['EXPLORATION', 'ROLEPLAY', 'TENSION', 'COMBAT'].map(tag => <option key={tag}>{tag}</option>)}</select></label>
+    <label className="checkbox-field"><input type="checkbox" aria-label="Include the current ambience layer mix" checked={keepMix} onChange={event => setKeepMix(event.target.checked)} />Include the current ambience layer mix</label>
     {spotify ? <div className="music-matching">
       <div className="inline"><Music size={16} /><h3>Spotify → YouTube</h3></div>
       <p>Lookup uses the song title. Add the artist to avoid covers or songs with the same name, then confirm the version you want.</p>
@@ -87,7 +87,7 @@ export default function SourcePicker({ apiKey, initialLink = '', initialName = '
       {message && <p role="status" className="lookup-message">{message}</p>}
       {matches.map(match => <div className="youtube-match" key={match.id}><div><strong>{match.title}</strong><small>{match.channel}</small><a href={match.url} target="_blank" rel="noreferrer">Listen on YouTube <ArrowUpRight size={12} /></a></div><button className="secondary" onClick={() => acceptYouTube(match.url)}><Check size={14} />Use this version</button></div>)}
       {trackQuery && <a className="youtube-search-link" target="_blank" rel="noreferrer" href={`https://www.youtube.com/results?search_query=${encodeURIComponent(trackQuery + ' official audio')}`}>Search this song on YouTube <ArrowUpRight size={13} /></a>}
-      <label>Chosen YouTube video<input value={youtubeLink} onChange={event => setYoutubeLink(event.target.value)} placeholder="Paste the matching YouTube video link" /></label>
+      <label>Chosen YouTube video<input aria-label="Chosen YouTube video" value={youtubeLink} onChange={event => setYoutubeLink(event.target.value)} placeholder="Paste the matching YouTube video link" /></label>
       <button className="secondary" disabled={!youtubeLink.trim()} onClick={() => acceptYouTube(youtubeLink)}><Plus size={15} />Use chosen YouTube video</button>
     </div> : <button className="primary" disabled={!link.trim()} onClick={() => { try { add(parseProviderSource(link)); } catch (error) { notify(error instanceof Error ? error.message : 'Enter a valid source link'); } }}><Plus size={16} />Add to scene library</button>}
   </>;

@@ -44,12 +44,12 @@ export default function CombatTracker({ battle, setBattle, battleTitle, battleAc
   const current = battle[turn];
 
   const toggleSessionTray = (tray: 'conditions' | 'tools') => {
-    window.dispatchEvent(new CustomEvent('wayfinder-youtube-mixer-close'));
+    window.dispatchEvent(new CustomEvent('planarch-youtube-mixer-close'));
     setSessionTray(value => value === tray ? null : tray);
   };
   const openAudioTray = () => {
     setSessionTray(null);
-    window.dispatchEvent(new CustomEvent('wayfinder-youtube-mixer-open'));
+    window.dispatchEvent(new CustomEvent('planarch-youtube-mixer-open'));
   };
 
   const pushHistory = (label: string) => setHistory(items => [{ id: uid(), label, battle: battle.map(member => ({ ...member })), round, turn }, ...items].slice(0, 12));
@@ -213,8 +213,8 @@ export default function CombatTracker({ battle, setBattle, battleTitle, battleAc
     else if (['previous', 'previous turn', 'prev', 'p'].includes(lower)) previousTurn();
     else if (['undo', 'ctrl z'].includes(lower)) undo();
     else if (lower === 'compendium' || lower === 'open compendium') setDrawerOpen(true);
-    else if (lower === 'mute ambience') window.dispatchEvent(new CustomEvent('wayfinder-audio-mute'));
-    else if (['play ambience', 'pause ambience', 'toggle ambience'].includes(lower)) window.dispatchEvent(new CustomEvent('wayfinder-audio-toggle'));
+    else if (lower === 'mute ambience') window.dispatchEvent(new CustomEvent('planarch-audio-mute'));
+    else if (['play ambience', 'pause ambience', 'toggle ambience'].includes(lower)) window.dispatchEvent(new CustomEvent('planarch-audio-toggle'));
     else if (lower.startsWith('roll ')) rollExpression(value.slice(5));
     else {
       const hpMatch = value.match(/^(.+?)\s+([+-])(\d+)$/);
@@ -241,8 +241,8 @@ export default function CombatTracker({ battle, setBattle, battleTitle, battleAc
 
   useEffect(() => {
     const open = () => { setCommandOpen(true); setTimeout(() => commandInput.current?.focus(), 0); };
-    window.addEventListener('wayfinder-command-open', open);
-    return () => window.removeEventListener('wayfinder-command-open', open);
+    window.addEventListener('planarch-command-open', open);
+    return () => window.removeEventListener('planarch-command-open', open);
   }, []);
 
   useEffect(() => {
@@ -258,7 +258,7 @@ export default function CombatTracker({ battle, setBattle, battleTitle, battleAc
       else if (event.key.toLowerCase() === 'h') { event.preventDefault(); setSessionMode('heal'); document.getElementById('session-amount')?.focus(); }
       else if (event.key.toLowerCase() === 'c') { event.preventDefault(); toggleSessionTray('conditions'); }
       else if (event.key.toLowerCase() === 'r') rollExpression(quickDice);
-      else if (event.code === 'Space') { event.preventDefault(); window.dispatchEvent(new CustomEvent('wayfinder-audio-toggle')); }
+      else if (event.code === 'Space') { event.preventDefault(); window.dispatchEvent(new CustomEvent('planarch-audio-toggle')); }
     };
     window.addEventListener('keydown', shortcut);
     return () => window.removeEventListener('keydown', shortcut);
@@ -295,7 +295,7 @@ export default function CombatTracker({ battle, setBattle, battleTitle, battleAc
       </section>}
       {sessionTray === 'tools' && <section className="session-dock-tray session-tools-tray" aria-label="Session utilities">
         <header><div><span className="eyebrow">QUICK TOOLS</span><strong>Session utilities</strong></div><button className="icon-button" aria-label="Close tools tray" onClick={() => setSessionTray(null)}><X size={16} /></button></header>
-        <div className="session-tools-layout"><div className="session-utilities"><button aria-label="Open command palette" onClick={() => setCommandOpen(true)}><Command size={15} /> Commands</button><button aria-label="Open quick compendium" onClick={() => { setDrawerFocus(''); setDrawerOpen(true); }}><BookOpen size={15} /> Compendium</button><button aria-label="Toggle ambience" onClick={() => window.dispatchEvent(new CustomEvent('wayfinder-audio-toggle'))}><Volume2 size={15} /> Ambience</button><button aria-label="Mute ambience" onClick={() => window.dispatchEvent(new CustomEvent('wayfinder-audio-mute'))}><VolumeX size={15} /> Mute</button><button disabled={!history.length} aria-label="Undo last action" onClick={undo}><RotateCcw size={15} /> Undo</button></div><div className="session-dice"><span>Quick roll</span><input aria-label="Session dice expression" value={quickDice} onChange={event => setQuickDice(event.target.value)} onKeyDown={event => event.key === 'Enter' && rollExpression(quickDice)} /><button onClick={() => rollExpression(quickDice)}><Dices size={14} /> Roll</button></div><div className="session-history"><span><History size={14} /> Recent actions</span>{history.length ? history.slice(0, 4).map((entry, index) => <button key={entry.id} disabled={index > 0} onClick={undo}>{entry.label}{index === 0 && <strong>Undo</strong>}</button>) : <small>No reversible actions yet.</small>}</div></div>
+        <div className="session-tools-layout"><div className="session-utilities"><button aria-label="Open command palette" onClick={() => setCommandOpen(true)}><Command size={15} /> Commands</button><button aria-label="Open quick compendium" onClick={() => { setDrawerFocus(''); setDrawerOpen(true); }}><BookOpen size={15} /> Compendium</button><button aria-label="Toggle ambience" onClick={() => window.dispatchEvent(new CustomEvent('planarch-audio-toggle'))}><Volume2 size={15} /> Ambience</button><button aria-label="Mute ambience" onClick={() => window.dispatchEvent(new CustomEvent('planarch-audio-mute'))}><VolumeX size={15} /> Mute</button><button disabled={!history.length} aria-label="Undo last action" onClick={undo}><RotateCcw size={15} /> Undo</button></div><div className="session-dice"><span>Quick roll</span><input aria-label="Session dice expression" value={quickDice} onChange={event => setQuickDice(event.target.value)} onKeyDown={event => event.key === 'Enter' && rollExpression(quickDice)} /><button onClick={() => rollExpression(quickDice)}><Dices size={14} /> Roll</button></div><div className="session-history"><span><History size={14} /> Recent actions</span>{history.length ? history.slice(0, 4).map((entry, index) => <button key={entry.id} disabled={index > 0} onClick={undo}>{entry.label}{index === 0 && <strong>Undo</strong>}</button>) : <small>No reversible actions yet.</small>}</div></div>
       </section>}
       <div className="session-dock-row">
         <div className="session-current"><span className="session-round-seal">{round}</span><div><small>ROUND {round} · CURRENT TURN</small><strong>{current.name}</strong><span>{current.hp} / {current.maxHp} HP{splitConditions(current.conditions).length ? ` · ${splitConditions(current.conditions).join(', ')}` : ''}</span></div></div>

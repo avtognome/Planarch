@@ -1,4 +1,4 @@
-/* Wayfinder's modern macOS dark slate skin. */
+/* Planarch's modern macOS dark slate skin. */
 body{background:#090d16}
 .app{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","SF Pro",system-ui,sans-serif;transition:color .2s,background .2s}
 .app h1,.app h2,.app .page-heading h1,.app .session-banner h2,.app .studio-console>h2,.app .modal>h2{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro",system-ui,sans-serif;font-weight:650;letter-spacing:-.02em}

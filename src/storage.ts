@@ -9,7 +9,7 @@ export function useSaved<T>(key:string,initial:T):readonly [T,Dispatch<SetStateA
  const read=()=>{try{return JSON.parse(localStorage.getItem(key)||'null')??initial}catch{return initial}};
  const [state,setState]=useState<{key:string,value:T}>(()=>({key,value:read()}));
  const value=state.key===key?state.value:read();
- useEffect(()=>{if(state.key!==key){setState({key,value:read()});return}try{writeSavedValue(key,state.value)}catch{window.dispatchEvent(new CustomEvent('wayfinder-save-error'))}},[key,state]);
+ useEffect(()=>{if(state.key!==key){setState({key,value:read()});return}try{writeSavedValue(key,state.value)}catch{window.dispatchEvent(new CustomEvent('planarch-save-error'))}},[key,state]);
  useEffect(()=>subscribeSaved(change=>{if(change.key===key){try{setState({key,value:JSON.parse(change.json)})}catch{}}}),[key]);
  useEffect(()=>{const fn=(event:StorageEvent)=>{if(event.key===key&&event.newValue!==null){try{setState({key,value:JSON.parse(event.newValue)});for(const listener of listeners)listener({key,json:event.newValue,remote:true})}catch{}}};window.addEventListener('storage',fn);return()=>window.removeEventListener('storage',fn)},[key]);
  const setValue:Dispatch<SetStateAction<T>>=(update)=>setState(prev=>{const current=prev.key===key?prev.value:read();return {key,value:typeof update==='function'?(update as (v:T)=>T)(current):update}});

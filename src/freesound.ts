@@ -65,7 +65,7 @@ export async function searchFreesound(query: string, page: number = 1, apiKey: s
 }
 
 // IndexedDB Audio Cache
-const DB_NAME = 'wayfinder-audio-cache';
+const DB_NAME = 'planarch-audio-cache';
 const DB_VERSION = 1;
 const STORE_NAME = 'blobs';
 

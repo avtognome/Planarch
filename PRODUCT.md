@@ -12,7 +12,7 @@ Dungeon Masters (DMs) running tabletop role-playing games (primarily D&D 5e/2024
 
 ## Product Purpose
 
-Wayfinder is an offline-first DM Command Center dashboard that minimizes administrative bookkeeping so DMs can focus on storytelling. Success means zero-friction access to party vitals, audio atmosphere, encounter initiative, dice rolling, and rules reference in a single viewport without lag or clutter.
+Planarch is an offline-first DM Command Center dashboard that minimizes administrative bookkeeping so DMs can focus on storytelling. Success means zero-friction access to party vitals, audio atmosphere, encounter initiative, dice rolling, and rules reference in a single viewport without lag or clutter.
 
 ## Positioning
 

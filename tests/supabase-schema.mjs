@@ -17,13 +17,13 @@ insert into auth.users(id) values('11111111-1111-4111-8111-111111111111'),('2222
 const sql=fs.readFileSync('supabase/setup.sql','utf8');await db.exec(sql);await db.exec(sql);
 async function asUser(id){await db.exec(`set role authenticated;set request.jwt.claim.sub='${id}';`)}
 const one='11111111-1111-4111-8111-111111111111',two='22222222-2222-4222-8222-222222222222';
-await asUser(one);const first=(await db.query(`select public.wayfinder_write_record($1,$2,$3,$4) as result`,['wf-note:Sagara',JSON.stringify('First note'),null,0])).rows[0].result;assert.equal(first.ok,true);assert.equal(first.revision,1);
-const stale=(await db.query(`select public.wayfinder_write_record($1,$2,$3,$4) as result`,['wf-note:Sagara',JSON.stringify('Stale overwrite'),null,0])).rows[0].result;assert.equal(stale.ok,false);assert.equal(stale.row.json,JSON.stringify('First note'));
-const second=(await db.query(`select public.wayfinder_write_record($1,$2,$3,$4) as result`,['wf-note:Sagara',JSON.stringify('Updated note'),null,1])).rows[0].result;assert.equal(second.revision,2);
-await db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['wayfinder-private',`users/${one}/audio/part-0000`]);
-await assert.rejects(()=>db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['wayfinder-private',`users/${two}/audio/part-0000`]));
-await asUser(two);assert.equal((await db.query('select * from public.wayfinder_records')).rows.length,0);assert.equal((await db.query('select * from storage.objects')).rows.length,0);
-await assert.rejects(()=>db.query('insert into public.wayfinder_records(user_id,key,json,revision) values($1,$2,$3,$4)',[one,'wf-note',JSON.stringify('Other account'),1]));
-assert.equal((await db.query('delete from public.wayfinder_records where user_id=$1 returning *',[one])).rows.length,0);
-await db.exec('reset role;set role anon;');await assert.rejects(()=>db.query('select * from public.wayfinder_records'));await assert.rejects(()=>db.query(`select public.wayfinder_write_record($1,$2,$3,$4)`,['wf-note','null',null,0]));
+await asUser(one);const first=(await db.query(`select public.planarch_write_record($1,$2,$3,$4) as result`,['wf-note:Sagara',JSON.stringify('First note'),null,0])).rows[0].result;assert.equal(first.ok,true);assert.equal(first.revision,1);
+const stale=(await db.query(`select public.planarch_write_record($1,$2,$3,$4) as result`,['wf-note:Sagara',JSON.stringify('Stale overwrite'),null,0])).rows[0].result;assert.equal(stale.ok,false);assert.equal(stale.row.json,JSON.stringify('First note'));
+const second=(await db.query(`select public.planarch_write_record($1,$2,$3,$4) as result`,['wf-note:Sagara',JSON.stringify('Updated note'),null,1])).rows[0].result;assert.equal(second.revision,2);
+await db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['planarch-private',`users/${one}/audio/part-0000`]);
+await assert.rejects(()=>db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['planarch-private',`users/${two}/audio/part-0000`]));
+await asUser(two);assert.equal((await db.query('select * from public.planarch_records')).rows.length,0);assert.equal((await db.query('select * from storage.objects')).rows.length,0);
+await assert.rejects(()=>db.query('insert into public.planarch_records(user_id,key,json,revision) values($1,$2,$3,$4)',[one,'wf-note',JSON.stringify('Other account'),1]));
+assert.equal((await db.query('delete from public.planarch_records where user_id=$1 returning *',[one])).rows.length,0);
+await db.exec('reset role;set role anon;');await assert.rejects(()=>db.query('select * from public.planarch_records'));await assert.rejects(()=>db.query(`select public.planarch_write_record($1,$2,$3,$4)`,['wf-note','null',null,0]));
 console.log('PASS PostgreSQL setup is repeatable, atomic revision checks reject stale writes, RLS isolates users and private file paths, anonymous access denied');await db.close();

@@ -12,7 +12,7 @@ let apiPromise:Promise<YouTubeAPI>|undefined;
 function loadYouTubeAPI(){
  if(window.YT?.Player)return Promise.resolve(window.YT);
  if(apiPromise)return apiPromise;
- apiPromise=new Promise(resolve=>{const previous=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{previous?.();if(window.YT)resolve(window.YT)};if(!document.querySelector('script[data-wayfinder-youtube]')){const script=document.createElement('script');script.src='https://www.youtube.com/iframe_api';script.async=true;script.dataset.wayfinderYoutube='true';document.head.appendChild(script)}});
+ apiPromise=new Promise(resolve=>{const previous=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{previous?.();if(window.YT)resolve(window.YT)};if(!document.querySelector('script[data-planarch-youtube]')){const script=document.createElement('script');script.src='https://www.youtube.com/iframe_api';script.async=true;script.dataset.planarchYoutube='true';document.head.appendChild(script)}});
  return apiPromise;
 }
 

@@ -24,7 +24,7 @@ export function ability(value:FieldValue){
 function InteractiveActionText({text}:{text:string}){
  const triggerRoll=(expr:string,label:string)=>{
   if(typeof window!=='undefined'){
-   window.dispatchEvent(new CustomEvent('wayfinder-dice-roll',{detail:{expression:expr,label}}));
+   window.dispatchEvent(new CustomEvent('planarch-dice-roll',{detail:{expression:expr,label}}));
   }
  };
  const regex=/(([+-]\d+)\s+to\s+hit)|(\b\d{1,2}d\d{1,3}(?:\s*[+-]\s*\d+)?\b)/gi;
@@ -144,7 +144,7 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
  const worker=useRef<Worker|null>(null),mounted=useRef(true);
 
  useEffect(()=>{mounted.current=true;readMeta().then(current=>{setMeta(current);setLoading(false);if(current?.index[0])setSelected(current.index[0].id)}).catch(e=>{setError(e.message);setLoading(false)});return()=>{mounted.current=false}},[]);
- useEffect(()=>{const refresh=()=>{readMeta().then(current=>{setMeta(current);if(current?.index[0])setSelected(current.index[0].id)}).catch(e=>setError(e.message))};window.addEventListener('wayfinder-compendium-changed',refresh);return()=>window.removeEventListener('wayfinder-compendium-changed',refresh)},[]);
+ useEffect(()=>{const refresh=()=>{readMeta().then(current=>{setMeta(current);if(current?.index[0])setSelected(current.index[0].id)}).catch(e=>setError(e.message))};window.addEventListener('planarch-compendium-changed',refresh);return()=>window.removeEventListener('planarch-compendium-changed',refresh)},[]);
  useEffect(()=>{if(focus&&meta){setSelected(focus);setKind('All');setEdition('All');setQuery('');onFocusHandled()}},[focus,meta]);
  useEffect(()=>{setRecord(null);if(!meta||!selected)return;let cancelled=false;readRecord(meta.generation,selected).then(result=>{if(!cancelled)setRecord(result)}).catch(e=>setError(e.message));return()=>{cancelled=true}},[meta,selected]);
  useEffect(()=>setPage(0),[kind,edition,query]);

@@ -1,4 +1,4 @@
-# Wayfinder — DM Command Center
+# Planarch — DM Command Center
 
 A local-first React + TypeScript + Vite application with a customizable modern-medieval DM workspace. It opens in an ivory-and-gold light theme and includes a remembered dark theme. Static hosting compatible with Netlify.
 

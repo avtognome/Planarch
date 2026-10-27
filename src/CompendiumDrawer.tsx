@@ -11,7 +11,7 @@ const labels: Record<string, string> = {
 function DrawerInteractiveText({ text }: { text: string }) {
   const triggerRoll = (expr: string, label: string) => {
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('wayfinder-dice-roll', { detail: { expression: expr, label } }));
+      window.dispatchEvent(new CustomEvent('planarch-dice-roll', { detail: { expression: expr, label } }));
     }
   };
   const regex = /(([+-]\d+)\s+to\s+hit)|(\b\d{1,2}d\d{1,3}(?:\s*[+-]\s*\d+)?\b)/gi;

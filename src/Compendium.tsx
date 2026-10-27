@@ -3,7 +3,7 @@ import {BookOpen,Search,Upload,Download,Plus,ChevronLeft,ChevronRight,Check,Swor
 import {useSaved} from './storage';
 import {uid,seedEncounters,type Encounter} from './models';
 import {kinds,readMeta,readRecord,writeBatch,activateLibrary,deleteGeneration,importIncluded,indexRecord,monsterToCombatant,plain,type LibraryMeta,type CompendiumRecord,type EntryIndex,type FieldValue} from './compendiumData';
-import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
+import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from './select';
 
 const labels:Record<string,string>={monster:'Monsters',spell:'Spells',item:'Items',class:'Classes',race:'Races',feat:'Feats',background:'Backgrounds'};
 const sizeNames:Record<string,string>={T:'Tiny',S:'Small',M:'Medium',L:'Large',H:'Huge',G:'Gargantuan'};

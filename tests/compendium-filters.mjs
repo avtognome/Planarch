@@ -7,9 +7,6 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import TestRenderer, { act } from 'react-test-renderer';
 
-// Polyfill ReactDOM.createPortal for react-test-renderer
-ReactDOM.createPortal = children => children;
-
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 console.log('Testing Compendium Dropdown Filters & Contextual Selects...');
@@ -32,15 +29,6 @@ for (const filename of fs.readdirSync('src').filter(n => /\.tsx?$/.test(n) && n 
 // Transpile ui and lib components
 fs.mkdirSync(path.join(out, 'components/ui'), { recursive: true });
 fs.mkdirSync(path.join(out, 'lib'), { recursive: true });
-
-for (const filename of fs.readdirSync('src/components/ui').filter(n => /\.tsx?$/.test(n))) {
-  let code = ts.transpileModule(fs.readFileSync('src/components/ui/' + filename, 'utf8'), {
-    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX }
-  }).outputText;
-  code = code.replace(/from ['"]@\/lib\/([^'"]+)['"]/g, (_, n) => `from '../../lib/${n}.js'`)
-             .replace(/from ['"]\.\/([^'"]+)['"]/g, (_, n) => `from './${n}.js'`);
-  fs.writeFileSync(path.join(out, 'components/ui', filename.replace(/\.tsx?$/, '.js')), code);
-}
 
 for (const filename of fs.readdirSync('src/lib').filter(n => /\.tsx?$/.test(n))) {
   let code = ts.transpileModule(fs.readFileSync('src/lib/' + filename, 'utf8'), {
@@ -90,29 +78,7 @@ globalThis.localStorage = {
 globalThis.window = {
   addEventListener() {},
   removeEventListener() {},
-  dispatchEvent() {},
-  setTimeout: (...args) => globalThis.setTimeout(...args),
-  clearTimeout: (...args) => globalThis.clearTimeout(...args)
-};
-
-globalThis.HTMLFormElement = class HTMLFormElement {};
-globalThis.HTMLElement = class HTMLElement {};
-globalThis.document = {
-  createElement: tag => ({
-    tagName: tag.toUpperCase(),
-    setAttribute() {},
-    getAttribute() {},
-    removeAttribute() {},
-    style: {},
-    appendChild() {},
-    removeChild() {},
-    addEventListener() {},
-    removeEventListener() {}
-  }),
-  body: {
-    appendChild() {},
-    removeChild() {}
-  }
+  dispatchEvent() {}
 };
 
 // Polyfill pointerCapture for Radix Select
@@ -170,7 +136,7 @@ let recordRows = compRenderer.root.findAllByProps({ className: 'record-row selec
 assert.equal(recordRows.length, 9, 'All 9 mock entries should be rendered in index list initially');
 
 // 3. Switch Category to 'monster' using Select's onValueChange
-const { Select } = await import(pathToFileURL(path.join(out, 'components/ui/select.js')).href);
+const { Select } = await import(pathToFileURL(path.join(out, 'select.js')).href);
 const selects = compRenderer.root.findAllByType(Select);
 const catSelect = selects.find(s => s.props['aria-label'] === 'Compendium category' || s.findAllByProps({ 'aria-label': 'Compendium category' }).length > 0);
 assert.ok(catSelect, 'Category Select component found');
@@ -221,3 +187,51 @@ recordRows = compRenderer.root.findAllByProps({ className: 'record-row selected'
 );
 assert.equal(recordRows.length, 9, 'Resetting filters must restore all 9 entries');
 console.log('PASS Reset button: clears filters and restores full compendium index');
+
+// 6. Test Spell contextual filtering
+await act(async () => {
+  catSelect.props.onValueChange('spell');
+});
+
+const spellLvlTrigger = compRenderer.root.findByProps({ 'aria-label': 'Spell level' });
+assert.ok(spellLvlTrigger, 'Spell level dropdown must appear when spell category selected');
+
+const spellClassTrigger = compRenderer.root.findByProps({ 'aria-label': 'Spell class' });
+assert.ok(spellClassTrigger, 'Spell class dropdown must appear when spell category selected');
+
+// Filter by spell level 1
+const spellLvlSelect = compRenderer.root.findAllByType(Select).find(s => s.findAllByProps({ 'aria-label': 'Spell level' }).length > 0);
+await act(async () => {
+  spellLvlSelect.props.onValueChange('1');
+});
+
+recordRows = compRenderer.root.findAllByProps({ className: 'record-row selected' }).concat(
+  compRenderer.root.findAllByProps({ className: 'record-row ' })
+);
+assert.equal(recordRows.length, 1, 'Only 1 spell should match Level 1 (Cure Wounds)');
+assert.equal(recordRows[0].findByType('strong').children[0], 'Cure Wounds');
+console.log('PASS Spell contextual filtering: Level 1 matched Cure Wounds');
+
+// 7. Test Item contextual filtering
+await act(async () => {
+  catSelect.props.onValueChange('item');
+});
+
+const itemRarityTrigger = compRenderer.root.findByProps({ 'aria-label': 'Item rarity' });
+assert.ok(itemRarityTrigger, 'Item rarity dropdown must appear when item category selected');
+
+const itemTypeTrigger = compRenderer.root.findByProps({ 'aria-label': 'Item type' });
+assert.ok(itemTypeTrigger, 'Item type dropdown must appear when item category selected');
+
+const raritySelect = compRenderer.root.findAllByType(Select).find(s => s.findAllByProps({ 'aria-label': 'Item rarity' }).length > 0);
+await act(async () => {
+  raritySelect.props.onValueChange('rare');
+});
+
+recordRows = compRenderer.root.findAllByProps({ className: 'record-row selected' }).concat(
+  compRenderer.root.findAllByProps({ className: 'record-row ' })
+);
+assert.equal(recordRows.length, 1, 'Only 1 item should match Rare (Flame Tongue)');
+assert.equal(recordRows[0].findByType('strong').children[0], 'Flame Tongue Longsword');
+console.log('PASS Item contextual filtering: Rare rarity matched Flame Tongue Longsword');
+

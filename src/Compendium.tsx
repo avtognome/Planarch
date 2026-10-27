@@ -1,8 +1,9 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
-import {BookOpen,Search,Upload,Download,Plus,ChevronLeft,ChevronRight,Check,Swords} from 'lucide-react';
+import {BookOpen,Search,Upload,Download,Plus,ChevronLeft,ChevronRight,Check,Swords,RotateCcw,X} from 'lucide-react';
 import {useSaved} from './storage';
 import {uid,seedEncounters,type Encounter} from './models';
 import {kinds,readMeta,readRecord,writeBatch,activateLibrary,deleteGeneration,importIncluded,indexRecord,monsterToCombatant,plain,type LibraryMeta,type CompendiumRecord,type EntryIndex,type FieldValue} from './compendiumData';
+import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 
 const labels:Record<string,string>={monster:'Monsters',spell:'Spells',item:'Items',class:'Classes',race:'Races',feat:'Feats',background:'Backgrounds'};
 const sizeNames:Record<string,string>={T:'Tiny',S:'Small',M:'Medium',L:'Large',H:'Huge',G:'Gargantuan'};
@@ -138,8 +139,25 @@ export function ReferenceStatBlock({record}:{record:CompendiumRecord}){
  return <div className="dnd-reference-card" aria-label={`${record.name} D&D reference`}><p className="dnd-subtitle"><em>Character Background{plain(f.ancestry)?` · ${plain(f.ancestry)}`:''}</em></p><div className="monster-rule"/><FactGrid facts={[[fieldLabels.proficiency,plain(f.proficiency)],[fieldLabels.tools,plain(f.tools)],[fieldLabels.languages,plain(f.languages)]]}/><DndSection title="Background Features" value={f.trait}/></div>;
 }
 
+function parseCR(summary: string): number | null {
+  const m = summary.match(/CR\s+([0-9/]+)/i);
+  if (!m) return null;
+  const val = m[1];
+  if (val.includes('/')) {
+    const [num, den] = val.split('/').map(Number);
+    return den ? num / den : 0;
+  }
+  return Number(val);
+}
+
+function parseSpellLevel(summary: string): number | null {
+  const m = summary.match(/Level\s+(\d+)/i);
+  return m ? Number(m[1]) : null;
+}
+
 export default function Compendium({campaign,focus,onFocusHandled,notify}:{campaign:string,focus:string,onFocusHandled:()=>void,notify:(message:string)=>void}){
  const [meta,setMeta]=useState<LibraryMeta|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[progress,setProgress]=useState([0,26393]),[error,setError]=useState(''),[kind,setKind]=useState('All'),[edition,setEdition]=useState('All'),[query,setQuery]=useState(''),[page,setPage]=useState(0),[selected,setSelected]=useState(''),[record,setRecord]=useState<CompendiumRecord|null>(null),[encounterId,setEncounterId]=useState('');
+ const [monsterCR,setMonsterCR]=useState('All'),[monsterType,setMonsterType]=useState('All'),[spellLevel,setSpellLevel]=useState('All'),[spellClass,setSpellClass]=useState('All'),[itemRarity,setItemRarity]=useState('All'),[itemType,setItemType]=useState('All'),[sort,setSort]=useState('name-asc');
  const [encounters,setEncounters]=useSaved<Encounter[]>(`wf-encounters:${campaign}`,seedEncounters(campaign));
  const worker=useRef<Worker|null>(null),mounted=useRef(true);
 
@@ -147,9 +165,83 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
  useEffect(()=>{const refresh=()=>{readMeta().then(current=>{setMeta(current);if(current?.index[0])setSelected(current.index[0].id)}).catch(e=>setError(e.message))};window.addEventListener('planarch-compendium-changed',refresh);return()=>window.removeEventListener('planarch-compendium-changed',refresh)},[]);
  useEffect(()=>{if(focus&&meta){setSelected(focus);setKind('All');setEdition('All');setQuery('');onFocusHandled()}},[focus,meta]);
  useEffect(()=>{setRecord(null);if(!meta||!selected)return;let cancelled=false;readRecord(meta.generation,selected).then(result=>{if(!cancelled)setRecord(result)}).catch(e=>setError(e.message));return()=>{cancelled=true}},[meta,selected]);
- useEffect(()=>setPage(0),[kind,edition,query]);
+ useEffect(()=>setPage(0),[kind,edition,query,monsterCR,monsterType,spellLevel,spellClass,itemRarity,itemType,sort]);
 
- const matching=useMemo(()=>meta?.index.filter(entry=>(kind==='All'||kind===entry.kind)&&(edition==='All'||edition===entry.edition)&&query.toLowerCase().trim().split(/\s+/).every(word=>entry.search.includes(word))).sort((a,b)=>a.name.localeCompare(b.name))||[],[meta,kind,edition,query]);
+ const hasActiveFilters = kind !== 'All' || edition !== 'All' || query.trim() !== '' || monsterCR !== 'All' || monsterType !== 'All' || spellLevel !== 'All' || spellClass !== 'All' || itemRarity !== 'All' || itemType !== 'All' || sort !== 'name-asc';
+
+ const clearFilters = () => {
+   setKind('All');
+   setEdition('All');
+   setQuery('');
+   setMonsterCR('All');
+   setMonsterType('All');
+   setSpellLevel('All');
+   setSpellClass('All');
+   setItemRarity('All');
+   setItemType('All');
+   setSort('name-asc');
+ };
+
+ const matching = useMemo(() => {
+   if (!meta?.index) return [];
+   const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+
+   return meta.index.filter(entry => {
+     if (kind !== 'All' && entry.kind !== kind) return false;
+     if (edition !== 'All' && entry.edition !== edition) return false;
+     if (words.length && !words.every(w => entry.search.includes(w))) return false;
+
+     if (kind === 'monster') {
+       if (monsterCR !== 'All') {
+         const cr = parseCR(entry.summary);
+         if (cr === null) return false;
+         if (monsterCR === '0-1' && !(cr >= 0 && cr <= 1)) return false;
+         if (monsterCR === '2-4' && !(cr >= 2 && cr <= 4)) return false;
+         if (monsterCR === '5-9' && !(cr >= 5 && cr <= 9)) return false;
+         if (monsterCR === '10-14' && !(cr >= 10 && cr <= 14)) return false;
+         if (monsterCR === '15+' && !(cr >= 15)) return false;
+       }
+       if (monsterType !== 'All') {
+         if (!entry.search.includes(monsterType.toLowerCase())) return false;
+       }
+     }
+
+     if (kind === 'spell') {
+       if (spellLevel !== 'All') {
+         const lvl = parseSpellLevel(entry.summary);
+         if (lvl === null || lvl !== Number(spellLevel)) return false;
+       }
+       if (spellClass !== 'All') {
+         if (!entry.search.includes(spellClass.toLowerCase())) return false;
+       }
+     }
+
+     if (kind === 'item') {
+       if (itemRarity !== 'All') {
+         if (!entry.search.includes(itemRarity.toLowerCase())) return false;
+       }
+       if (itemType !== 'All') {
+         if (!entry.search.includes(itemType.toLowerCase())) return false;
+       }
+     }
+
+     return true;
+   }).sort((a, b) => {
+     if (sort === 'name-desc') return b.name.localeCompare(a.name);
+     if (sort === 'cr-level') {
+       if (kind === 'monster') {
+         const crA = parseCR(a.summary) ?? 0;
+         const crB = parseCR(b.summary) ?? 0;
+         if (crA !== crB) return crA - crB;
+       } else if (kind === 'spell') {
+         const lvlA = parseSpellLevel(a.summary) ?? 0;
+         const lvlB = parseSpellLevel(b.summary) ?? 0;
+         if (lvlA !== lvlB) return lvlA - lvlB;
+       }
+     }
+     return a.name.localeCompare(b.name);
+   });
+ }, [meta, kind, edition, query, monsterCR, monsterType, spellLevel, spellClass, itemRarity, itemType, sort]);
  const included=async()=>{setBusy(true);setError('');try{const imported=await importIncluded((current,total)=>{if(mounted.current)setProgress([current,total])});if(mounted.current){setMeta(imported);setSelected(imported.index[0].id);notify(`${imported.count.toLocaleString()} compendium entries ready`)}}catch(e){if(mounted.current)setError(e instanceof Error?e.message:'Sourcebook could not be loaded')}finally{if(mounted.current)setBusy(false)}};
  const importXML=async(file:File)=>{
   if(file.size>100*1024*1024){setError('Choose a compendium smaller than 100 MB.');return}
@@ -164,10 +256,178 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
  const addMonster=()=>{if(!record||record.kind!=='monster')return;const monster=monsterToCombatant(record,uid()),chosen=encounters.find(entry=>entry.id===encounterId);if(chosen){setEncounters(encounters.map(entry=>entry.id===chosen.id?{...entry,members:[...entry.members,monster]}:entry));notify(`${record.name} added to ${chosen.name}`)}else{const fresh:Encounter={id:uid(),name:record.name+' encounter',description:'Prepared from the compendium. Each monster links to its full stat block.',environment:plain(record.fields.environment),difficulty:'Custom',partyLevel:3,partySize:7,status:'Prepared',members:[monster]};setEncounters([...encounters,fresh]);setEncounterId(fresh.id);notify(`${fresh.name} created`)}};
 
  return <>
-  <div className="compendium-toolbar"><div className="tool-search"><Search size={16}/><input aria-label="Search compendium" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search names, types, classes, CR…"/></div><select aria-label="Compendium edition" value={edition} onChange={e=>setEdition(e.target.value)}><option value="All">All labels</option><option>Legacy</option><option>5.5e</option><option>Unspecified</option></select><label className={`secondary file-label ${busy?'disabled':''}`}><Upload size={15}/>Import XML<input type="file" accept=".xml,text/xml,application/xml" disabled={busy} onChange={e=>{if(e.target.files?.[0])importXML(e.target.files[0]);e.target.value=''}}/></label></div>
+  <div className="compendium-filter-toolbar">
+   <div className="compendium-search-row">
+    <div className="tool-search">
+     <Search size={16}/>
+     <input aria-label="Search compendium" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search names, types, classes, CR…"/>
+     {query && <button className="icon-button" aria-label="Clear search" onClick={()=>setQuery('')} style={{padding:'2px',marginRight:'4px'}}><X size={14}/></button>}
+    </div>
+    <label className={`secondary file-label ${busy?'disabled':''}`}>
+     <Upload size={15}/>Import XML
+     <input type="file" accept=".xml,text/xml,application/xml" disabled={busy} onChange={e=>{if(e.target.files?.[0])importXML(e.target.files[0]);e.target.value=''}}/>
+    </label>
+   </div>
+
+   {meta && <div className="compendium-dropdown-row">
+    {/* Category Select */}
+    <div className="filter-dropdown-wrap">
+     <Select value={kind} onValueChange={setKind}>
+      <SelectTrigger aria-label="Compendium category" className="compendium-select-trigger">
+       <SelectValue placeholder="Category"/>
+      </SelectTrigger>
+      <SelectContent>
+       <SelectItem value="All">All categories ({meta.count.toLocaleString()})</SelectItem>
+       {kinds.map(k=><SelectItem key={k} value={k}>{labels[k]} ({(meta.counts[k]||0).toLocaleString()})</SelectItem>)}
+      </SelectContent>
+     </Select>
+    </div>
+
+    {/* Edition Select */}
+    <div className="filter-dropdown-wrap">
+     <Select value={edition} onValueChange={setEdition}>
+      <SelectTrigger aria-label="Compendium edition" className="compendium-select-trigger">
+       <SelectValue placeholder="Edition"/>
+      </SelectTrigger>
+      <SelectContent>
+       <SelectItem value="All">All editions</SelectItem>
+       <SelectItem value="Legacy">Legacy</SelectItem>
+       <SelectItem value="5.5e">5.5e</SelectItem>
+       <SelectItem value="Unspecified">Unspecified</SelectItem>
+      </SelectContent>
+     </Select>
+    </div>
+
+    {/* Monster Contextual Filters */}
+    {kind === 'monster' && <>
+     <div className="filter-dropdown-wrap">
+      <Select value={monsterCR} onValueChange={setMonsterCR}>
+       <SelectTrigger aria-label="Monster CR" className="compendium-select-trigger">
+        <SelectValue placeholder="CR"/>
+       </SelectTrigger>
+       <SelectContent>
+        <SelectItem value="All">All CRs</SelectItem>
+        <SelectItem value="0-1">CR 0 – 1</SelectItem>
+        <SelectItem value="2-4">CR 2 – 4</SelectItem>
+        <SelectItem value="5-9">CR 5 – 9</SelectItem>
+        <SelectItem value="10-14">CR 10 – 14</SelectItem>
+        <SelectItem value="15+">CR 15+</SelectItem>
+       </SelectContent>
+      </Select>
+     </div>
+     <div className="filter-dropdown-wrap">
+      <Select value={monsterType} onValueChange={setMonsterType}>
+       <SelectTrigger aria-label="Monster type" className="compendium-select-trigger">
+        <SelectValue placeholder="Type"/>
+       </SelectTrigger>
+       <SelectContent>
+        <SelectItem value="All">All types</SelectItem>
+        {['aberration','beast','celestial','construct','dragon','elemental','fey','fiend','giant','humanoid','monstrosity','ooze','plant','undead'].map(t=>
+         <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</SelectItem>
+        )}
+       </SelectContent>
+      </Select>
+     </div>
+    </>}
+
+    {/* Spell Contextual Filters */}
+    {kind === 'spell' && <>
+     <div className="filter-dropdown-wrap">
+      <Select value={spellLevel} onValueChange={setSpellLevel}>
+       <SelectTrigger aria-label="Spell level" className="compendium-select-trigger">
+        <SelectValue placeholder="Level"/>
+       </SelectTrigger>
+       <SelectContent>
+        <SelectItem value="All">All spell levels</SelectItem>
+        <SelectItem value="0">Cantrip (Level 0)</SelectItem>
+        <SelectItem value="1">1st Level</SelectItem>
+        <SelectItem value="2">2nd Level</SelectItem>
+        <SelectItem value="3">3rd Level</SelectItem>
+        <SelectItem value="4">4th Level</SelectItem>
+        <SelectItem value="5">5th Level</SelectItem>
+        <SelectItem value="6">6th Level</SelectItem>
+        <SelectItem value="7">7th Level</SelectItem>
+        <SelectItem value="8">8th Level</SelectItem>
+        <SelectItem value="9">9th Level</SelectItem>
+       </SelectContent>
+      </Select>
+     </div>
+     <div className="filter-dropdown-wrap">
+      <Select value={spellClass} onValueChange={setSpellClass}>
+       <SelectTrigger aria-label="Spell class" className="compendium-select-trigger">
+        <SelectValue placeholder="Class"/>
+       </SelectTrigger>
+       <SelectContent>
+        <SelectItem value="All">All spell classes</SelectItem>
+        {['Bard','Cleric','Druid','Paladin','Ranger','Sorcerer','Warlock','Wizard'].map(c=>
+         <SelectItem key={c} value={c.toLowerCase()}>{c}</SelectItem>
+        )}
+       </SelectContent>
+      </Select>
+     </div>
+    </>}
+
+    {/* Item Contextual Filters */}
+    {kind === 'item' && <>
+     <div className="filter-dropdown-wrap">
+      <Select value={itemRarity} onValueChange={setItemRarity}>
+       <SelectTrigger aria-label="Item rarity" className="compendium-select-trigger">
+        <SelectValue placeholder="Rarity"/>
+       </SelectTrigger>
+       <SelectContent>
+        <SelectItem value="All">All rarities</SelectItem>
+        {['common','uncommon','rare','very rare','legendary','artifact'].map(r=>
+         <SelectItem key={r} value={r}>{r.charAt(0).toUpperCase()+r.slice(1)}</SelectItem>
+        )}
+       </SelectContent>
+      </Select>
+     </div>
+     <div className="filter-dropdown-wrap">
+      <Select value={itemType} onValueChange={setItemType}>
+       <SelectTrigger aria-label="Item type" className="compendium-select-trigger">
+        <SelectValue placeholder="Type"/>
+       </SelectTrigger>
+       <SelectContent>
+        <SelectItem value="All">All item types</SelectItem>
+        {['weapon','armor','shield','potion','ring','rod','scroll','wand','wondrous'].map(t=>
+         <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</SelectItem>
+        )}
+       </SelectContent>
+      </Select>
+     </div>
+    </>}
+
+    {/* Sort Order */}
+    <div className="filter-dropdown-wrap">
+     <Select value={sort} onValueChange={setSort}>
+      <SelectTrigger aria-label="Sort order" className="compendium-select-trigger">
+       <SelectValue placeholder="Sort"/>
+      </SelectTrigger>
+      <SelectContent>
+       <SelectItem value="name-asc">Name (A → Z)</SelectItem>
+       <SelectItem value="name-desc">Name (Z → A)</SelectItem>
+       <SelectItem value="cr-level">CR / Spell Level</SelectItem>
+      </SelectContent>
+     </Select>
+    </div>
+
+    {/* Clear / Reset Filter button */}
+    {hasActiveFilters && (
+     <button
+      className="icon-button danger-text"
+      onClick={clearFilters}
+      title="Reset all filters"
+      aria-label="Reset all filters"
+      style={{height:'32px',padding:'0 10px',fontSize:'11px',display:'inline-flex',alignItems:'center',gap:'4px'}}
+     >
+      <RotateCcw size={13}/>
+      <span>Reset</span>
+     </button>
+    )}
+   </div>}
+  </div>
   {error&&<p className="form-error">{error}</p>}
   {loading?<div className="tool-empty"><BookOpen size={30}/><p>Opening your local compendium…</p></div>:busy?<div className="compendium-import"><BookOpen size={30}/><h2>Preparing your sourcebook</h2><p>{progress[1]?`${progress[0].toLocaleString()} / ${progress[1].toLocaleString()} entries stored locally`:'Parsing XML in the background…'}</p><progress max={progress[1]||1} value={progress[0]}/><small>Your existing library stays available until the new import is complete.</small></div>:!meta?<div className="compendium-import"><BookOpen size={40}/><span className="eyebrow">YOUR SOURCEBOOK IS READY TO LOAD</span><h2>Complete Compendium · 5e + 5.5e</h2><p>26,393 entries from your supplied XML. Monsters, spells, items, classes, races, feats and backgrounds.</p><button className="primary" onClick={included}><Download size={16}/>Load included compendium</button><small>Imported once into this browser. You can also choose a different XML file above.</small></div>:<>
-   <div className="compendium-categories"><button className={kind==='All'?'selected':''} onClick={()=>setKind('All')}>All entries <span>{meta.count.toLocaleString()}</span></button>{kinds.map(entry=><button key={entry} className={kind===entry?'selected':''} onClick={()=>setKind(entry)}>{labels[entry]}<span>{(meta.counts[entry]||0).toLocaleString()}</span></button>)}</div>
    <div className="compendium-source"><span><Check size={12}/>Stored locally · {meta.name}</span><small>{matching.length.toLocaleString()} matching entries</small></div>
    <div className="compendium-layout"><aside className="record-list"><div className="record-list-title">REFERENCE INDEX<span>{matching.length.toLocaleString()}</span></div>{matching.slice(page*40,(page+1)*40).map(entry=><button key={entry.id} className={`record-row ${selected===entry.id?'selected':''}`} onClick={()=>setSelected(entry.id)}><div><strong>{entry.name}</strong><small>{entry.summary}</small><span className="record-meta">{labels[entry.kind]} · {entry.edition==='Unspecified'?'Original label preserved':entry.edition}</span></div></button>)}{!matching.length&&<div className="tool-empty"><p>No entries match your filters.</p></div>}<div className="index-pagination"><button className="icon-button" aria-label="Previous compendium page" disabled={!page} onClick={()=>setPage(page-1)}><ChevronLeft size={18}/></button><small>{matching.length?`${page+1} / ${Math.ceil(matching.length/40)}`:'0 results'}</small><button className="icon-button" aria-label="Next compendium page" disabled={(page+1)*40>=matching.length} onClick={()=>setPage(page+1)}><ChevronRight size={18}/></button></div></aside>
     <section className={`record-editor reference-detail dnd-reference reference-${record?.kind||''} ${record?.kind==='monster'?'monster-reference':''}`}>{record?<><div className="editor-title"><span className="eyebrow">{labels[record.kind].toUpperCase()} · {record.edition.toUpperCase()}</span><BookOpen size={19}/></div><h2>{record.name}</h2>{record.kind==='monster'?<><MonsterStatBlock record={record}/><div className="add-from-compendium"><Swords size={18}/><select aria-label="Target encounter" value={encounterId} onChange={e=>setEncounterId(e.target.value)}><option value="">Create new encounter</option>{encounters.filter(entry=>entry.status==='Prepared').map(entry=><option key={entry.id} value={entry.id}>{entry.name}</option>)}</select><button className="primary" onClick={addMonster}><Plus size={14}/>Add monster</button></div></>:<ReferenceStatBlock record={record}/>}</>:<div className="tool-empty"><p>{selected?'Loading entry…':'Select an entry to read its full details.'}</p></div>}</section>

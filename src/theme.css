@@ -581,3 +581,54 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
   }
 }
 
+/* Compact Compendium Filter Toolbar & Shadcn Select */
+.compendium-filter-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.compendium-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.compendium-search-row .tool-search {
+  flex: 1;
+}
+.compendium-dropdown-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.filter-dropdown-wrap {
+  min-width: 135px;
+  flex: 1 1 auto;
+  max-width: 220px;
+}
+.compendium-select-trigger {
+  height: 32px;
+  font-size: 11px;
+}
+.theme-light .compendium-select-trigger {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+.theme-light .compendium-select-trigger:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+.theme-light [data-radix-select-content] {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+.theme-light [data-radix-select-item]:focus {
+  background: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+}
+
+

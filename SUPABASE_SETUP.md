@@ -1,4 +1,4 @@
-# Connect Wayfinder to Supabase Free
+# Connect Planarch to Supabase Free
 
 The website stays on Netlify. Supabase provides account sign-in, database synchronization and private file storage.
 
@@ -19,13 +19,13 @@ Open Supabase → SQL Editor → New query.
 
 Paste the full contents of `supabase/setup.sql`, then select Run. It creates:
 
-- `public.wayfinder_records` for account-specific workspace data
+- `public.planarch_records` for account-specific workspace data
 - Row Level Security that limits records to their signed-in owner
-- `wayfinder_write_record`, an atomic revision-aware save function
+- `planarch_write_record`, an atomic revision-aware save function
 - A Realtime publication for live updates
-- The private `wayfinder-private` Storage bucket, plus user-folder policies
+- The private `planarch-private` Storage bucket, plus user-folder policies
 
-The script is repeatable. The connection screen also offers a Download setup SQL link.
+The script is repeatable and backwards-compatible with previous wayfinder tables. The connection screen also offers a Download setup SQL link.
 
 ## 3. Set up sign-in URLs
 
@@ -33,12 +33,12 @@ In Authentication → Sign-in / Providers, enable Email sign-in.
 
 In Authentication → URL Configuration:
 
-- Site URL: your Netlify website origin, for example `https://your-dm-screen.netlify.app`
+- Site URL: your Netlify website origin, for example `https://planarch.netlify.app`
 - Redirect URLs: add that same website and any custom domain you use
 
 Email confirmation may be enabled by default. If enabled, confirm your account from the signup email before signing in. Password reset emails return you to the app; open Settings after following the email link, then use Change or reset your password.
 
-## 4. Connect from Wayfinder
+## 4. Connect from Planarch
 
 1. Open Settings & backup → Supabase cloud sync.
 2. Paste Project URL and publishable key.

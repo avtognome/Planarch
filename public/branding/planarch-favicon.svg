@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Planarch royal compass seal">
+<title>Planarch — Royal Compass</title>
+
+<rect width="512" height="512" rx="100" fill="#17191A"/><g transform="translate(51.2 51.2) scale(.8)"><circle cx="256" cy="256" r="206" fill="none" stroke="#BE9454" stroke-width="8"/>
+<circle cx="256" cy="256" r="195" fill="none" stroke="#E2BC7C" stroke-width="2"/>
+<circle cx="256" cy="256" r="177" fill="none" stroke="#BE9454" stroke-width="3.5"/>
+<circle cx="256" cy="256" r="123" fill="none" stroke="#BE9454" stroke-opacity=".75" stroke-width="3"/>
+<polygon points="256.0,36.0 267.0,53.0 256.0,70.0 245.0,53.0" fill="#E2BC7C" stroke="#826039" stroke-width="2.2"/>
+<polygon points="476.0,256.0 459.0,267.0 442.0,256.0 459.0,245.0" fill="#E2BC7C" stroke="#826039" stroke-width="2.2"/>
+<polygon points="256.0,476.0 245.0,459.0 256.0,442.0 267.0,459.0" fill="#E2BC7C" stroke="#826039" stroke-width="2.2"/>
+<polygon points="36.0,256.0 53.0,245.0 70.0,256.0 53.0,267.0" fill="#E2BC7C" stroke="#826039" stroke-width="2.2"/>
+<polygon points="256.0,90.0 281.0,203.0 256.0,236.0" fill="#E2BC7C" stroke="#826039" stroke-width="1.7"/>
+<polygon points="256.0,90.0 256.0,236.0 231.0,203.0" fill="#BE9454" stroke="#826039" stroke-width="1.7"/>
+<polygon points="422.0,256.0 309.0,281.0 276.0,256.0" fill="#E2BC7C" stroke="#826039" stroke-width="1.7"/>
+<polygon points="422.0,256.0 276.0,256.0 309.0,231.0" fill="#BE9454" stroke="#826039" stroke-width="1.7"/>
+<polygon points="256.0,422.0 231.0,309.0 256.0,276.0" fill="#E2BC7C" stroke="#826039" stroke-width="1.7"/>
+<polygon points="256.0,422.0 256.0,276.0 281.0,309.0" fill="#BE9454" stroke="#826039" stroke-width="1.7"/>
+<polygon points="90.0,256.0 203.0,231.0 236.0,256.0" fill="#E2BC7C" stroke="#826039" stroke-width="1.7"/>
+<polygon points="90.0,256.0 236.0,256.0 203.0,281.0" fill="#BE9454" stroke="#826039" stroke-width="1.7"/>
+<circle cx="256" cy="256" r="45" fill="#101214" stroke="#E2BC7C" stroke-width="7"/>
+<circle cx="256" cy="256" r="33" fill="none" stroke="#BE9454" stroke-opacity=".7" stroke-width="2"/>
+<polygon points="256.0,227.0 253.1,246.4 256.0,256.0 258.9,246.4" fill="#E2BC7C"/>
+<polygon points="276.5,235.5 260.7,247.2 256.0,256.0 264.8,251.3" fill="#BE9454"/>
+<polygon points="285.0,256.0 265.6,253.1 256.0,256.0 265.6,258.9" fill="#E2BC7C"/>
+<polygon points="276.5,276.5 264.8,260.7 256.0,256.0 260.7,264.8" fill="#BE9454"/>
+<polygon points="256.0,285.0 258.9,265.6 256.0,256.0 253.1,265.6" fill="#E2BC7C"/>
+<polygon points="235.5,276.5 251.3,264.8 256.0,256.0 247.2,260.7" fill="#BE9454"/>
+<polygon points="227.0,256.0 246.4,258.9 256.0,256.0 246.4,253.1" fill="#E2BC7C"/>
+<polygon points="235.5,235.5 247.2,251.3 256.0,256.0 251.3,247.2" fill="#BE9454"/>
+<circle cx="256" cy="256" r="5" fill="#101214"/></g>
+</svg>

@@ -1,9 +1,29 @@
 /* Planarch's modern macOS dark slate skin. */
+:root {
+  --planarch-charcoal: #17191a;
+  --planarch-deep-charcoal: #101214;
+  --planarch-ivory: #f1e8d8;
+  --planarch-antique-gold: #be9454;
+  --planarch-gold-highlight: #e2bc7c;
+  --planarch-aged-gold: #826039;
+  --planarch-warm-ink: #302c27;
+}
+
 body{background:#090d16}
 .app{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","SF Pro",system-ui,sans-serif;transition:color .2s,background .2s}
 .app h1,.app h2,.app .page-heading h1,.app .session-banner h2,.app .studio-console>h2,.app .modal>h2{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro",system-ui,sans-serif;font-weight:650;letter-spacing:-.02em}
 .theme-light{--accent:#d97706;--muted:#64748b;--line:#e2e8f0;--panel:#ffffff;color:#0f172a;background:#f8fafc}
 .theme-dark{--accent:#f59e0b;--muted:#94a3b8;--line:#1e293b;--panel:#111827;color:#f1f5f9;background:#090d16}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 4px}
+.brand-link{display:flex;align-items:center;background:none;border:0;padding:0;cursor:pointer;text-align:left;min-width:0;flex:1}
+.brand-logo{height:36px;width:auto;max-width:150px;object-fit:contain;display:block}
+.topbar-brand-link{display:flex;align-items:center;background:none;border:0;padding:2px;cursor:pointer;border-radius:6px;transition:opacity .15s}
+.topbar-brand-link:hover{opacity:0.85}
+.topbar-brand-mark{height:28px;width:28px;object-fit:contain;display:block}
+.welcome-brand-logo{max-width:180px;height:auto;margin:0 auto 16px;display:block}
+.modal-seal-mark{width:28px;height:28px;object-fit:contain;display:block}
+.settings-brand-header{display:flex;align-items:center;margin-bottom:14px}
+.settings-brand-logo{height:40px;width:auto;max-width:160px;object-fit:contain;display:block}
 .theme-light small,.theme-light .breadcrumb,.theme-light .page-heading p,.theme-light .workspace-toolbar>span{color:#64748b}
 .theme-light h1,.theme-light h2,.theme-light h3,.theme-light .page-heading h1,.theme-light .scene-info h3{color:#0f172a}
 .theme-light .sidebar{background:rgba(255,255,255,0.85);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);border-color:#e2e8f0;box-shadow:4px 0 24px rgba(15,23,42,0.03)}

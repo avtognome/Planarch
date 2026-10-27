@@ -74,6 +74,33 @@ export function FreesoundModal({ onClose, onSelectSound, targetLayerIndex }: Fre
     setPreviewingId(sound.id);
   };
 
+  const handleClose = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+      audioRef.current = null;
+    }
+    setPreviewingId(null);
+    onClose();
+  };
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
   const handleImport = async (sound: FreesoundSound) => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -91,8 +118,8 @@ export function FreesoundModal({ onClose, onSelectSound, targetLayerIndex }: Fre
   };
 
   return (
-    <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
-      <div className="modal-content" style={{ maxWidth: '640px', width: '92%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: '24px' }}>
+    <div className="modal-overlay modal-backdrop" onClick={handleClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
+      <div className="modal-content modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px', width: '92%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: '24px' }}>
         {/* Header */}
         <div className="inline between" style={{ marginBottom: '16px' }}>
           <div>
@@ -103,7 +130,7 @@ export function FreesoundModal({ onClose, onSelectSound, targetLayerIndex }: Fre
               Search CC-licensed community ambiences with offline caching
             </p>
           </div>
-          <button className="icon-button" aria-label="Close dialog" onClick={onClose}>
+          <button className="icon-button" aria-label="Close dialog" onClick={handleClose}>
             <X size={18} />
           </button>
         </div>

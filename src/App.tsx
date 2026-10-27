@@ -75,6 +75,7 @@ export default function App() {
     const [sourceName, setSourceName] = useState(''), [sourceCategory, setSourceCategory] = useState('EXPLORATION'), [keepMix, setKeepMix] = useState(true), [providerStopped, setProviderStopped] = useState(false), [playerCollapsed, setPlayerCollapsed] = useState(false);
     const [hiddenScenes, setHiddenScenes] = useSaved<string[]>('wf-hidden-builtin-scenes', []), [sceneSelectMode, setSceneSelectMode] = useState(false), [selectedSceneNames, setSelectedSceneNames] = useState<Set<string>>(new Set()), [sceneBulkConfirm, setSceneBulkConfirm] = useState(false);
     const [customLayers, setCustomLayers] = useSaved<(FreesoundSound | null)[]>('wf-custom-layers', [null, null, null, null]), [freesoundTargetSlot, setFreesoundTargetSlot] = useState<number | null>(null);
+    const [layerActive, setLayerActive] = useState<boolean[]>([true, true, true, true]);
     const audioNodes = useRef<(AudioBufferSourceNode | null)[]>([null, null, null, null]);
     const [youtubeDeckA, setYoutubeDeckA] = useSaved('wf-youtube-deck-a', ''), [youtubeDeckB, setYoutubeDeckB] = useSaved('wf-youtube-deck-b', ''), [youtubeVolumeA, setYoutubeVolumeA] = useSaved('wf-youtube-volume-a', 75), [youtubeVolumeB, setYoutubeVolumeB] = useSaved('wf-youtube-volume-b', 75), [youtubeMaster, setYoutubeMaster] = useSaved('wf-youtube-master', 80), [youtubeCrossfade, setYoutubeCrossfade] = useSaved('wf-youtube-crossfade', 50), [youtubeMixerOpen, setYoutubeMixerOpen] = useState(false), [youtubeStopSignal, setYoutubeStopSignal] = useState(0);
     const [battle, setBattle] = useSaved<Combatant[]>(`wf-battle:${campaignKey}`, []), [battleTitle, setBattleTitle] = useSaved(`wf-battle-title:${campaignKey}`, 'No active encounter'), [battleId, setBattleId] = useSaved(`wf-battle-id:${campaignKey}`, ''), [battleActive, setBattleActive] = useSaved(`wf-battle-active:${campaignKey}`, false);
@@ -283,7 +284,15 @@ export default function App() {
             preCombatView.current = null;
         }
     }, [battleActive]);
-    useEffect(() => { gains.current.forEach((g, i) => g.gain.setTargetAtTime(playing && !muted ? layers[i] / 100 * master / 100 * .22 : 0, audio.current!.currentTime, .4)); }, [playing, muted, layers, master]);
+    useEffect(() => {
+        gains.current.forEach((g, i) => {
+            const isAudible = playing && !muted && layerActive[i];
+            const targetGain = isAudible ? (layers[i] / 100) * (master / 100) * 0.22 : 0;
+            if (audio.current) {
+                g.gain.setTargetAtTime(targetGain, audio.current.currentTime, 0.4);
+            }
+        });
+    }, [playing, muted, layers, master, layerActive]);
     useEffect(() => {
         const toggle = () => { void toggleAudio(); };
         const mute = () => setMuted(value => !value);
@@ -352,7 +361,7 @@ export default function App() {
         audioNodes.current[i] = node;
     }
 
-    async function toggleAudio() {
+    async function ensureAudio() {
         if (!audio.current) {
             const ctx = new AudioContext();
             audio.current = ctx;
@@ -364,8 +373,60 @@ export default function App() {
                 await setupLayerSource(i, ctx, g);
             }
         }
-        await audio.current.resume();
-        setPlaying(p => !p);
+        if (audio.current.state === 'suspended') {
+            await audio.current.resume();
+        }
+    }
+
+    async function toggleAudio() {
+        await ensureAudio();
+        if (!playing) {
+            if (layerActive.every(a => !a)) {
+                setLayerActive([true, true, true, true]);
+            }
+            setPlaying(true);
+        } else {
+            setPlaying(false);
+        }
+    }
+
+    async function toggleLayerPlay(i: number, solo = false) {
+        await ensureAudio();
+        if (solo) {
+            const next = [false, false, false, false];
+            next[i] = true;
+            setLayerActive(next);
+            if (layers[i] === 0) {
+                setLayers(layers.map((v, j) => j === i ? (active.layers[i] || 50) : v));
+            }
+            setPlaying(true);
+            notify(`Soloing ${layerNames[i]}`);
+            return;
+        }
+
+        const isCurrentlyPlaying = playing && layerActive[i];
+        if (isCurrentlyPlaying) {
+            const next = [...layerActive];
+            next[i] = false;
+            setLayerActive(next);
+            if (next.every(a => !a)) {
+                setPlaying(false);
+            }
+        } else {
+            if (!playing) {
+                const next = [false, false, false, false];
+                next[i] = true;
+                setLayerActive(next);
+            } else {
+                const next = [...layerActive];
+                next[i] = true;
+                setLayerActive(next);
+            }
+            if (layers[i] === 0) {
+                setLayers(layers.map((v, j) => j === i ? (active.layers[i] || 50) : v));
+            }
+            setPlaying(true);
+        }
     }
     const loadYouTubeDeck = (identity: string, deck: 'A' | 'B') => {
         if (deck === 'A')
@@ -379,6 +440,7 @@ export default function App() {
         const selected = allScenes[i];
         setScene(i);
         setLayers(selected.layers);
+        setLayerActive([true, true, true, true]);
         if (selected.source?.provider === 'YouTube') {
             if (!youtubeDeckA)
                 loadYouTubeDeck(selected.source.identity, 'A');
@@ -558,15 +620,65 @@ export default function App() {
             const Icon = icons[i];
             const customSound = customLayers[i];
             const displayName = customSound ? customSound.name : n;
-            return <div className="layer" key={i}><div className="layer-icon"><Icon size={18}/></div><div className="layer-content"><div className="between"><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }} title={displayName}>{displayName}</span><small>{layers[i]}%</small></div><input aria-label={`${displayName} volume`} type="range" value={layers[i]} onChange={e => setLayers(layers.map((v, j) => j === i ? +e.target.value : v))}/></div><div className="inline" style={{ gap: '2px' }}><button className="icon-button" aria-label={`Mute ${displayName}`} onClick={() => setLayers(layers.map((v, j) => j === i ? (v ? 0 : 50) : v))}>{layers[i] ? <Volume2 size={16}/> : <VolumeX size={16}/>}</button><button className="icon-button" aria-label={`Change sound for ${displayName}`} title="Pick Freesound audio" onClick={() => setFreesoundTargetSlot(i)}><Music size={14}/></button>{customSound && <button className="icon-button danger-text" aria-label={`Reset ${displayName} to default`} title="Reset to procedural" onClick={async () => {
-                const next = [...customLayers];
-                next[i] = null;
-                setCustomLayers(next);
-                if (audio.current && gains.current[i]) {
-                    await setupLayerSource(i, audio.current, gains.current[i]);
-                }
-                notify(`Layer ${i + 1} reset to default`);
-            }}><RotateCcw size={13}/></button>}</div></div>;
+            const isLayerPlaying = playing && !muted && layerActive[i];
+            return <div className={`layer ${isLayerPlaying ? 'layer-active' : ''}`} key={i}>
+                <button
+                    className={`layer-icon layer-play-btn ${isLayerPlaying ? 'playing' : ''}`}
+                    aria-label={isLayerPlaying ? `Pause ${displayName}` : `Play ${displayName}`}
+                    title={isLayerPlaying ? `Pause ${displayName}` : `Play ${displayName} individually (Shift+click to solo)`}
+                    onClick={e => { void toggleLayerPlay(i, e.shiftKey); }}
+                >
+                    {isLayerPlaying ? <Pause size={16}/> : <Icon size={18}/>}
+                </button>
+                <div className="layer-content">
+                    <div className="between">
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }} title={displayName}>{displayName}</span>
+                        <small>{layers[i]}%</small>
+                    </div>
+                    <input
+                        aria-label={`${displayName} volume`}
+                        type="range"
+                        value={layers[i]}
+                        onChange={e => {
+                            const val = +e.target.value;
+                            setLayers(layers.map((v, j) => j === i ? val : v));
+                            if (val > 0 && !layerActive[i] && playing) {
+                                setLayerActive(la => la.map((a, j) => j === i ? true : a));
+                            }
+                        }}
+                    />
+                </div>
+                <div className="inline" style={{ gap: '2px' }}>
+                    <button
+                        className={`icon-button ${isLayerPlaying ? 'primary-icon' : ''}`}
+                        aria-label={isLayerPlaying ? `Pause ${displayName}` : `Play ${displayName}`}
+                        title={isLayerPlaying ? `Pause ${displayName}` : `Play ${displayName} individually (Shift+click to solo)`}
+                        onClick={e => { void toggleLayerPlay(i, e.shiftKey); }}
+                    >
+                        {isLayerPlaying ? <Pause size={15}/> : <Play size={15}/>}
+                    </button>
+                    <button
+                        className="icon-button"
+                        aria-label={`Mute ${displayName}`}
+                        title={layers[i] ? `Mute ${displayName}` : `Unmute ${displayName}`}
+                        onClick={() => setLayers(layers.map((v, j) => j === i ? (v ? 0 : (active.layers[i] || 50)) : v))}
+                    >
+                        {layers[i] ? <Volume2 size={16}/> : <VolumeX size={16}/>}
+                    </button>
+                    <button className="icon-button" aria-label={`Change sound for ${displayName}`} title="Pick Freesound audio" onClick={() => setFreesoundTargetSlot(i)}>
+                        <Music size={14}/>
+                    </button>
+                    {customSound && <button className="icon-button danger-text" aria-label={`Reset ${displayName} to default`} title="Reset to procedural" onClick={async () => {
+                        const next = [...customLayers];
+                        next[i] = null;
+                        setCustomLayers(next);
+                        if (audio.current && gains.current[i]) {
+                            await setupLayerSource(i, audio.current, gains.current[i]);
+                        }
+                        notify(`Layer ${i + 1} reset to default`);
+                    }}><RotateCcw size={13}/></button>}
+                </div>
+            </div>;
         })}</div>;
     }
     function widget(id: string) {
@@ -596,7 +708,7 @@ export default function App() {
                         setProviderStopped(false);
                         setPlayerCollapsed(false);
                     }
-                }}>{active.source.provider === 'YouTube' ? 'Open mixer' : 'Show player'}</button></div>}<div className="playback"><button className="secondary" aria-label="Reset mix" onClick={() => setLayers(active.layers)}><RotateCcw size={17}/></button><button className="primary" onClick={toggleAudio}>{playing ? <Pause size={18}/> : <Play size={18}/>} {playing ? 'Pause ambience' : active.source ? 'Play ambience' : 'Play scene'}</button><button className="secondary" aria-label="Mute all" onClick={() => setMuted(!muted)}>{muted ? <VolumeX size={17}/> : <Volume2 size={17}/>}</button></div><div className="console-divider"/><div className="between"><h3>Ambience layers</h3><small>Independent mix</small></div>{mixer()}<div className="console-divider"/><div className="between"><h3>Music channel</h3><small>{music}%</small></div><input aria-label="Music volume" type="range" value={music} onChange={e => { setMusic(+e.target.value); (document.getElementById('local-audio') as HTMLAudioElement).volume = +e.target.value / 100; }}/><p className="control-note">Controls local audio. Provider players use their own volume controls.</p><div className="master"><div className="between"><h3><Volume2 size={16}/> Ambience master</h3><strong>{muted ? 'Muted' : master + '%'}</strong></div><input aria-label="Ambience master volume" type="range" value={master} onChange={e => setMaster(+e.target.value)}/></div><div className="console-foot"><span><Check size={13}/> Mix autosaved locally</span><button className="text-button" onClick={() => { setPlaying(false); const el = document.getElementById('local-audio') as HTMLAudioElement | null; el?.pause(); setProviderStopped(true); setYoutubeStopSignal(value => value + 1); notify('Audio stopped'); }}>Stop all</button></div></aside></div></>}</div>{playing && <footer className="now-playing"><div className="inline"><div className={`now-art ${active.art}`}><Headphones size={19}/></div><div><strong>{active.name}</strong><small>Ambience playing <span>·</span> {campaign}</small></div></div><div className="now-center"><button aria-label="Toggle ambience playback" className="icon-button" onClick={toggleAudio}><Pause size={20}/></button><div className="equalizer animated">{[8, 18, 12, 25, 16, 22, 10, 18, 27, 15, 20, 10, 23, 17, 12, 21, 9, 18].map((h, i) => <i key={i} style={{ height: h, animationDelay: `${i * .07}s` }}/>)}</div><span>LIVE MIX</span></div><div className="inline"><button className="icon-button" aria-label="Toggle mute" onClick={() => setMuted(!muted)}>{muted ? <VolumeX size={17}/> : <Volume2 size={17}/>}</button><input aria-label="Quick master volume" type="range" value={master} onChange={e => setMaster(+e.target.value)}/><button className="text-button" onClick={() => setPage('Atmosphere Studio')}>Open mixer <ArrowUpRight size={15}/></button></div></footer>}</main><YouTubeMixer sources={youtubeSources} deckA={youtubeDeckA} deckB={youtubeDeckB} setDeckA={setYoutubeDeckA} setDeckB={setYoutubeDeckB} volumeA={youtubeVolumeA} volumeB={youtubeVolumeB} setVolumeA={setYoutubeVolumeA} setVolumeB={setYoutubeVolumeB} master={youtubeMaster} crossfade={youtubeCrossfade} setMaster={setYoutubeMaster} setCrossfade={setYoutubeCrossfade} open={youtubeMixerOpen} setOpen={setYoutubeMixerOpen} stopSignal={youtubeStopSignal}/>{active.source?.provider === 'Spotify' && !providerStopped && <aside className={`source-player-dock ${playerCollapsed ? 'collapsed' : ''}`} aria-label="Source playback"><div className="source-player-heading"><div><Music size={14}/><strong>{active.name}</strong><small>{active.source.provider}</small></div><button className="icon-button" aria-label={playerCollapsed ? 'Expand source player' : 'Minimize source player'} onClick={() => setPlayerCollapsed(!playerCollapsed)}><ChevronDown size={17}/></button><button className="icon-button" aria-label="Stop source player" onClick={() => setProviderStopped(true)}><X size={16}/></button></div><div className="provider-player"><iframe key={active.source.embed} src={active.source.embed} title={`${active.source.provider}: ${active.name}`} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/><a href={active.source.url} target="_blank" rel="noreferrer">Open in {active.source.provider} <ArrowUpRight size={13}/></a><small>Source volume and playback use the provider controls.</small></div></aside>}{freesoundTargetSlot !== null && <FreesoundModal targetLayerIndex={freesoundTargetSlot} onClose={() => setFreesoundTargetSlot(null)} onSelectSound={async (sound) => {
+                }}>{active.source.provider === 'YouTube' ? 'Open mixer' : 'Show player'}</button></div>}<div className="playback"><button className="secondary" aria-label="Reset mix" onClick={() => setLayers(active.layers)}><RotateCcw size={17}/></button><button className="primary" onClick={toggleAudio}>{playing ? <Pause size={18}/> : <Play size={18}/>} {playing ? 'Pause ambience' : active.source ? 'Play ambience' : 'Play scene'}</button><button className="secondary" aria-label="Mute all" onClick={() => setMuted(!muted)}>{muted ? <VolumeX size={17}/> : <Volume2 size={17}/>}</button></div><div className="console-divider"/><div className="between"><h3>Ambience layers</h3><small>Independent mix</small></div>{mixer()}<div className="console-divider"/><div className="between"><h3>Music channel</h3><small>{music}%</small></div><input aria-label="Music volume" type="range" value={music} onChange={e => { setMusic(+e.target.value); (document.getElementById('local-audio') as HTMLAudioElement).volume = +e.target.value / 100; }}/><p className="control-note">Controls local audio. Provider players use their own volume controls.</p><div className="master"><div className="between"><h3><Volume2 size={16}/> Ambience master</h3><strong>{muted ? 'Muted' : master + '%'}</strong></div><input aria-label="Ambience master volume" type="range" value={master} onChange={e => setMaster(+e.target.value)}/></div><div className="console-foot"><span><Check size={13}/> Mix autosaved locally</span><button className="text-button" onClick={() => { setPlaying(false); setLayerActive([true, true, true, true]); const el = document.getElementById('local-audio') as HTMLAudioElement | null; el?.pause(); setProviderStopped(true); setYoutubeStopSignal(value => value + 1); notify('Audio stopped'); }}>Stop all</button></div></aside></div></>}</div>{playing && <footer className="now-playing"><div className="inline"><div className={`now-art ${active.art}`}><Headphones size={19}/></div><div><strong>{active.name}</strong><small>Ambience playing <span>·</span> {campaign}</small></div></div><div className="now-center"><button aria-label="Toggle ambience playback" className="icon-button" onClick={toggleAudio}><Pause size={20}/></button><div className="equalizer animated">{[8, 18, 12, 25, 16, 22, 10, 18, 27, 15, 20, 10, 23, 17, 12, 21, 9, 18].map((h, i) => <i key={i} style={{ height: h, animationDelay: `${i * .07}s` }}/>)}</div><span>LIVE MIX</span></div><div className="inline"><button className="icon-button" aria-label="Toggle mute" onClick={() => setMuted(!muted)}>{muted ? <VolumeX size={17}/> : <Volume2 size={17}/>}</button><input aria-label="Quick master volume" type="range" value={master} onChange={e => setMaster(+e.target.value)}/><button className="text-button" onClick={() => setPage('Atmosphere Studio')}>Open mixer <ArrowUpRight size={15}/></button></div></footer>}</main><YouTubeMixer sources={youtubeSources} deckA={youtubeDeckA} deckB={youtubeDeckB} setDeckA={setYoutubeDeckA} setDeckB={setYoutubeDeckB} volumeA={youtubeVolumeA} volumeB={youtubeVolumeB} setVolumeA={setYoutubeVolumeA} setVolumeB={setYoutubeVolumeB} master={youtubeMaster} crossfade={youtubeCrossfade} setMaster={setYoutubeMaster} setCrossfade={setYoutubeCrossfade} open={youtubeMixerOpen} setOpen={setYoutubeMixerOpen} stopSignal={youtubeStopSignal}/>{active.source?.provider === 'Spotify' && !providerStopped && <aside className={`source-player-dock ${playerCollapsed ? 'collapsed' : ''}`} aria-label="Source playback"><div className="source-player-heading"><div><Music size={14}/><strong>{active.name}</strong><small>{active.source.provider}</small></div><button className="icon-button" aria-label={playerCollapsed ? 'Expand source player' : 'Minimize source player'} onClick={() => setPlayerCollapsed(!playerCollapsed)}><ChevronDown size={17}/></button><button className="icon-button" aria-label="Stop source player" onClick={() => setProviderStopped(true)}><X size={16}/></button></div><div className="provider-player"><iframe key={active.source.embed} src={active.source.embed} title={`${active.source.provider}: ${active.name}`} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/><a href={active.source.url} target="_blank" rel="noreferrer">Open in {active.source.provider} <ArrowUpRight size={13}/></a><small>Source volume and playback use the provider controls.</small></div></aside>}{freesoundTargetSlot !== null && <FreesoundModal targetLayerIndex={freesoundTargetSlot} onClose={() => setFreesoundTargetSlot(null)} onSelectSound={async (sound) => {
         const slot = freesoundTargetSlot;
         const next = [...customLayers];
         next[slot] = sound;

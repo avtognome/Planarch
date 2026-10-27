@@ -24,6 +24,11 @@ body{background:#090d16}
 .modal-seal-mark{width:28px;height:28px;object-fit:contain;display:block}
 .settings-brand-header{display:flex;align-items:center;margin-bottom:14px}
 .settings-brand-logo{height:40px;width:auto;max-width:160px;object-fit:contain;display:block}
+.layer-play-btn{cursor:pointer;transition:border-color .16s,color .16s,box-shadow .16s}
+.layer-play-btn:hover{filter:brightness(1.2)}
+.layer-play-btn.playing{border-color:var(--accent)!important;color:var(--accent)!important;box-shadow:0 0 10px rgba(245,158,11,0.35)}
+.layer-active{background:rgba(245,158,11,0.03)}
+.primary-icon{color:var(--accent)!important}
 .theme-light small,.theme-light .breadcrumb,.theme-light .page-heading p,.theme-light .workspace-toolbar>span{color:#64748b}
 .theme-light h1,.theme-light h2,.theme-light h3,.theme-light .page-heading h1,.theme-light .scene-info h3{color:#0f172a}
 .theme-light .sidebar{background:rgba(255,255,255,0.85);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);border-color:#e2e8f0;box-shadow:4px 0 24px rgba(15,23,42,0.03)}

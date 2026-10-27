@@ -9,6 +9,8 @@ import Compendium from './Compendium';
 import CombatTracker from './CombatTracker';
 import SourcePicker from './SourcePicker';
 import YouTubeMixer from './YouTubeMixer';
+import { FreesoundModal } from './FreesoundModal';
+import { getCachedAudioBlob, type FreesoundSound } from './freesound';
 import { useSaved, writeSavedValue } from './storage';
 import CloudSettings, { useCloudStatus } from './CloudSettings';
 import { Button } from '@/components/ui/button';
@@ -71,6 +73,8 @@ export default function App() {
     const [page, setPage] = useState('Dashboard'), [scene, setScene] = useSaved('wf-scene', 0), [layers, setLayers] = useSaved('wf-layers', [72, 36, 48, 0]), [master, setMaster] = useSaved('wf-master', 70), [music, setMusic] = useSaved('wf-music', 45), [playing, setPlaying] = useState(false), [muted, setMuted] = useState(false), [filter, setFilter] = useState('All scenes'), [query, setQuery] = useState(''), [layout, setLayout] = useSaved('wf-layout', 'Session'), [orders, setOrders] = useSaved<Record<string, string[]>>('wf-orders', { Session: ['combat', 'atmosphere', 'journal', 'dice'], Combat: ['combat', 'dice', 'atmosphere', 'journal'], Exploration: ['atmosphere', 'journal', 'dice', 'combat'] }), [edit, setEdit] = useState(false), [wide, setWide] = useSaved<Record<string, boolean>>('wf-wide', {}), [collapsed, setCollapsed] = useSaved<Record<string, boolean>>('wf-collapsed-widgets', {}), [note, setNote] = useSaved(`wf-note:${campaignKey}`, ''), [round, setRound] = useSaved(`wf-round:${campaignKey}`, 1), [turn, setTurn] = useSaved(`wf-turn:${campaignKey}`, 0), [hp, setHp] = useSaved(`wf-hp:${campaignKey}`, []), [dice, setDice] = useState('1d20+3'), [roll, setRoll] = useState<number | null>(null), [history, setHistory] = useSaved<string[]>('wf-rolls', []), [rollMode, setRollMode] = useState<'normal' | 'adv' | 'disadv'>('normal'), [targetDC, setTargetDC] = useState<number | null>(null), [critState, setCritState] = useState<'nat20' | 'nat1' | null>(null), [rollOverlay, setRollOverlay] = useState<{ label: string; expression: string; total: number; breakdown: string; crit: 'nat20' | 'nat1' | null } | null>(null), [modal, setModal] = useState(startingCampaigns.length ? '' : 'campaign'), [toast, setToast] = useState(''), [source, setSource] = useSaved('wf-source', ''), [sourceInput, setSourceInput] = useState(''), [custom, setCustom] = useSaved<Scene[]>('wf-custom', []), [sceneName, setSceneName] = useState(''), [concentration, setConcentration] = useSaved('wf-concentration', true), [campaignName, setCampaignName] = useState(''), [campaignError, setCampaignError] = useState(''), [deleteCampaignText, setDeleteCampaignText] = useState(''), [deleteCampaignError, setDeleteCampaignError] = useState('');
     const [sourceName, setSourceName] = useState(''), [sourceCategory, setSourceCategory] = useState('EXPLORATION'), [keepMix, setKeepMix] = useState(true), [providerStopped, setProviderStopped] = useState(false), [playerCollapsed, setPlayerCollapsed] = useState(false);
     const [hiddenScenes, setHiddenScenes] = useSaved<string[]>('wf-hidden-builtin-scenes', []), [sceneSelectMode, setSceneSelectMode] = useState(false), [selectedSceneNames, setSelectedSceneNames] = useState<Set<string>>(new Set()), [sceneBulkConfirm, setSceneBulkConfirm] = useState(false);
+    const [customLayers, setCustomLayers] = useSaved<(FreesoundSound | null)[]>('wf-custom-layers', [null, null, null, null]), [freesoundTargetSlot, setFreesoundTargetSlot] = useState<number | null>(null);
+    const audioNodes = useRef<(AudioBufferSourceNode | null)[]>([null, null, null, null]);
     const [youtubeDeckA, setYoutubeDeckA] = useSaved('wf-youtube-deck-a', ''), [youtubeDeckB, setYoutubeDeckB] = useSaved('wf-youtube-deck-b', ''), [youtubeVolumeA, setYoutubeVolumeA] = useSaved('wf-youtube-volume-a', 75), [youtubeVolumeB, setYoutubeVolumeB] = useSaved('wf-youtube-volume-b', 75), [youtubeMaster, setYoutubeMaster] = useSaved('wf-youtube-master', 80), [youtubeCrossfade, setYoutubeCrossfade] = useSaved('wf-youtube-crossfade', 50), [youtubeMixerOpen, setYoutubeMixerOpen] = useState(false), [youtubeStopSignal, setYoutubeStopSignal] = useState(0);
     const [battle, setBattle] = useSaved<Combatant[]>(`wf-battle:${campaignKey}`, []), [battleTitle, setBattleTitle] = useSaved(`wf-battle-title:${campaignKey}`, 'No active encounter'), [battleId, setBattleId] = useSaved(`wf-battle-id:${campaignKey}`, ''), [battleActive, setBattleActive] = useSaved(`wf-battle-active:${campaignKey}`, false);
     const preCombatView = useRef<{
@@ -303,29 +307,60 @@ export default function App() {
             window.removeEventListener('wayfinder-dice-roll', onCustomRoll);
         };
     }, []);
+    async function setupLayerSource(i: number, ctx: AudioContext, gainNode: GainNode) {
+        if (audioNodes.current[i]) {
+            try { audioNodes.current[i]?.stop(); audioNodes.current[i]?.disconnect(); } catch {}
+            audioNodes.current[i] = null;
+        }
+
+        const customSound = customLayers[i];
+        if (customSound) {
+            try {
+                const cachedBuf = await getCachedAudioBlob(customSound.id);
+                if (cachedBuf) {
+                    const audioBuffer = await ctx.decodeAudioData(cachedBuf.slice(0));
+                    const sourceNode = ctx.createBufferSource();
+                    sourceNode.buffer = audioBuffer;
+                    sourceNode.loop = true;
+                    sourceNode.connect(gainNode);
+                    sourceNode.start();
+                    audioNodes.current[i] = sourceNode;
+                    return;
+                }
+            } catch (e) {
+                console.warn('Failed to decode cached custom sound, falling back to procedural:', e);
+            }
+        }
+
+        // Procedural fallback / default synthetic ambience
+        const buffer = ctx.createBuffer(1, ctx.sampleRate * 6, ctx.sampleRate), data = buffer.getChannelData(0);
+        let last = 0;
+        for (let n = 0; n < data.length; n++) {
+            let white = Math.random() * 2 - 1;
+            last = (last + .025 * white) / 1.025;
+            data[n] = i === 3 ? white * (Math.random() > .998 ? 1 : .08) : i === 0 ? white * .45 : last * 6;
+        }
+        const node = ctx.createBufferSource();
+        node.buffer = buffer;
+        node.loop = true;
+        const f = ctx.createBiquadFilter();
+        f.type = i === 0 ? 'highpass' : 'lowpass';
+        f.frequency.value = [900, 420, 240, 1800][i];
+        node.connect(f).connect(gainNode);
+        node.start();
+        audioNodes.current[i] = node;
+    }
+
     async function toggleAudio() {
         if (!audio.current) {
             const ctx = new AudioContext();
             audio.current = ctx;
             for (let i = 0; i < 4; i++) {
-                const buffer = ctx.createBuffer(1, ctx.sampleRate * 6, ctx.sampleRate), data = buffer.getChannelData(0);
-                let last = 0;
-                for (let n = 0; n < data.length; n++) {
-                    let white = Math.random() * 2 - 1;
-                    last = (last + .025 * white) / 1.025;
-                    data[n] = i === 3 ? white * (Math.random() > .998 ? 1 : .08) : i === 0 ? white * .45 : last * 6;
-                }
-                const node = ctx.createBufferSource();
-                node.buffer = buffer;
-                node.loop = true;
-                const f = ctx.createBiquadFilter();
-                f.type = i === 0 ? 'highpass' : 'lowpass';
-                f.frequency.value = [900, 420, 240, 1800][i];
                 const g = ctx.createGain();
                 g.gain.value = 0;
-                node.connect(f).connect(g).connect(ctx.destination);
-                node.start();
+                g.connect(ctx.destination);
                 gains.current.push(g);
+                await setupLayerSource(i, ctx, g);
             }
         }
         await audio.current.resume();
@@ -517,7 +552,22 @@ export default function App() {
         drag.current = '';
     };
     const exportData = () => { const data = Object.fromEntries(Object.keys(localStorage).filter(k => k.startsWith('wf-')).map(k => [k, JSON.parse(localStorage.getItem(k)!)])); const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = 'wayfinder-backup.json'; a.click(); URL.revokeObjectURL(url); notify('Backup exported'); };
-    function mixer(compact = false) { return <div className={compact ? 'mini-mixer' : 'layer-list'}>{layerNames.map((n, i) => { const Icon = icons[i]; return <div className="layer" key={n}><div className="layer-icon"><Icon size={18}/></div><div className="layer-content"><div className="between"><span>{n}</span><small>{layers[i]}%</small></div><input aria-label={`${n} volume`} type="range" value={layers[i]} onChange={e => setLayers(layers.map((v, j) => j === i ? +e.target.value : v))}/></div><button className="icon-button" aria-label={`Mute ${n}`} onClick={() => setLayers(layers.map((v, j) => j === i ? (v ? 0 : 50) : v))}>{layers[i] ? <Volume2 size={16}/> : <VolumeX size={16}/>}</button></div>; })}</div>; }
+    function mixer(compact = false) {
+        return <div className={compact ? 'mini-mixer' : 'layer-list'}>{layerNames.map((n, i) => {
+            const Icon = icons[i];
+            const customSound = customLayers[i];
+            const displayName = customSound ? customSound.name : n;
+            return <div className="layer" key={i}><div className="layer-icon"><Icon size={18}/></div><div className="layer-content"><div className="between"><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }} title={displayName}>{displayName}</span><small>{layers[i]}%</small></div><input aria-label={`${displayName} volume`} type="range" value={layers[i]} onChange={e => setLayers(layers.map((v, j) => j === i ? +e.target.value : v))}/></div><div className="inline" style={{ gap: '2px' }}><button className="icon-button" aria-label={`Mute ${displayName}`} onClick={() => setLayers(layers.map((v, j) => j === i ? (v ? 0 : 50) : v))}>{layers[i] ? <Volume2 size={16}/> : <VolumeX size={16}/>}</button><button className="icon-button" aria-label={`Change sound for ${displayName}`} title="Pick Freesound audio" onClick={() => setFreesoundTargetSlot(i)}><Music size={14}/></button>{customSound && <button className="icon-button danger-text" aria-label={`Reset ${displayName} to default`} title="Reset to procedural" onClick={async () => {
+                const next = [...customLayers];
+                next[i] = null;
+                setCustomLayers(next);
+                if (audio.current && gains.current[i]) {
+                    await setupLayerSource(i, audio.current, gains.current[i]);
+                }
+                notify(`Layer ${i + 1} reset to default`);
+            }}><RotateCcw size={13}/></button>}</div></div>;
+        })}</div>;
+    }
     function widget(id: string) {
         const isCollapsed = Boolean(collapsed[id]);
         return <section key={id} className={`widget ${wide[id] ? 'wide' : ''} ${isCollapsed ? 'widget-collapsed' : ''}`} onDragOver={event => edit && event.preventDefault()} onDrop={() => reorder(id)}>
@@ -545,7 +595,17 @@ export default function App() {
                         setProviderStopped(false);
                         setPlayerCollapsed(false);
                     }
-                }}>{active.source.provider === 'YouTube' ? 'Open mixer' : 'Show player'}</button></div>}<div className="playback"><button className="secondary" aria-label="Reset mix" onClick={() => setLayers(active.layers)}><RotateCcw size={17}/></button><button className="primary" onClick={toggleAudio}>{playing ? <Pause size={18}/> : <Play size={18}/>} {playing ? 'Pause ambience' : active.source ? 'Play ambience' : 'Play scene'}</button><button className="secondary" aria-label="Mute all" onClick={() => setMuted(!muted)}>{muted ? <VolumeX size={17}/> : <Volume2 size={17}/>}</button></div><div className="console-divider"/><div className="between"><h3>Ambience layers</h3><small>Independent mix</small></div>{mixer()}<div className="console-divider"/><div className="between"><h3>Music channel</h3><small>{music}%</small></div><input aria-label="Music volume" type="range" value={music} onChange={e => { setMusic(+e.target.value); (document.getElementById('local-audio') as HTMLAudioElement).volume = +e.target.value / 100; }}/><p className="control-note">Controls local audio. Provider players use their own volume controls.</p><div className="master"><div className="between"><h3><Volume2 size={16}/> Ambience master</h3><strong>{muted ? 'Muted' : master + '%'}</strong></div><input aria-label="Ambience master volume" type="range" value={master} onChange={e => setMaster(+e.target.value)}/></div><div className="console-foot"><span><Check size={13}/> Mix autosaved locally</span><button className="text-button" onClick={() => { setPlaying(false); const el = document.getElementById('local-audio') as HTMLAudioElement | null; el?.pause(); setProviderStopped(true); setYoutubeStopSignal(value => value + 1); notify('Audio stopped'); }}>Stop all</button></div></aside></div></>}</div>{playing && <footer className="now-playing"><div className="inline"><div className={`now-art ${active.art}`}><Headphones size={19}/></div><div><strong>{active.name}</strong><small>Ambience playing <span>·</span> {campaign}</small></div></div><div className="now-center"><button aria-label="Toggle ambience playback" className="icon-button" onClick={toggleAudio}><Pause size={20}/></button><div className="equalizer animated">{[8, 18, 12, 25, 16, 22, 10, 18, 27, 15, 20, 10, 23, 17, 12, 21, 9, 18].map((h, i) => <i key={i} style={{ height: h, animationDelay: `${i * .07}s` }}/>)}</div><span>LIVE MIX</span></div><div className="inline"><button className="icon-button" aria-label="Toggle mute" onClick={() => setMuted(!muted)}>{muted ? <VolumeX size={17}/> : <Volume2 size={17}/>}</button><input aria-label="Quick master volume" type="range" value={master} onChange={e => setMaster(+e.target.value)}/><button className="text-button" onClick={() => setPage('Atmosphere Studio')}>Open mixer <ArrowUpRight size={15}/></button></div></footer>}</main><YouTubeMixer sources={youtubeSources} deckA={youtubeDeckA} deckB={youtubeDeckB} setDeckA={setYoutubeDeckA} setDeckB={setYoutubeDeckB} volumeA={youtubeVolumeA} volumeB={youtubeVolumeB} setVolumeA={setYoutubeVolumeA} setVolumeB={setYoutubeVolumeB} master={youtubeMaster} crossfade={youtubeCrossfade} setMaster={setYoutubeMaster} setCrossfade={setYoutubeCrossfade} open={youtubeMixerOpen} setOpen={setYoutubeMixerOpen} stopSignal={youtubeStopSignal}/>{active.source?.provider === 'Spotify' && !providerStopped && <aside className={`source-player-dock ${playerCollapsed ? 'collapsed' : ''}`} aria-label="Source playback"><div className="source-player-heading"><div><Music size={14}/><strong>{active.name}</strong><small>{active.source.provider}</small></div><button className="icon-button" aria-label={playerCollapsed ? 'Expand source player' : 'Minimize source player'} onClick={() => setPlayerCollapsed(!playerCollapsed)}><ChevronDown size={17}/></button><button className="icon-button" aria-label="Stop source player" onClick={() => setProviderStopped(true)}><X size={16}/></button></div><div className="provider-player"><iframe key={active.source.embed} src={active.source.embed} title={`${active.source.provider}: ${active.name}`} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/><a href={active.source.url} target="_blank" rel="noreferrer">Open in {active.source.provider} <ArrowUpRight size={13}/></a><small>Source volume and playback use the provider controls.</small></div></aside>}{toast && <div role="status" className="toast"><Check size={16}/>{toast}</div>}{modal && <div className="modal-backdrop" onClick={() => campaigns.length && setModal('')}><div className="modal" role="dialog" aria-modal="true" aria-label={modal} onClick={e => e.stopPropagation()}>{(modal !== 'campaign' || campaigns.length > 0) && <button className="modal-close icon-button" aria-label="Close dialog" onClick={() => setModal('')}><X size={20}/></button>}{modal === 'campaign' ? <><div className="campaign-create-icon"><Compass size={28}/></div><span className="eyebrow">{campaigns.length ? 'NEW ADVENTURE' : 'WELCOME TO WAYFINDER'}</span><h2>{campaigns.length ? 'Create a campaign' : 'Name your first campaign'}</h2><p>Campaigns keep encounters, characters, wiki pages, combat state and session notes separate.</p><label>Campaign name<input autoFocus aria-label="New campaign name" value={campaignName} maxLength={80} onChange={e => { setCampaignName(e.target.value); setCampaignError(''); }} onKeyDown={e => e.key === 'Enter' && createCampaign()} placeholder="e.g. The Shattered Crown"/></label>{campaignError && <p role="alert" className="form-error">{campaignError}</p>}<button className="primary campaign-create-submit" disabled={!campaignName.trim()} onClick={createCampaign}><Plus size={16}/>Create and activate</button></> : modal === 'delete-campaign' ? <><div className="campaign-delete-icon"><Trash2 size={25}/></div><span className="eyebrow">DELETE CAMPAIGN</span><h2>Delete {campaign}?</h2><p>This permanently clears its encounters, characters, wiki posts and images, combat state, and session notes from this workspace and queues those empty records for Supabase sync.</p><label>Type the campaign name to confirm<input autoFocus aria-label="Confirm campaign deletion" value={deleteCampaignText} onChange={e => { setDeleteCampaignText(e.target.value); setDeleteCampaignError(''); }} onKeyDown={e => e.key === 'Enter' && deleteCampaign()} placeholder={campaign}/></label>{deleteCampaignError && <p role="alert" className="form-error">{deleteCampaignError}</p>}<button className="danger campaign-delete-submit" disabled={deleteCampaignText.trim() !== campaign} onClick={deleteCampaign}><Trash2 size={16}/>Delete campaign permanently</button></> : modal === 'search' ? <><h2>Find your way</h2><input autoFocus placeholder="Search workspaces or scenes…" value={query} onChange={e => setQuery(e.target.value)}/>{['Dashboard', 'Atmosphere Studio', 'Encounters', 'Characters & NPCs', 'Campaign wiki', 'Compendium', ...allScenes.map(s => s.name)].filter(n => n.toLowerCase().includes(query.toLowerCase())).map(n => <button className="search-result" key={n} onClick={() => {
+                }}>{active.source.provider === 'YouTube' ? 'Open mixer' : 'Show player'}</button></div>}<div className="playback"><button className="secondary" aria-label="Reset mix" onClick={() => setLayers(active.layers)}><RotateCcw size={17}/></button><button className="primary" onClick={toggleAudio}>{playing ? <Pause size={18}/> : <Play size={18}/>} {playing ? 'Pause ambience' : active.source ? 'Play ambience' : 'Play scene'}</button><button className="secondary" aria-label="Mute all" onClick={() => setMuted(!muted)}>{muted ? <VolumeX size={17}/> : <Volume2 size={17}/>}</button></div><div className="console-divider"/><div className="between"><h3>Ambience layers</h3><small>Independent mix</small></div>{mixer()}<div className="console-divider"/><div className="between"><h3>Music channel</h3><small>{music}%</small></div><input aria-label="Music volume" type="range" value={music} onChange={e => { setMusic(+e.target.value); (document.getElementById('local-audio') as HTMLAudioElement).volume = +e.target.value / 100; }}/><p className="control-note">Controls local audio. Provider players use their own volume controls.</p><div className="master"><div className="between"><h3><Volume2 size={16}/> Ambience master</h3><strong>{muted ? 'Muted' : master + '%'}</strong></div><input aria-label="Ambience master volume" type="range" value={master} onChange={e => setMaster(+e.target.value)}/></div><div className="console-foot"><span><Check size={13}/> Mix autosaved locally</span><button className="text-button" onClick={() => { setPlaying(false); const el = document.getElementById('local-audio') as HTMLAudioElement | null; el?.pause(); setProviderStopped(true); setYoutubeStopSignal(value => value + 1); notify('Audio stopped'); }}>Stop all</button></div></aside></div></>}</div>{playing && <footer className="now-playing"><div className="inline"><div className={`now-art ${active.art}`}><Headphones size={19}/></div><div><strong>{active.name}</strong><small>Ambience playing <span>·</span> {campaign}</small></div></div><div className="now-center"><button aria-label="Toggle ambience playback" className="icon-button" onClick={toggleAudio}><Pause size={20}/></button><div className="equalizer animated">{[8, 18, 12, 25, 16, 22, 10, 18, 27, 15, 20, 10, 23, 17, 12, 21, 9, 18].map((h, i) => <i key={i} style={{ height: h, animationDelay: `${i * .07}s` }}/>)}</div><span>LIVE MIX</span></div><div className="inline"><button className="icon-button" aria-label="Toggle mute" onClick={() => setMuted(!muted)}>{muted ? <VolumeX size={17}/> : <Volume2 size={17}/>}</button><input aria-label="Quick master volume" type="range" value={master} onChange={e => setMaster(+e.target.value)}/><button className="text-button" onClick={() => setPage('Atmosphere Studio')}>Open mixer <ArrowUpRight size={15}/></button></div></footer>}</main><YouTubeMixer sources={youtubeSources} deckA={youtubeDeckA} deckB={youtubeDeckB} setDeckA={setYoutubeDeckA} setDeckB={setYoutubeDeckB} volumeA={youtubeVolumeA} volumeB={youtubeVolumeB} setVolumeA={setYoutubeVolumeA} setVolumeB={setYoutubeVolumeB} master={youtubeMaster} crossfade={youtubeCrossfade} setMaster={setYoutubeMaster} setCrossfade={setYoutubeCrossfade} open={youtubeMixerOpen} setOpen={setYoutubeMixerOpen} stopSignal={youtubeStopSignal}/>{active.source?.provider === 'Spotify' && !providerStopped && <aside className={`source-player-dock ${playerCollapsed ? 'collapsed' : ''}`} aria-label="Source playback"><div className="source-player-heading"><div><Music size={14}/><strong>{active.name}</strong><small>{active.source.provider}</small></div><button className="icon-button" aria-label={playerCollapsed ? 'Expand source player' : 'Minimize source player'} onClick={() => setPlayerCollapsed(!playerCollapsed)}><ChevronDown size={17}/></button><button className="icon-button" aria-label="Stop source player" onClick={() => setProviderStopped(true)}><X size={16}/></button></div><div className="provider-player"><iframe key={active.source.embed} src={active.source.embed} title={`${active.source.provider}: ${active.name}`} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/><a href={active.source.url} target="_blank" rel="noreferrer">Open in {active.source.provider} <ArrowUpRight size={13}/></a><small>Source volume and playback use the provider controls.</small></div></aside>}{freesoundTargetSlot !== null && <FreesoundModal targetLayerIndex={freesoundTargetSlot} onClose={() => setFreesoundTargetSlot(null)} onSelectSound={async (sound) => {
+        const slot = freesoundTargetSlot;
+        const next = [...customLayers];
+        next[slot] = sound;
+        setCustomLayers(next);
+        setFreesoundTargetSlot(null);
+        if (audio.current && gains.current[slot]) {
+            await setupLayerSource(slot, audio.current, gains.current[slot]);
+        }
+        notify(`Loaded "${sound.name}" into slot ${slot + 1}`);
+    }}/>}{toast && <div role="status" className="toast"><Check size={16}/>{toast}</div>}{modal && <div className="modal-backdrop" onClick={() => campaigns.length && setModal('')}><div className="modal" role="dialog" aria-modal="true" aria-label={modal} onClick={e => e.stopPropagation()}>{(modal !== 'campaign' || campaigns.length > 0) && <button className="modal-close icon-button" aria-label="Close dialog" onClick={() => setModal('')}><X size={20}/></button>}{modal === 'campaign' ? <><div className="campaign-create-icon"><Compass size={28}/></div><span className="eyebrow">{campaigns.length ? 'NEW ADVENTURE' : 'WELCOME TO WAYFINDER'}</span><h2>{campaigns.length ? 'Create a campaign' : 'Name your first campaign'}</h2><p>Campaigns keep encounters, characters, wiki pages, combat state and session notes separate.</p><label>Campaign name<input autoFocus aria-label="New campaign name" value={campaignName} maxLength={80} onChange={e => { setCampaignName(e.target.value); setCampaignError(''); }} onKeyDown={e => e.key === 'Enter' && createCampaign()} placeholder="e.g. The Shattered Crown"/></label>{campaignError && <p role="alert" className="form-error">{campaignError}</p>}<button className="primary campaign-create-submit" disabled={!campaignName.trim()} onClick={createCampaign}><Plus size={16}/>Create and activate</button></> : modal === 'delete-campaign' ? <><div className="campaign-delete-icon"><Trash2 size={25}/></div><span className="eyebrow">DELETE CAMPAIGN</span><h2>Delete {campaign}?</h2><p>This permanently clears its encounters, characters, wiki posts and images, combat state, and session notes from this workspace and queues those empty records for Supabase sync.</p><label>Type the campaign name to confirm<input autoFocus aria-label="Confirm campaign deletion" value={deleteCampaignText} onChange={e => { setDeleteCampaignText(e.target.value); setDeleteCampaignError(''); }} onKeyDown={e => e.key === 'Enter' && deleteCampaign()} placeholder={campaign}/></label>{deleteCampaignError && <p role="alert" className="form-error">{deleteCampaignError}</p>}<button className="danger campaign-delete-submit" disabled={deleteCampaignText.trim() !== campaign} onClick={deleteCampaign}><Trash2 size={16}/>Delete campaign permanently</button></> : modal === 'search' ? <><h2>Find your way</h2><input autoFocus placeholder="Search workspaces or scenes…" value={query} onChange={e => setQuery(e.target.value)}/>{['Dashboard', 'Atmosphere Studio', 'Encounters', 'Characters & NPCs', 'Campaign wiki', 'Compendium', ...allScenes.map(s => s.name)].filter(n => n.toLowerCase().includes(query.toLowerCase())).map(n => <button className="search-result" key={n} onClick={() => {
                         const i = allScenes.findIndex(s => s.name === n);
                         if (i >= 0) {
                             activate(i);

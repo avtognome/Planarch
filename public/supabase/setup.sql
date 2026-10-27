@@ -1,4 +1,24 @@
 -- Run once in your Supabase project's SQL Editor. No paid plan is needed.
+
+-- Seamless upgrade if project previously used wayfinder_records:
+do $$ begin
+  if exists (select 1 from pg_tables where schemaname = 'public' and tablename = 'wayfinder_records')
+     and not exists (select 1 from pg_tables where schemaname = 'public' and tablename = 'planarch_records') then
+    alter table public.wayfinder_records rename to planarch_records;
+  end if;
+  if exists (select 1 from pg_tables where schemaname = 'public' and tablename = 'wayfinder_records')
+     and exists (select 1 from pg_tables where schemaname = 'public' and tablename = 'planarch_records') then
+    insert into public.planarch_records(user_id, key, json, path, revision, updated_at)
+    select user_id, key, json, path, revision, updated_at from public.wayfinder_records
+    on conflict (user_id, key) do update set
+      json = excluded.json,
+      path = excluded.path,
+      revision = excluded.revision,
+      updated_at = excluded.updated_at
+    where excluded.revision > planarch_records.revision;
+  end if;
+end $$;
+
 create table if not exists public.planarch_records (
   user_id uuid not null references auth.users(id) on delete cascade,
   key text not null check (key like 'wf-%' and length(key) <= 2048),
@@ -47,6 +67,17 @@ $$;
 revoke all on function public.planarch_write_record(text,text,text,bigint) from public, anon;
 grant execute on function public.planarch_write_record(text,text,text,bigint) to authenticated;
 
+-- Backwards-compatible alias for existing setups
+create or replace function public.wayfinder_write_record(
+  p_key text, p_json text, p_path text, p_expected_revision bigint
+) returns jsonb language plpgsql security invoker set search_path = public, pg_temp as $$
+begin
+  return public.planarch_write_record(p_key, p_json, p_path, p_expected_revision);
+end;
+$$;
+revoke all on function public.wayfinder_write_record(text,text,text,bigint) from public, anon;
+grant execute on function public.wayfinder_write_record(text,text,text,bigint) to authenticated;
+
 -- Live updates; repeatable if the table was already added.
 do $$ begin
   if not exists(select 1 from pg_publication where pubname='supabase_realtime') then
@@ -57,7 +88,7 @@ do $$ begin
   end if;
 end $$;
 
--- Private, owner-scoped file storage. Every uploaded part is under 8 MiB.
+-- Private, owner-scoped file storage.
 insert into storage.buckets(id,name,public,file_size_limit)
 values('planarch-private','planarch-private',false,50000000)
 on conflict(id) do update set public=false,file_size_limit=50000000;
@@ -65,8 +96,11 @@ drop policy if exists planarch_private_files_read on storage.objects;
 drop policy if exists planarch_private_files_insert on storage.objects;
 drop policy if exists planarch_private_files_delete on storage.objects;
 create policy planarch_private_files_read on storage.objects for select to authenticated
-using(bucket_id='planarch-private' and (storage.foldername(name))[1]='users' and (storage.foldername(name))[2]=(select auth.uid())::text);
+using(bucket_id in ('planarch-private', 'wayfinder-private') and (storage.foldername(name))[1]='users' and (storage.foldername(name))[2]=(select auth.uid())::text);
 create policy planarch_private_files_insert on storage.objects for insert to authenticated
-with check(bucket_id='planarch-private' and (storage.foldername(name))[1]='users' and (storage.foldername(name))[2]=(select auth.uid())::text);
+with check(bucket_id in ('planarch-private', 'wayfinder-private') and (storage.foldername(name))[1]='users' and (storage.foldername(name))[2]=(select auth.uid())::text);
 create policy planarch_private_files_delete on storage.objects for delete to authenticated
-using(bucket_id='planarch-private' and (storage.foldername(name))[1]='users' and (storage.foldername(name))[2]=(select auth.uid())::text);
+using(bucket_id in ('planarch-private', 'wayfinder-private') and (storage.foldername(name))[1]='users' and (storage.foldername(name))[2]=(select auth.uid())::text);
+
+-- Reload PostgREST schema cache immediately
+notify pgrst, 'reload schema';

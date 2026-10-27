@@ -57,6 +57,14 @@ body{background:#090d16}
 }
 .theme-light .theme-toggle,.theme-light .settings-toggle{background:#ffffff!important;color:#475569!important;border-color:#cbd5e1!important}
 .theme-light .theme-toggle:hover,.theme-light .settings-toggle:hover{background:#f1f5f9!important;color:#0f172a!important}
+
+.sync-status-indicator{display:inline-flex;align-items:center;justify-content:center;padding:4px;margin-left:4px}
+.sync-status-dot{width:9px;height:9px;border-radius:50%;display:inline-block;transition:background-color .2s ease,box-shadow .2s ease}
+.sync-status-green{background-color:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.45)}
+.sync-status-yellow{background-color:#f59e0b;box-shadow:0 0 6px rgba(245,158,11,0.45);animation:pulse-sync 1.5s infinite}
+.sync-status-red{background-color:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.45)}
+@keyframes pulse-sync{0%,100%{opacity:1}50%{opacity:0.4}}
+
 .theme-dark .theme-toggle,.theme-dark .settings-toggle{background:#162030!important;color:#94a3b8!important;border-color:#1e293b!important}
 .theme-dark .theme-toggle:hover,.theme-dark .settings-toggle:hover{background:#1e293b!important;color:#f59e0b!important}
 .theme-light .primary{background:#d97706;color:#ffffff;border-color:#d97706;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,0.08)}

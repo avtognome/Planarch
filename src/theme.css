@@ -134,14 +134,63 @@ body{background:#090d16}
 .theme-dark :is(.participant-editor,.provider-player,.supabase-settings,.supabase-account,.cloud-status-detail,.sync-conflict,.password-update,.music-matching,.youtube-settings){background:#1c1a17;border-color:#262422;color:#f5f5f4;border-radius:8px}
 .theme-dark :is(.profile-placeholder,.add-from-compendium,.wiki-inline-link,.youtube-transport){background:#201e1b;border-color:#332f2b;color:#f59e0b;border-radius:6px}
 .theme-dark :is(.source-player-dock,.youtube-mixer-dock){background:#141311;border-color:#262422;color:#f5f5f4;border-radius:12px}.theme-dark .youtube-mixer-dock>header{background:linear-gradient(90deg,#201e1b,#171614)}.theme-dark .youtube-deck{background:#171614;border-color:#262422;border-radius:8px}.theme-dark .youtube-deck-title,.theme-dark .youtube-deck-controls label span,.theme-dark .youtube-deck-controls strong,.theme-dark .youtube-mix-controls label span,.theme-dark .youtube-mix-controls b,.theme-dark .youtube-mix-controls strong{color:#f59e0b}.theme-dark .youtube-mix-controls{border-color:#262422}
-.theme-dark :is(.monster-reference,.dnd-reference){background:#171614!important;color:#f5f5f4!important;border-color:#262422!important;box-shadow:none!important;border-radius:10px!important}
-.theme-dark :is(.monster-reference,.dnd-reference) h2{color:#f59e0b!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro",system-ui,sans-serif!important}
-.theme-dark :is(.monster-reference,.dnd-reference) h3{color:#f59e0b!important;border-bottom-color:#262422!important}
-.theme-dark :is(.monster-reference,.dnd-reference) strong{color:#f59e0b!important}
-.theme-dark :is(.monster-stat-block,.dnd-reference-card){font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;color:#cbd5e1!important}
-.theme-dark :is(.monster-rule,.monster-traits,.monster-footer,.dnd-fact-grid>div,.dnd-entry,.dnd-footer){border-color:#262422!important}
-.theme-dark .dnd-fact-grid small{color:#f59e0b!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important}
-.theme-dark .monster-abilities div{background:#201e1b;border:1px solid #262422;border-radius:6px;padding:6px 2px}
+/* Compendium D&D Reference Typography & Colors - Dark Mode */
+.theme-dark :is(.monster-reference,.dnd-reference){background:#171614!important;color:#f5f5f4!important;border-color:#262422!important;box-shadow:none!important;border-radius:12px!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif!important}
+.theme-dark :is(.monster-reference,.dnd-reference) .editor-title .eyebrow{color:#f59e0b!important;font-weight:700!important;font-size:10px!important;letter-spacing:0.08em!important}
+.theme-dark :is(.monster-reference,.dnd-reference) .editor-title svg{color:#f59e0b!important}
+.theme-dark :is(.monster-reference,.dnd-reference) h2{color:#f59e0b!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif!important;font-weight:700!important;font-size:28px!important;letter-spacing:-0.02em!important;margin:12px 0 6px!important}
+.theme-dark :is(.dnd-subtitle,.monster-meta){color:#a8a29e!important;font-size:12.5px!important;font-style:italic!important}
+.theme-dark :is(.dnd-subtitle,.monster-meta) em{color:#d6d3d1!important;font-style:italic!important}
+.theme-dark .monster-rule{height:3px!important;margin:14px 0 16px!important;background:linear-gradient(90deg,#be9454,#e2bc7c 65%,rgba(226,186,124,0.15) 100%)!important;clip-path:none!important;border-radius:2px!important;border:0!important}
+.theme-dark :is(.monster-stat-block,.dnd-reference-card){font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif!important;color:#e7e5e4!important;font-size:13.5px!important;line-height:1.65!important}
+.theme-dark .dnd-fact-grid{gap:2px 24px!important;margin:12px 0 16px!important}
+.theme-dark .dnd-fact-grid>div{border-color:#262422!important;padding:6px 0!important}
+.theme-dark .dnd-fact-grid small{color:#f59e0b!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;font-size:10px!important;font-weight:700!important;letter-spacing:0.05em!important;text-transform:uppercase!important}
+.theme-dark .dnd-fact-grid strong{color:#f5f5f4!important;font-weight:500!important;font-size:12.5px!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important}
+.theme-dark :is(.monster-section h3,.dnd-section>h3){font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif!important;font-weight:700!important;font-size:18px!important;color:#f59e0b!important;border-bottom:1px solid #262422!important;margin:22px 0 12px!important;padding-bottom:6px!important;letter-spacing:-0.01em!important}
+.theme-dark :is(.dnd-entry h4,.class-level>h4){font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;font-weight:600!important;font-size:14px!important;font-style:normal!important;color:#e2bc7c!important;margin:0 0 6px!important}
+.theme-dark :is(.dnd-entry p,.dnd-prose){color:#e7e5e4!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif!important;line-height:1.65!important}
+.theme-dark :is(.dnd-entry-meta span){color:#f59e0b!important;border:1px solid #332f2b!important;background:#201e1b!important;font-size:9px!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important}
+.theme-dark .dnd-nested{background:#1c1a17!important;border:1px solid #2e2b27!important;border-radius:8px!important;padding:10px 14px!important}
+.theme-dark .dnd-nested h5{color:#e2bc7c!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;font-size:11px!important;font-weight:700!important}
+.theme-dark :is(.monster-traits,.monster-footer,.dnd-entry,.dnd-footer){border-color:#262422!important}
+.theme-dark .dnd-footer{color:#a8a29e!important;font-size:11.5px!important}
+.theme-dark .dnd-footer strong{color:#f59e0b!important}
+.theme-dark :is(.monster-core strong,.monster-details strong,.monster-entry strong){color:#e2bc7c!important;font-weight:600!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important}
+.theme-dark :is(.monster-core p,.monster-details p,.monster-entry){color:#e7e5e4!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif!important}
+.theme-dark .monster-abilities{margin:12px 0!important}
+.theme-dark .monster-abilities div{background:#201e1b!important;border:1px solid #2e2b27!important;border-radius:6px!important;padding:6px 2px!important}
+.theme-dark .monster-abilities strong{color:#f59e0b!important;font-size:10.5px!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important}
+.theme-dark .monster-abilities span{color:#f5f5f4!important;font-size:12px!important;font-weight:600!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important}
+
+/* Compendium D&D Reference Typography & Colors - Light Mode */
+.theme-light :is(.monster-reference,.dnd-reference){background:#ffffff!important;color:#1c1917!important;border-color:#e7e5e4!important;box-shadow:0 1px 3px rgba(28,25,23,0.04),0 4px 12px rgba(28,25,23,0.02)!important;border-radius:12px!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif!important}
+.theme-light :is(.monster-reference,.dnd-reference) .editor-title .eyebrow{color:#d97706!important;font-weight:700!important;font-size:10px!important;letter-spacing:0.08em!important}
+.theme-light :is(.monster-reference,.dnd-reference) .editor-title svg{color:#d97706!important}
+.theme-light :is(.monster-reference,.dnd-reference) h2{color:#1c1917!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif!important;font-weight:700!important;font-size:28px!important;letter-spacing:-0.02em!important;margin:12px 0 6px!important}
+.theme-light :is(.dnd-subtitle,.monster-meta){color:#57534e!important;font-size:12.5px!important;font-style:italic!important}
+.theme-light :is(.dnd-subtitle,.monster-meta) em{color:#44403c!important;font-style:italic!important}
+.theme-light .monster-rule{height:3px!important;margin:14px 0 16px!important;background:linear-gradient(90deg,#d97706,#f59e0b 65%,rgba(245,158,11,0.15) 100%)!important;clip-path:none!important;border-radius:2px!important;border:0!important}
+.theme-light :is(.monster-stat-block,.dnd-reference-card){font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif!important;color:#1c1917!important;font-size:13.5px!important;line-height:1.65!important}
+.theme-light .dnd-fact-grid{gap:2px 24px!important;margin:12px 0 16px!important}
+.theme-light .dnd-fact-grid>div{border-color:#e7e5e4!important;padding:6px 0!important}
+.theme-light .dnd-fact-grid small{color:#b45309!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;font-size:10px!important;font-weight:700!important;letter-spacing:0.05em!important;text-transform:uppercase!important}
+.theme-light .dnd-fact-grid strong{color:#1c1917!important;font-weight:500!important;font-size:12.5px!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important}
+.theme-light :is(.monster-section h3,.dnd-section>h3){font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif!important;font-weight:700!important;font-size:18px!important;color:#b45309!important;border-bottom:1px solid #e7e5e4!important;margin:22px 0 12px!important;padding-bottom:6px!important;letter-spacing:-0.01em!important}
+.theme-light :is(.dnd-entry h4,.class-level>h4){font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;font-weight:600!important;font-size:14px!important;font-style:normal!important;color:#78350f!important;margin:0 0 6px!important}
+.theme-light :is(.dnd-entry p,.dnd-prose){color:#1c1917!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif!important;line-height:1.65!important}
+.theme-light :is(.dnd-entry-meta span){color:#b45309!important;border:1px solid #d6d3d1!important;background:#f5f5f4!important;font-size:9px!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important}
+.theme-light .dnd-nested{background:#fafaf9!important;border:1px solid #e7e5e4!important;border-radius:8px!important;padding:10px 14px!important}
+.theme-light .dnd-nested h5{color:#b45309!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;font-size:11px!important;font-weight:700!important}
+.theme-light :is(.monster-traits,.monster-footer,.dnd-entry,.dnd-footer){border-color:#e7e5e4!important}
+.theme-light .dnd-footer{color:#57534e!important;font-size:11.5px!important}
+.theme-light .dnd-footer strong{color:#b45309!important}
+.theme-light :is(.monster-core strong,.monster-details strong,.monster-entry strong){color:#b45309!important;font-weight:600!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important}
+.theme-light :is(.monster-core p,.monster-details p,.monster-entry){color:#1c1917!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif!important}
+.theme-light .monster-abilities{margin:12px 0!important}
+.theme-light .monster-abilities div{background:#f5f5f4!important;border:1px solid #e7e5e4!important;border-radius:6px!important;padding:6px 2px!important}
+.theme-light .monster-abilities strong{color:#b45309!important;font-size:10.5px!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important}
+.theme-light .monster-abilities span{color:#1c1917!important;font-size:12px!important;font-weight:600!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important}
 
 /* Atmosphere library: compact vertical list, intentionally without artwork previews. */
 .scene-grid{display:grid;grid-template-columns:1fr;gap:8px;counter-reset:scene-list}

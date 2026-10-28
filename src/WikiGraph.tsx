@@ -222,6 +222,11 @@ export function WikiGraph({ items, onSelectPage, activeId }: WikiGraphProps) {
       const nodes = nodesRef.current;
       const nodeMap = new Map(nodes.map(n => [n.id, n]));
 
+      // Detect light mode from document
+      const isLight = document.documentElement.classList.contains('theme-light') || 
+                      document.body.classList.contains('theme-light') || 
+                      Boolean(document.querySelector('.theme-light'));
+
       // 1. Draw Edges
       for (const edge of edges) {
         const a = nodeMap.get(edge.source);
@@ -238,7 +243,9 @@ export function WikiGraph({ items, onSelectPage, activeId }: WikiGraphProps) {
           ctx.strokeStyle = '#f59e0b';
           ctx.lineWidth = 2.2;
         } else {
-          ctx.strokeStyle = edge.type === 'wiki' ? 'rgba(148, 163, 184, 0.35)' : 'rgba(148, 163, 184, 0.16)';
+          ctx.strokeStyle = isLight 
+            ? (edge.type === 'wiki' ? 'rgba(100, 116, 139, 0.45)' : 'rgba(148, 163, 184, 0.25)')
+            : (edge.type === 'wiki' ? 'rgba(148, 163, 184, 0.35)' : 'rgba(148, 163, 184, 0.16)');
           ctx.lineWidth = edge.type === 'wiki' ? 1.2 : 0.8;
           if (edge.type === 'tag') {
             ctx.setLineDash([4, 4]);
@@ -261,19 +268,23 @@ export function WikiGraph({ items, onSelectPage, activeId }: WikiGraphProps) {
         // Node Circle
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
-        ctx.fillStyle = isActive ? '#f59e0b' : '#0f172a';
+        ctx.fillStyle = isActive ? '#f59e0b' : (isLight ? '#ffffff' : '#0f172a');
         ctx.fill();
 
-        ctx.lineWidth = isActive ? 3 : isHovered ? 2.5 : 1.5;
-        ctx.strokeStyle = isMatched ? color : 'rgba(148, 163, 184, 0.25)';
+        ctx.lineWidth = isActive ? 3 : isHovered ? 2.5 : 1.8;
+        ctx.strokeStyle = isMatched ? color : (isLight ? 'rgba(148, 163, 184, 0.35)' : 'rgba(148, 163, 184, 0.25)');
         ctx.stroke();
 
         // Node Label
-        ctx.font = '500 11px -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif';
+        ctx.font = '600 11px -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillStyle = isMatched ? (isHovered || isActive ? '#f8fafc' : '#cbd5e1') : 'rgba(148, 163, 184, 0.35)';
-        ctx.fillText(n.title, n.x, n.y + n.radius + 5);
+        ctx.fillStyle = isMatched 
+          ? (isHovered || isActive 
+              ? (isLight ? '#0f172a' : '#f8fafc') 
+              : (isLight ? '#334155' : '#cbd5e1')) 
+          : (isLight ? 'rgba(100, 116, 139, 0.4)' : 'rgba(148, 163, 184, 0.35)');
+        ctx.fillText(n.title, n.x, n.y + n.radius + 6);
       }
 
       ctx.restore();

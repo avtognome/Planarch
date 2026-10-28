@@ -27,6 +27,7 @@ export function ImageCropModal({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [processing, setProcessing] = useState(false);
 
+  const [imgDims, setImgDims] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
   const imgRef = useRef<HTMLImageElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -40,6 +41,7 @@ export function ImageCropModal({
       img.src = url;
       img.onload = () => {
         imgRef.current = img;
+        setImgDims({ width: img.naturalWidth, height: img.naturalHeight });
       };
     }
     return () => {
@@ -113,6 +115,19 @@ export function ImageCropModal({
     setPan({ x: 0, y: 0 });
   };
 
+  // Preview Crop Box Dimensions
+  const boxWidth = 280;
+  const boxHeight = aspectRatio ? Math.round(boxWidth / aspectRatio) : 280;
+
+  // Calculate matching base preview dimension so WYSIWYG matches exactly
+  const isRotated90 = rotation === 90 || rotation === 270;
+  const effectiveW = isRotated90 ? (imgDims.height || 1) : (imgDims.width || 1);
+  const effectiveH = isRotated90 ? (imgDims.width || 1) : (imgDims.height || 1);
+  // Fit base preview image so it covers the crop frame box at zoom = 1
+  const baseScale = Math.max(boxWidth / effectiveW, boxHeight / effectiveH);
+  const previewImgWidth = (imgDims.width || 1) * baseScale;
+  const previewImgHeight = (imgDims.height || 1) * baseScale;
+
   // Perform Crop & Adjust Export to DataURL
   const handleApply = async () => {
     const img = imgRef.current;
@@ -138,35 +153,25 @@ export function ImageCropModal({
       const cVal = 100 + contrast;
       ctx.filter = `brightness(${bVal}%) contrast(${cVal}%)`;
 
+      // Scale factor from preview box to export canvas
+      const exportRatio = targetWidth / boxWidth;
+
       // Transform coordinate space to center of target
       ctx.save();
       ctx.translate(targetWidth / 2, targetHeight / 2);
 
+      // Pan translation scaled to target canvas
+      ctx.translate(pan.x * exportRatio, pan.y * exportRatio);
+
       // Apply rotation
       ctx.rotate((rotation * Math.PI) / 180);
 
-      // Calculate base scale to fit
-      // When rotated 90 or 270, natural width and height swap
-      const isRotated90 = rotation === 90 || rotation === 270;
-      const effectiveW = isRotated90 ? img.naturalHeight : img.naturalWidth;
-      const effectiveH = isRotated90 ? img.naturalWidth : img.naturalHeight;
+      // Render image with exact same scaling as preview
+      const drawScale = baseScale * zoom * exportRatio;
+      const drawW = img.naturalWidth * drawScale;
+      const drawH = img.naturalHeight * drawScale;
 
-      // Base scaling to cover the target area
-      const scaleCover = Math.max(targetWidth / effectiveW, targetHeight / effectiveH);
-      const totalScale = scaleCover * zoom;
-
-      // Scale
-      ctx.scale(totalScale, totalScale);
-
-      // Pan translation (needs rotation correction if rotated)
-      const rad = (-rotation * Math.PI) / 180;
-      const pX = (pan.x * Math.cos(rad) - pan.y * Math.sin(rad)) / totalScale;
-      const pY = (pan.x * Math.sin(rad) + pan.y * Math.cos(rad)) / totalScale;
-
-      ctx.translate(pX, pY);
-
-      // Draw image centered
-      ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+      ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
       ctx.restore();
 
       // Export as WebP with fallback
@@ -182,10 +187,6 @@ export function ImageCropModal({
       setProcessing(false);
     }
   };
-
-  // Preview Crop Box Dimensions
-  const boxWidth = 280;
-  const boxHeight = aspectRatio ? Math.round(boxWidth / aspectRatio) : 280;
 
   return (
     <div className="modal-backdrop" onClick={onCancel} style={{ zIndex: 9999 }}>
@@ -247,13 +248,14 @@ export function ImageCropModal({
               alt="Crop preview"
               style={{
                 position: 'absolute',
+                width: `${previewImgWidth}px`,
+                height: `${previewImgHeight}px`,
                 maxWidth: 'none',
                 transformOrigin: 'center center',
                 transform: `translate(${pan.x}px, ${pan.y}px) rotate(${rotation}deg) scale(${zoom})`,
                 filter: `brightness(${100 + brightness}%) contrast(${100 + contrast}%)`,
                 transition: isDragging ? 'none' : 'transform 0.05s ease-out',
-                pointerEvents: 'none',
-                maxHeight: '260px'
+                pointerEvents: 'none'
               }}
               draggable={false}
             />
@@ -388,6 +390,7 @@ export function ImageCropModal({
               <button
                 type="button"
                 className="primary"
+                aria-label="Apply crop and adjustments"
                 onClick={handleApply}
                 disabled={processing}
                 style={{ display: 'flex', alignItems: 'center', gap: '4px' }}

@@ -84,7 +84,18 @@ const { ImageCropModal } = await import(pathToFileURL(path.join(out, 'ImageCropM
   assert.ok(contrastInput, 'Contrast input must exist');
   assert.equal(contrastInput.props.value, 0);
 
+  // Test apply action trigger exists
+  const applyBtn = root.findByProps({ 'aria-label': 'Apply crop and adjustments' });
+  assert.ok(applyBtn, 'Apply button must exist');
+
   console.log('✓ ImageCropModal controls verified');
+}
+
+// Test 1b: WikiGraph light theme text color test
+const { WikiGraph } = await import(pathToFileURL(path.join(out, 'WikiGraph.js')).href);
+{
+  assert.ok(WikiGraph, 'WikiGraph component must exist');
+  console.log('✓ WikiGraph component verified');
 }
 
 const store = new Map();

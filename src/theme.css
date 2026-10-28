@@ -93,7 +93,7 @@ body{background:#090d16}
 .theme-light .console-divider{background:#e2e8f0}.theme-light .master{background:#f8fafc;border-color:#e2e8f0;border-radius:8px}.theme-light .master strong{color:#0f172a}
 .theme-light .now-playing{background:rgba(255,255,255,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-color:#e2e8f0;box-shadow:0 -2px 10px rgba(15,23,42,0.04)}.theme-light .now-art{color:#d97706;border-color:#cbd5e1;border-radius:6px}.theme-light .equalizer i,.theme-light .equalizer.animated i{background:#d97706}
 .theme-light .modal{background:#ffffff;border-color:#cbd5e1;border-radius:12px;box-shadow:0 20px 48px -12px rgba(15,23,42,0.15)}.theme-light .modal-backdrop{background:rgba(15,23,42,0.35);backdrop-filter:blur(8px)}.theme-light .modal p{color:#64748b}.theme-light .settings-note,.theme-light .supabase-settings,.theme-light .youtube-settings{background:#f8fafc;border-color:#e2e8f0;color:#475569;border-radius:8px}
-.theme-light .record-list,.theme-light .record-editor{background:#ffffff;border-color:#e2e8f0;border-radius:12px}.theme-light .record-row{color:#1e293b;border-color:#f1f5f9}.theme-light .record-row.selected{background:#f8fafc;border-color:#d97706}.theme-light .record-icon{background:#f1f5f9;border-color:#e2e8f0;color:#d97706;border-radius:6px}
+.theme-light .record-list,.theme-light .record-editor{background:#ffffff;border-color:#e7e5e4;border-radius:12px}.theme-light .record-list-title{border-bottom:1px solid #e7e5e4;color:#57534e}.theme-light .record-row{color:#1c1917;border-bottom:1px solid #f5f5f4;background:transparent;transition:background .15s ease}.theme-light .record-row:hover{background:#fafaf9}.theme-light .record-row.selected{background:#fdf8ee;box-shadow:inset 3px 0 #d97706;border-color:#e7e5e4}.theme-light .record-icon,.theme-light .record-portrait{background:#f5f5f4;border-color:#e7e5e4;color:#d97706;border-radius:6px}.theme-light .profile-portrait,.theme-light .profile-placeholder{border-color:#e7e5e4;background:#f5f5f4}.theme-light .title-input{border-bottom-color:#e7e5e4!important}
 .theme-light .participant-editor,.theme-light .wiki-media-editor,.theme-light .wiki-image-card{background:#f8fafc;border-color:#e2e8f0;border-radius:8px}
 .theme-light .balance-panel{background:#ffffff;border-color:#e2e8f0;border-radius:12px}.theme-light .balance-panel>div:first-child>strong,.theme-light .balance-budgets strong{color:#0f172a}.theme-light .balance-budgets span{background:#ffffff;border-color:#e2e8f0;color:#475569;border-radius:6px}
 .theme-light .update-encounter-button:not(:disabled){background:#fff7ed;border-color:#f97316;color:#c2410c;border-radius:8px}
@@ -109,7 +109,7 @@ body{background:#090d16}
 .theme-dark nav button.active{background:#1e293b;color:#f59e0b;border-color:#f59e0b;border-radius:6px}
 .theme-dark .primary{background:#f59e0b;color:#0b0f17;border-color:#f59e0b;border-radius:8px;font-weight:600}
 .theme-dark .secondary{background:#162030;border-color:#243247;color:#e2e8f0;border-radius:8px}
-.theme-dark .widget,.theme-dark .record-editor,.theme-dark .record-list{background:#111827;border-color:#1e293b;border-radius:12px}
+.theme-dark .widget,.theme-dark .record-editor,.theme-dark .record-list{background:#171614;border-color:#262422;border-radius:12px}.theme-dark .record-list-title{border-bottom:1px solid #262422;color:#a8a29e}.theme-dark .record-row{color:#f5f5f4;border-bottom:1px solid #262422;background:transparent;transition:background .15s ease}.theme-dark .record-row:hover{background:#1f1d1a}.theme-dark .record-row.selected{background:#24211e;box-shadow:inset 3px 0 #f59e0b;border-color:#262422}.theme-dark .record-row strong{color:#f5f5f4}.theme-dark .record-row small{color:#a8a29e}.theme-dark .record-meta{color:#f59e0b}.theme-dark .record-icon,.theme-dark .record-portrait{background:#201e1b;border-color:#332f2b;color:#f59e0b;border-radius:6px}.theme-dark .profile-portrait,.theme-dark .profile-placeholder{border-color:#332f2b;background:#201e1b}.theme-dark .title-input{border-bottom-color:#262422!important}
 .theme-dark input:not([type=range]),.theme-dark textarea,.theme-dark select{background:#0d121c;color:#f1f5f9;border-color:#202c3f;border-radius:8px}
 .theme-dark .session-banner{background:#111827;border:1px solid #1e293b;border-radius:12px}
 .theme-dark .badge,.theme-dark .badge.subtle{background:#182232;color:#f59e0b;border-color:#27374e;border-radius:6px}
@@ -118,30 +118,30 @@ body{background:#090d16}
 .theme-dark .text-button,.theme-dark .eyebrow{color:#f59e0b}
 
 /* Remove the final legacy green accents from records, sync, compendium and media controls. */
-.theme-light :is(a,.icon-button,.tool-search>svg,.editor-title>.inline,.record-list-title,.record-meta,.editor-field>span,.field-help,.tool-empty,.tool-empty h3,.tool-empty p,.autosave-note,.wiki-backlinks h3,.checkbox-field,.console-foot span,.control-note,.now-center>span){color:#80632f}
-.theme-light :is(.local-status span,.session-pill span,.status-dot.on:before,.youtube-deck-title i.playing){background:#b18432;box-shadow:0 0 8px #b1843255}
-.theme-light :is(.participant-editor,.provider-player,.supabase-settings,.supabase-account,.cloud-status-detail,.sync-conflict,.password-update,.music-matching,.youtube-settings){background:#f7f0e3;border-color:#d6c39d;color:#40372a;border-radius:8px}
-.theme-light :is(.profile-placeholder,.add-from-compendium,.wiki-inline-link,.youtube-transport){background:#eadaba;border-color:#c5a865;color:#624719;border-radius:6px}
-.theme-light :is(.wiki-inline-link,.stat-link,.member-reference,.supabase-setup summary,.password-update summary,.youtube-search-link,.youtube-deck>a){color:#805b1d}
-.theme-light :is(.source-player-dock,.youtube-mixer-dock){background:#fffaf0;border-color:#c7a45d;color:#332a1e;border-radius:12px}
-.theme-light .youtube-mixer-dock>header{background:linear-gradient(90deg,#ead8b3,#f7edda)}
-.theme-light .youtube-deck{background:#fffdf8;border-color:#d8c7a5;border-radius:8px}.theme-light .youtube-deck-title,.theme-light .youtube-deck-controls label span,.theme-light .youtube-deck-controls strong,.theme-light .youtube-mix-controls label span,.theme-light .youtube-mix-controls b,.theme-light .youtube-mix-controls strong{color:#73531d}
-.theme-light .youtube-player-shell{background:#eee4d2;border-radius:8px}.theme-light .youtube-player-shell.empty{border-color:#c9b58e;color:#7b6f5e}.theme-light .youtube-mix-controls{border-color:#d9c8a7}
-.theme-light :is(.compendium-categories button.selected,.compendium-toolbar button.selected,.reference-section summary,.add-from-compendium>svg){color:#805b1d;border-color:#c6a45e}
-.theme-light :is(.compendium-source,.compendium-toolbar,.reference-section,.wiki-backlinks,.editor-actions){border-color:#ddd0b7}
+.theme-light :is(a,.icon-button,.tool-search>svg,.editor-title>.inline,.record-list-title,.record-meta,.editor-field>span,.field-help,.tool-empty,.tool-empty h3,.tool-empty p,.autosave-note,.wiki-backlinks h3,.checkbox-field,.console-foot span,.control-note,.now-center>span){color:#d97706}
+.theme-light :is(.local-status span,.session-pill span,.status-dot.on:before,.youtube-deck-title i.playing){background:#d97706;box-shadow:0 0 8px rgba(217,119,6,0.35)}
+.theme-light :is(.participant-editor,.provider-player,.supabase-settings,.supabase-account,.cloud-status-detail,.sync-conflict,.password-update,.music-matching,.youtube-settings){background:#fafaf9;border-color:#e7e5e4;color:#1c1917;border-radius:8px}
+.theme-light :is(.profile-placeholder,.add-from-compendium,.wiki-inline-link,.youtube-transport){background:#f5f5f4;border-color:#e7e5e4;color:#d97706;border-radius:6px}
+.theme-light :is(.wiki-inline-link,.stat-link,.member-reference,.supabase-setup summary,.password-update summary,.youtube-search-link,.youtube-deck>a){color:#d97706}
+.theme-light :is(.source-player-dock,.youtube-mixer-dock){background:#ffffff;border-color:#e7e5e4;color:#1c1917;border-radius:12px}
+.theme-light .youtube-mixer-dock>header{background:linear-gradient(90deg,#f5f5f4,#ffffff)}
+.theme-light .youtube-deck{background:#ffffff;border-color:#e7e5e4;border-radius:8px}.theme-light .youtube-deck-title,.theme-light .youtube-deck-controls label span,.theme-light .youtube-deck-controls strong,.theme-light .youtube-mix-controls label span,.theme-light .youtube-mix-controls b,.theme-light .youtube-mix-controls strong{color:#d97706}
+.theme-light .youtube-player-shell{background:#f5f5f4;border-radius:8px}.theme-light .youtube-player-shell.empty{border-color:#e7e5e4;color:#78716c}.theme-light .youtube-mix-controls{border-color:#e7e5e4}
+.theme-light :is(.compendium-categories button.selected,.compendium-toolbar button.selected,.reference-section summary,.add-from-compendium>svg){color:#d97706;border-color:#d97706}
+.theme-light :is(.compendium-source,.compendium-toolbar,.reference-section,.wiki-backlinks,.editor-actions){border-color:#e7e5e4}
 .theme-dark :is(a,.icon-button,.tool-search>svg,.editor-title>.inline,.record-list-title,.record-meta,.editor-field>span,.field-help,.tool-empty,.tool-empty h3,.tool-empty p,.autosave-note,.wiki-backlinks h3,.checkbox-field,.console-foot span,.control-note,.now-center>span){color:#f59e0b}
 .theme-dark :is(.local-status span,.session-pill span,.status-dot.on:before,.youtube-deck-title i.playing){background:#f59e0b;box-shadow:0 0 8px #f59e0b66}
-.theme-dark :is(.participant-editor,.provider-player,.supabase-settings,.supabase-account,.cloud-status-detail,.sync-conflict,.password-update,.music-matching,.youtube-settings){background:#131c2b;border-color:#1e293b;color:#f1f5f9;border-radius:8px}
-.theme-dark :is(.profile-placeholder,.add-from-compendium,.wiki-inline-link,.youtube-transport){background:#182232;border-color:#2a3a52;color:#f59e0b;border-radius:6px}
-.theme-dark :is(.source-player-dock,.youtube-mixer-dock){background:#0f172a;border-color:#1e293b;color:#f1f5f9;border-radius:12px}.theme-dark .youtube-mixer-dock>header{background:linear-gradient(90deg,#192538,#111827)}.theme-dark .youtube-deck{background:#0d121c;border-color:#1e293b;border-radius:8px}.theme-dark .youtube-deck-title,.theme-dark .youtube-deck-controls label span,.theme-dark .youtube-deck-controls strong,.theme-dark .youtube-mix-controls label span,.theme-dark .youtube-mix-controls b,.theme-dark .youtube-mix-controls strong{color:#f59e0b}.theme-dark .youtube-mix-controls{border-color:#1e293b}
-.theme-dark :is(.monster-reference,.dnd-reference){background:#111827!important;color:#f1f5f9!important;border-color:#1e293b!important;box-shadow:none!important;border-radius:10px!important}
+.theme-dark :is(.participant-editor,.provider-player,.supabase-settings,.supabase-account,.cloud-status-detail,.sync-conflict,.password-update,.music-matching,.youtube-settings){background:#1c1a17;border-color:#262422;color:#f5f5f4;border-radius:8px}
+.theme-dark :is(.profile-placeholder,.add-from-compendium,.wiki-inline-link,.youtube-transport){background:#201e1b;border-color:#332f2b;color:#f59e0b;border-radius:6px}
+.theme-dark :is(.source-player-dock,.youtube-mixer-dock){background:#141311;border-color:#262422;color:#f5f5f4;border-radius:12px}.theme-dark .youtube-mixer-dock>header{background:linear-gradient(90deg,#201e1b,#171614)}.theme-dark .youtube-deck{background:#171614;border-color:#262422;border-radius:8px}.theme-dark .youtube-deck-title,.theme-dark .youtube-deck-controls label span,.theme-dark .youtube-deck-controls strong,.theme-dark .youtube-mix-controls label span,.theme-dark .youtube-mix-controls b,.theme-dark .youtube-mix-controls strong{color:#f59e0b}.theme-dark .youtube-mix-controls{border-color:#262422}
+.theme-dark :is(.monster-reference,.dnd-reference){background:#171614!important;color:#f5f5f4!important;border-color:#262422!important;box-shadow:none!important;border-radius:10px!important}
 .theme-dark :is(.monster-reference,.dnd-reference) h2{color:#f59e0b!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro",system-ui,sans-serif!important}
-.theme-dark :is(.monster-reference,.dnd-reference) h3{color:#f59e0b!important;border-bottom-color:#1e293b!important}
+.theme-dark :is(.monster-reference,.dnd-reference) h3{color:#f59e0b!important;border-bottom-color:#262422!important}
 .theme-dark :is(.monster-reference,.dnd-reference) strong{color:#f59e0b!important}
 .theme-dark :is(.monster-stat-block,.dnd-reference-card){font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important;color:#cbd5e1!important}
-.theme-dark :is(.monster-rule,.monster-traits,.monster-footer,.dnd-fact-grid>div,.dnd-entry,.dnd-footer){border-color:#1e293b!important}
+.theme-dark :is(.monster-rule,.monster-traits,.monster-footer,.dnd-fact-grid>div,.dnd-entry,.dnd-footer){border-color:#262422!important}
 .theme-dark .dnd-fact-grid small{color:#f59e0b!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif!important}
-.theme-dark .monster-abilities div{background:#162030;border:1px solid #1e293b;border-radius:6px;padding:6px 2px}
+.theme-dark .monster-abilities div{background:#201e1b;border:1px solid #262422;border-radius:6px;padding:6px 2px}
 
 /* Atmosphere library: compact vertical list, intentionally without artwork previews. */
 .scene-grid{display:grid;grid-template-columns:1fr;gap:8px;counter-reset:scene-list}

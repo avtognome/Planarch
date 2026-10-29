@@ -24,7 +24,7 @@ globalThis.document = {
 };
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-console.log('Testing Live Encounter Initiative Auto-Sort...');
+console.log('Testing Live Encounter Initiative Draft & Enter/Blur Sorting...');
 
 const out = path.resolve('.sites-runtime/test-modules');
 fs.mkdirSync(out, { recursive: true });
@@ -51,7 +51,7 @@ const initialBattle = [
 
 let battleState = [...initialBattle];
 let roundState = 1;
-let turnState = 0; // currently on Goblin (index 0 if sorted by init 15, or initial array)
+let turnState = 0;
 
 const setBattle = (updater) => {
   battleState = typeof updater === 'function' ? updater(battleState) : updater;
@@ -83,18 +83,36 @@ await act(async () => {
 });
 
 const root = testRenderer.root;
-
-// Change Ezren's initiative from 8 to 22 (highest)
 const ezrenInput = root.findByProps({ 'aria-label': 'Initiative for Ezren' });
 assert.ok(ezrenInput, 'Ezren init input exists');
 
+// 1. Test erase: user clears the input (value becomes '')
+await act(async () => {
+  ezrenInput.props.onChange({ target: { value: '' } });
+});
+
+// Input value must allow empty string (erasable, not stuck at 0)
+assert.equal(ezrenInput.props.value, '', 'Input value should be empty string when erased');
+
+// Order should NOT jump yet while typing / before Enter or blur
+assert.equal(battleState[2].name, 'Ezren', 'Ezren stays in place until committed');
+
+// 2. User types 22
 await act(async () => {
   ezrenInput.props.onChange({ target: { value: '22' } });
 });
+assert.equal(ezrenInput.props.value, '22');
+assert.equal(battleState[2].name, 'Ezren', 'Still in place before enter');
 
-// Ezren (22) should now be at index 0, followed by Goblin (15), then Valeros (12)
-assert.equal(battleState[0].name, 'Ezren', 'Ezren should be sorted to top position with init 22');
-assert.equal(battleState[1].name, 'Goblin', 'Goblin should be second position with init 15');
-assert.equal(battleState[2].name, 'Valeros', 'Valeros should be third position with init 12');
+// 3. User hits Enter key
+let blurred = false;
+await act(async () => {
+  ezrenInput.props.onKeyDown({ key: 'Enter', currentTarget: { blur: () => { blurred = true; } } });
+});
 
-console.log('✓ Initiative auto-sort verified!');
+// Must sort upon Enter
+assert.equal(battleState[0].name, 'Ezren', 'Ezren sorted to top after Enter');
+assert.equal(battleState[0].initiative, 22);
+assert.equal(blurred, true, 'Input should blur on Enter');
+
+console.log('✓ Initiative draft and Enter/blur sort test passed!');

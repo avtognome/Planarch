@@ -24,6 +24,7 @@ type Snapshot = { id: string; label: string; battle: Combatant[]; round: number;
 export default function CombatTracker({ battle, setBattle, battleTitle, battleActive, round, setRound, turn, setTurn, onOpenEncounters, onEnd, notify }: Props) {
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [hpDrafts, setHpDrafts] = useState<Record<string, string>>({});
+  const [initDrafts, setInitDrafts] = useState<Record<string, string>>({});
   const [customConditions, setCustomConditions] = useState<Record<string, string>>({});
   const [exhaustionLevels, setExhaustionLevels] = useState<Record<string, number>>({});
   const [dragging, setDragging] = useState('');
@@ -70,6 +71,12 @@ export default function CombatTracker({ battle, setBattle, battleTitle, battleAc
     setTurn(nextTurn >= 0 ? nextTurn : Math.min(turn, Math.max(0, next.length - 1)));
   };
   const clearHpDraft = (id: string) => setHpDrafts(values => {
+    if (!(id in values)) return values;
+    const next = { ...values };
+    delete next[id];
+    return next;
+  });
+  const clearInitDraft = (id: string) => setInitDrafts(values => {
     if (!(id in values)) return values;
     const next = { ...values };
     delete next[id];
@@ -131,7 +138,17 @@ export default function CombatTracker({ battle, setBattle, battleTitle, battleAc
     setOrder(next);
     notify(`${copy.name} joined with initiative ${copy.initiative}`);
   };
+  const commitInitiative = (member: Combatant) => {
+    const draft = initDrafts[member.id];
+    if (draft === undefined) return;
+    clearInitDraft(member.id);
+    if (draft.trim() === '') return;
+    const nextVal = Number(draft);
+    if (!Number.isFinite(nextVal)) return;
+    changeInitiative(member.id, nextVal);
+  };
   const changeInitiative = (id: string, value: number) => {
+    clearInitDraft(id);
     const updated = battle.map(member => member.id === id ? { ...member, initiative: value } : member);
     const sorted = [...updated].sort((a, b) => b.initiative - a.initiative);
     setOrder(sorted);
@@ -282,7 +299,7 @@ export default function CombatTracker({ battle, setBattle, battleTitle, battleAc
   const indexed = battle.map((member, index) => ({ member, index }));
   const standing = indexed.filter(({ member }) => member.hp > 0), defeated = indexed.filter(({ member }) => member.hp <= 0);
   const row = ({ member, index }: { member: Combatant; index: number }) => <div key={member.id} draggable onDragStart={() => setDragging(member.id)} onDragOver={event => event.preventDefault()} onDrop={event => drop(event, member.id)} className={`combatant combatant-live ${index === turn && battleActive ? 'current' : ''} ${member.hp <= 0 ? 'defeated' : ''}`}>
-    <div className="combat-order"><GripVertical size={16} aria-hidden="true" /><div className="initiative"><input aria-label={`Initiative for ${member.name}`} type="number" value={member.initiative} onChange={event => changeInitiative(member.id, +event.target.value)} /><small>INIT</small></div><div className={`combat-avatar ${member.role.toLowerCase()}`}>{member.name.slice(0, 1)}</div></div>
+    <div className="combat-order"><GripVertical size={16} aria-hidden="true" /><div className="initiative"><input aria-label={`Initiative for ${member.name}`} type="number" value={initDrafts[member.id] ?? String(member.initiative)} onChange={event => setInitDrafts(values => ({ ...values, [member.id]: event.target.value }))} onBlur={() => commitInitiative(member)} onKeyDown={event => { if (event.key === 'Enter') { commitInitiative(member); event.currentTarget.blur(); } if (event.key === 'Escape') clearInitDraft(member.id); }} /><small>INIT</small></div><div className={`combat-avatar ${member.role.toLowerCase()}`}>{member.name.slice(0, 1)}</div></div>
     <div className="combat-identity"><strong>{member.name}</strong><small>{member.role}{member.cr ? ` · CR ${member.cr}` : ''}</small><div className="tags">{splitConditions(member.conditions).map(condition => <button key={condition} title={`Remove ${condition}`} onClick={() => removeMemberCondition(member, condition)}>{condition}<X size={9} /></button>)}{member.concentration && <button className="concentration" title="Clear concentration" onClick={() => setConcentration(member, '')}>◈ {member.concentration}<X size={9} /></button>}{member.turnState && <span className="turn-state">{member.turnState}</span>}</div></div>
     <div className="hp-inline" aria-label={`${member.name} hit point controls`}><button aria-label={`Damage 5 ${member.name}`} onClick={() => adjust(member.id, -5)}>−5</button><button aria-label={`Damage 1 ${member.name}`} onClick={() => adjust(member.id, -1)}>−1</button><label><span>HP</span><input aria-label={`Current HP for ${member.name}`} type="number" min={0} max={member.maxHp} value={hpDrafts[member.id] ?? String(member.hp)} onChange={event => setHpDrafts(values => ({ ...values, [member.id]: event.target.value }))} onBlur={() => commitHp(member)} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') clearHpDraft(member.id); }} /><small>/ {member.maxHp}</small></label><button aria-label={`Heal 1 ${member.name}`} onClick={() => adjust(member.id, 1)}>+1</button><button aria-label={`Heal 5 ${member.name}`} onClick={() => adjust(member.id, 5)}>+5</button>{lastDelta !== 0 && <button className="repeat-hp" aria-label={`Repeat ${Math.abs(lastDelta)} ${lastDelta < 0 ? 'damage' : 'healing'} for ${member.name}`} onClick={() => adjust(member.id, lastDelta)}><RotateCcw size={11} />{lastDelta > 0 ? '+' : '−'}{Math.abs(lastDelta)}</button>}<div className="hp-custom"><input aria-label={`Custom HP amount for ${member.name}`} type="number" min={0} placeholder="Any" value={amounts[member.id] || ''} onChange={event => setAmounts({ ...amounts, [member.id]: event.target.value })} /><button disabled={!amount(member.id)} aria-label={`Apply damage to ${member.name}`} onClick={() => adjust(member.id, -amount(member.id))}><Swords size={13} /></button><button disabled={!amount(member.id)} aria-label={`Apply healing to ${member.name}`} onClick={() => adjust(member.id, amount(member.id))}><HeartPulse size={13} /></button></div></div>
     <div className="combat-actions"><details className="condition-menu"><summary aria-label={`Manage conditions for ${member.name}`}>Conditions</summary><div className="condition-popover"><strong>Official conditions</strong><div>{DND_CONDITIONS.map(condition => <button key={condition} className={splitConditions(member.conditions).some(item => conditionName(item) === condition) ? 'selected' : ''} onClick={() => condition === 'Exhaustion' ? changeCondition(member, `Exhaustion ${exhaustionLevels[member.id] || 1}`) : changeCondition(member, condition)}>{condition}</button>)}</div><label>Exhaustion level<select aria-label={`Exhaustion level for ${member.name}`} value={exhaustionLevels[member.id] || 1} onChange={event => setExhaustionLevels(values => ({ ...values, [member.id]: Number(event.target.value) }))}>{[1, 2, 3, 4, 5, 6].map(level => <option key={level}>{level}</option>)}</select></label><label>Custom<input aria-label={`Custom condition for ${member.name}`} value={customConditions[member.id] || ''} onChange={event => setCustomConditions(values => ({ ...values, [member.id]: event.target.value }))} onKeyDown={event => { if (event.key === 'Enter') { changeCondition(member, event.currentTarget.value.trim()); setCustomConditions(values => ({ ...values, [member.id]: '' })); } }} placeholder="Add custom condition" /></label><button className="secondary" disabled={!customConditions[member.id]?.trim()} onClick={() => { changeCondition(member, customConditions[member.id]); setCustomConditions(values => ({ ...values, [member.id]: '' })); }}>Add custom</button></div></details><button className="icon-button" aria-label={`Move ${member.name} up`} disabled={index === 0} onClick={() => move(member.id, -1)}><ChevronUp size={14} /></button><button className="icon-button" aria-label={`Move ${member.name} down`} disabled={index === battle.length - 1} onClick={() => move(member.id, 1)}><ChevronDown size={14} /></button><button className="icon-button danger-text" aria-label={`Remove ${member.name} from encounter`} title="Remove from encounter" onClick={() => setBattle(members => members.filter(item => item.id !== member.id))}><Trash2 size={13} /></button><button className={`icon-button ${member.turnState === 'ready' ? 'selected' : ''}`} aria-label={`Ready action for ${member.name}`} title="Ready action" onClick={() => toggleReady(member.id)}><ShieldCheck size={14} /></button><button className="icon-button" aria-label={`Delay turn for ${member.name}`} title="Delay one place" disabled={index === battle.length - 1} onClick={() => delay(member.id)}><SkipForward size={14} /></button><button className="icon-button" aria-label={`Roll initiative for ${member.name}`} title="Roll only this combatant" onClick={() => roll(member.id)}><Dices size={14} /></button>{member.reference && <button className="icon-button" aria-label={`Open ${member.name} stat block`} onClick={() => { setDrawerFocus(member.reference!.id); setDrawerOpen(true); }}><BookOpen size={14} /></button>}{member.role === 'Monster' && <button className="icon-button" aria-label={`Duplicate ${member.name}`} title="Duplicate and roll newcomer" onClick={() => duplicate(member.id)}><CopyPlus size={14} /></button>}<button className="icon-button danger-text" aria-label={`Remove ${member.name} from combat`} onClick={() => remove(member.id)}><Trash2 size={14} /></button></div>

@@ -217,7 +217,7 @@ export function ImageCropModal({
             position: 'relative',
             width: '100%',
             height: '280px',
-            background: '#090d16',
+            background: 'var(--panel-alt, #151412)',
             borderRadius: '10px',
             overflow: 'hidden',
             display: 'flex',
@@ -236,7 +236,7 @@ export function ImageCropModal({
               height: `${boxHeight}px`,
               border: '2px solid rgba(245, 158, 11, 0.85)',
               borderRadius: aspectRatio === 1 ? '50%' : '6px',
-              boxShadow: '0 0 0 9999px rgba(10, 15, 26, 0.65)',
+              boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.72)',
               pointerEvents: 'none',
               zIndex: 10
             }}

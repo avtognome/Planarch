@@ -493,6 +493,7 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 
 /* Campaign Hero Header (Replaces cluttered banner in non-combat state) */
 .campaign-hero-header{margin:6px 0 22px;padding:2px 0}
+.page-hero-header{margin-bottom:20px;border-bottom:1px solid var(--line);padding-bottom:14px}
 .campaign-hero-eyebrow{font-size:10px;font-weight:700;letter-spacing:1.8px;color:var(--accent);text-transform:uppercase;margin-bottom:6px}
 .campaign-hero-title{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro",system-ui,sans-serif;font-size:36px;font-weight:800;letter-spacing:-0.035em;line-height:1.15;color:var(--text);margin:0}
 @media(max-width:768px){.campaign-hero-title{font-size:28px}}

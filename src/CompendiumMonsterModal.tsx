@@ -6,6 +6,7 @@ import { uid, type Combatant } from './models';
 export interface CompendiumMonsterModalProps {
   generation?: string;
   indexEntries?: EntryIndex[];
+  homebrewRecords?: CompendiumRecord[];
   records?: CompendiumRecord[]; // backwards compatibility
   loadRecord?: (id: string) => Promise<CompendiumRecord | null>;
   onAdd: (combatants: Combatant[]) => void;
@@ -17,6 +18,7 @@ const PAGE_SIZE = 40;
 export function CompendiumMonsterModal({
   generation,
   indexEntries,
+  homebrewRecords,
   records,
   loadRecord,
   onAdd,
@@ -49,20 +51,32 @@ export function CompendiumMonsterModal({
 
   // Standardize lightweight monster entries
   const monsters: { id: string; name: string; summary: string; search: string; fallbackRecord?: CompendiumRecord }[] = useMemo(() => {
-    if (indexEntries && indexEntries.length > 0) {
-      return indexEntries.filter(e => e.kind === 'monster');
-    }
-    if (records && records.length > 0) {
-      return records.filter(r => r.kind === 'monster').map(r => ({
+    const hbMonsters = (homebrewRecords || [])
+      .filter(r => r.kind === 'monster')
+      .map(r => ({
         id: r.id,
         name: r.name,
-        summary: `${plain(r.fields.type)} · CR ${plain(r.fields.cr) || '—'} · HP ${plain(r.fields.hp).split(' ')[0] || '—'} · AC ${plain(r.fields.ac) || '—'}`,
+        summary: `${plain(r.fields.type)} · CR ${plain(r.fields.cr) || '—'} · HP ${String(plain(r.fields.hp) || '—').split(' ')[0]} · AC ${plain(r.fields.ac) || '—'} [Homebrew]`,
+        search: `${r.name} ${plain(r.fields.type)} ${plain(r.fields.cr)} homebrew`.toLowerCase(),
+        fallbackRecord: r
+      }));
+
+    if (indexEntries && indexEntries.length > 0) {
+      const compMonsters = indexEntries.filter(e => e.kind === 'monster');
+      return [...hbMonsters, ...compMonsters];
+    }
+    if (records && records.length > 0) {
+      const compMonsters = records.filter(r => r.kind === 'monster').map(r => ({
+        id: r.id,
+        name: r.name,
+        summary: `${plain(r.fields.type)} · CR ${plain(r.fields.cr) || '—'} · HP ${String(plain(r.fields.hp) || '—').split(' ')[0]} · AC ${plain(r.fields.ac) || '—'}`,
         search: `${r.name} ${plain(r.fields.type)} ${plain(r.fields.cr)}`.toLowerCase(),
         fallbackRecord: r
       }));
+      return [...hbMonsters, ...compMonsters];
     }
-    return [];
-  }, [indexEntries, records]);
+    return hbMonsters;
+  }, [indexEntries, records, homebrewRecords]);
 
   // Monster types from summary/search
   const monsterTypes = useMemo(() => {
@@ -179,7 +193,7 @@ export function CompendiumMonsterModal({
         className="modal compendium-picker-modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Add monsters from compendium"
+        aria-label="Compendium Monster Picker"
         onClick={e => e.stopPropagation()}
         style={{ maxWidth: '880px', width: '95vw', height: '82vh', display: 'flex', flexDirection: 'column', padding: '18px 22px' }}
       >

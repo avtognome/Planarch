@@ -93,6 +93,9 @@ assert.equal(monsterCards.length, 2);
 await act(async () => {
   searchInput.props.onChange({ target: { value: 'dragon' } });
 });
+await act(async () => {
+  await new Promise(r => setTimeout(r, 200));
+});
 
 monsterCards = root.findAllByProps({ className: 'compendium-picker-card' });
 assert.equal(monsterCards.length, 1);
@@ -100,6 +103,9 @@ assert.equal(monsterCards.length, 1);
 // Multi-add quantity test: add 3 Goblins
 await act(async () => {
   searchInput.props.onChange({ target: { value: 'goblin' } });
+});
+await act(async () => {
+  await new Promise(r => setTimeout(r, 200));
 });
 
 const qtyInput = root.findByProps({ 'aria-label': 'Quantity for Goblin' });

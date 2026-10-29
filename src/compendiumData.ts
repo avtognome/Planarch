@@ -9,9 +9,27 @@ export function plain(v:FieldValue|undefined):string{if(v===undefined||v===null)
 export function indexRecord(r:CompendiumRecord):EntryIndex{const f=r.fields;const summary=r.kind==='monster'?`${plain(f.type)} · CR ${plain(f.cr)||'—'}`:r.kind==='spell'?`Level ${plain(f.level)||'0'} · ${plain(f.classes)}`:plain(f.detail||f.type||f.proficiency||f.ability);return {id:r.id,kind:r.kind,name:r.name,edition:r.edition,summary:summary.slice(0,220),search:`${r.name} ${summary} ${r.edition}`.toLowerCase()}}
 export function monsterToCombatant(record:CompendiumRecord,id:string):Combatant{if(record.kind!=='monster')throw Error('Only monsters can be added as combatants');const hp=Number(plain(record.fields.hp).match(/^\s*(\d+)/)?.[1]||0);const dex=Number(plain(record.fields.dex).match(/^\s*(\d+)/)?.[1]||10),cr=plain(record.fields.cr).trim();return {id,name:record.name,role:'Monster',hp,maxHp:hp,initiative:10,modifier:Math.floor((dex-10)/2),conditions:'',concentration:'',cr,reference:{id:record.id,name:record.name}}}
 let database:Promise<IDBDatabase>|undefined;
+const recordCache = new Map<string, CompendiumRecord>();
+
 export function openLibrary(){if(!database)database=new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open('planarch-compendium',1);request.onupgradeneeded=()=>{request.result.createObjectStore('records',{keyPath:'key'});request.result.createObjectStore('meta')};request.onsuccess=()=>resolve(request.result);request.onerror=()=>{database=undefined;reject(Error('IndexedDB is unavailable. Enable browser storage to import your compendium.'))}});return database}
 export async function readMeta():Promise<LibraryMeta|null>{const db=await openLibrary();return new Promise((resolve,reject)=>{const req=db.transaction('meta').objectStore('meta').get('active');req.onsuccess=()=>resolve(req.result??null);req.onerror=()=>reject(req.error)})}
-export async function readRecord(generation:string,id:string):Promise<CompendiumRecord|null>{const db=await openLibrary();return new Promise((resolve,reject)=>{const req=db.transaction('records').objectStore('records').get(`${generation}|${id}`);req.onsuccess=()=>resolve(req.result?.record??null);req.onerror=()=>reject(req.error)})}
+export async function readRecord(generation:string,id:string):Promise<CompendiumRecord|null>{
+  const cacheKey = `${generation}|${id}`;
+  if (recordCache.has(cacheKey)) return recordCache.get(cacheKey) || null;
+  const db=await openLibrary();
+  return new Promise((resolve,reject)=>{
+    const req=db.transaction('records').objectStore('records').get(cacheKey);
+    req.onsuccess=()=>{
+      const rec = req.result?.record??null;
+      if (rec) {
+        if (recordCache.size > 1500) recordCache.clear();
+        recordCache.set(cacheKey, rec);
+      }
+      resolve(rec);
+    };
+    req.onerror=()=>reject(req.error)
+  });
+}
 export async function writeBatch(generation:string,records:CompendiumRecord[]){const db=await openLibrary();await new Promise<void>((resolve,reject)=>{const tx=db.transaction('records','readwrite');const store=tx.objectStore('records');for(const record of records)store.put({key:`${generation}|${record.id}`,record});tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('Compendium could not be stored. Check available browser space.'))})}
 export async function activateLibrary(meta:LibraryMeta,remote=false){const db=await openLibrary();await new Promise<void>((resolve,reject)=>{const tx=db.transaction('meta','readwrite');tx.objectStore('meta').put(meta,'active');tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)});if(typeof window!=='undefined'){if(!remote)localStorage.setItem('planarch-compendium-dirty','true');window.dispatchEvent(new CustomEvent('planarch-compendium-changed',{detail:{remote}}))}}
 export async function deleteGeneration(generation:string){const db=await openLibrary();await new Promise<void>((resolve,reject)=>{const tx=db.transaction('records','readwrite');tx.objectStore('records').delete(IDBKeyRange.bound(`${generation}|`,`${generation}|\uffff`));tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}

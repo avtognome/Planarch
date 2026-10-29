@@ -156,16 +156,23 @@ function parseSpellLevel(summary: string): number | null {
 }
 
 export default function Compendium({campaign,focus,onFocusHandled,notify}:{campaign:string,focus:string,onFocusHandled:()=>void,notify:(message:string)=>void}){
- const [meta,setMeta]=useState<LibraryMeta|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[progress,setProgress]=useState([0,26393]),[error,setError]=useState(''),[kind,setKind]=useState('All'),[edition,setEdition]=useState('All'),[query,setQuery]=useState(''),[page,setPage]=useState(0),[selected,setSelected]=useState(''),[record,setRecord]=useState<CompendiumRecord|null>(null),[encounterId,setEncounterId]=useState('');
+ const [meta,setMeta]=useState<LibraryMeta|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[progress,setProgress]=useState([0,26393]),[error,setError]=useState(''),[kind,setKind]=useState('All'),[edition,setEdition]=useState('All'),[query,setQuery]=useState(''),[debouncedQuery,setDebouncedQuery]=useState(''),[page,setPage]=useState(0),[selected,setSelected]=useState(''),[record,setRecord]=useState<CompendiumRecord|null>(null),[encounterId,setEncounterId]=useState('');
  const [monsterCR,setMonsterCR]=useState('All'),[monsterType,setMonsterType]=useState('All'),[spellLevel,setSpellLevel]=useState('All'),[spellClass,setSpellClass]=useState('All'),[itemRarity,setItemRarity]=useState('All'),[itemType,setItemType]=useState('All'),[sort,setSort]=useState('name-asc');
  const [encounters,setEncounters]=useSaved<Encounter[]>(`wf-encounters:${campaign}`,seedEncounters(campaign));
  const worker=useRef<Worker|null>(null),mounted=useRef(true);
+
+ useEffect(()=>{
+   const timer = setTimeout(() => {
+     setDebouncedQuery(query);
+   }, 100);
+   return () => clearTimeout(timer);
+ }, [query]);
 
  useEffect(()=>{mounted.current=true;readMeta().then(current=>{setMeta(current);setLoading(false);if(current?.index[0])setSelected(current.index[0].id)}).catch(e=>{setError(e.message);setLoading(false)});return()=>{mounted.current=false}},[]);
  useEffect(()=>{const refresh=()=>{readMeta().then(current=>{setMeta(current);if(current?.index[0])setSelected(current.index[0].id)}).catch(e=>setError(e.message))};window.addEventListener('planarch-compendium-changed',refresh);return()=>window.removeEventListener('planarch-compendium-changed',refresh)},[]);
  useEffect(()=>{if(focus&&meta){setSelected(focus);setKind('All');setEdition('All');setQuery('');onFocusHandled()}},[focus,meta]);
  useEffect(()=>{setRecord(null);if(!meta||!selected)return;let cancelled=false;readRecord(meta.generation,selected).then(result=>{if(!cancelled)setRecord(result)}).catch(e=>setError(e.message));return()=>{cancelled=true}},[meta,selected]);
- useEffect(()=>setPage(0),[kind,edition,query,monsterCR,monsterType,spellLevel,spellClass,itemRarity,itemType,sort]);
+ useEffect(()=>setPage(0),[kind,edition,debouncedQuery,monsterCR,monsterType,spellLevel,spellClass,itemRarity,itemType,sort]);
 
  const hasActiveFilters = kind !== 'All' || edition !== 'All' || query.trim() !== '' || monsterCR !== 'All' || monsterType !== 'All' || spellLevel !== 'All' || spellClass !== 'All' || itemRarity !== 'All' || itemType !== 'All' || sort !== 'name-asc';
 
@@ -184,7 +191,7 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
 
  const matching = useMemo(() => {
    if (!meta?.index) return [];
-   const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+   const words = debouncedQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
 
    return meta.index.filter(entry => {
      if (kind !== 'All' && entry.kind !== kind) return false;

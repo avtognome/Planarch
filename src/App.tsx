@@ -643,12 +643,22 @@ export default function App() {
             } catch {}
         }
     };
-    const renderDiceContent = () => <>
-        <div className="dice-types">{[4, 6, 8, 10, 12, 20, 100].map(die => <button className={dice.toLowerCase().includes(`d${die}`) ? 'selected' : ''} key={die} onClick={e => handleDieClick(die, e.shiftKey)} title={`Click to select/deselect · Shift+Click to add/increment d${die}`}><Dices size={20}/><span>d{die}</span></button>)}</div>
+    const renderDiceContent = (isFloating = false) => <>
+        <div className="dice-types">{[4, 6, 8, 10, 12, 20, 100].map(die => <button className={dice.toLowerCase().includes(`d${die}`) ? 'selected' : ''} key={die} onClick={e => handleDieClick(die, e.shiftKey)} title={`Click to select/deselect · Shift+Click to add/increment d${die}`}><Dices size={isFloating ? 15 : 20}/><span>d{die}</span></button>)}</div>
         <div className="dice-bar"><div className="dice-mode-toggle">{([['normal', 'Normal'], ['adv', 'Advantage'], ['disadv', 'Disadvantage']] as const).map(([m, label]) => <button key={m} className={rollMode === m ? 'active' : ''} onClick={() => setRollMode(m)}>{label}</button>)}</div><div className="dice-dc-pills"><span className="dc-tag">TARGET DC</span>{([null, 10, 15, 20] as const).map(dc => <button key={String(dc)} className={targetDC === dc ? 'active' : ''} onClick={() => setTargetDC(dc)}>{dc === null ? 'Off' : dc}</button>)}</div></div>
-        <div className="dice-entry"><input aria-label="Dice expression" value={dice} placeholder="Choose dice or type (e.g. 1d20+5d6)" onChange={event => setDice(event.target.value)} onKeyDown={event => event.key === 'Enter' && rollDice()}/><button type="button" className="dice-clear-btn" onClick={() => setDice('')} title="Clear all dice">Clear</button><div className="quick-mods">{[1, 2, 3, 5].map(v => <button key={v} type="button" className="mod-btn" onClick={() => applyModifier(v)}>+{v}</button>)}<button type="button" className="mod-btn" onClick={() => applyModifier(-1)}>-1</button></div><button className="primary roll-action-btn" onClick={() => rollDice()}>Roll dice</button></div>
+        <div className="dice-entry">
+            <div className="dice-input-row">
+                <input aria-label="Dice expression" value={dice} placeholder="Choose dice or type (e.g. 1d20+5d6)" onChange={event => setDice(event.target.value)} onKeyDown={event => event.key === 'Enter' && rollDice()}/>
+                <button type="button" className="dice-clear-btn" onClick={() => setDice('')} title="Clear all dice">Clear</button>
+                <button className="primary roll-action-btn" onClick={() => rollDice()}>Roll dice</button>
+            </div>
+            <div className="dice-mods-row">
+                <span className="mod-label">MOD</span>
+                <div className="quick-mods">{[1, 2, 3, 5].map(v => <button key={v} type="button" className="mod-btn" onClick={() => applyModifier(v)}>+{v}</button>)}<button type="button" className="mod-btn" onClick={() => applyModifier(-1)}>-1</button></div>
+            </div>
+        </div>
         <div className={`roll-result ${critState ? critState : ''} ${targetDC !== null && roll !== null ? (roll >= targetDC ? 'roll-pass' : 'roll-fail') : ''}`}><strong>{roll ?? '—'}</strong><div className="roll-details"><div className="roll-tags"><span>{roll === null ? 'Your next roll awaits' : 'Latest result'}</span>{critState === 'nat20' && <span className="crit-badge crit-nat20">NAT 20 · CRITICAL!</span>}{critState === 'nat1' && <span className="crit-badge crit-nat1">NAT 1 · FUMBLE!</span>}{targetDC !== null && roll !== null && <span className={`dc-badge ${roll >= targetDC ? 'dc-pass' : 'dc-fail'}`}>{roll >= targetDC ? `PASS (DC ${targetDC})` : `FAIL (DC ${targetDC})`}</span>}</div><small>{history[0] || 'Try 2d6+3, or choose a die above.'}</small></div></div>
-        <div className="roll-history">{history.slice(1, 4).map((entry, index) => <small key={index}>{entry}</small>)}</div>
+        <div className="roll-history">{history.slice(1, isFloating ? 3 : 4).map((entry, index) => <small key={index}>{entry}</small>)}</div>
     </>;
     const reorder = (target: string) => {
         if (!drag.current || target === drag.current)
@@ -861,6 +871,6 @@ export default function App() {
         </div>
       </div>
     </div>}
-    {diceDetached && <aside className={`floating-dice-tray widget ${collapsed['dice'] ? 'widget-collapsed' : ''}`} style={{ position: 'fixed', left: `${dicePos.x}px`, top: `${dicePos.y}px`, zIndex: 9990 }}><div className="widget-head floating-head" onPointerDown={onDicePointerDown} onPointerMove={onDicePointerMove} onPointerUp={onDicePointerUp} onPointerCancel={onDicePointerUp}><div className="inline"><span className="drag-handle enabled" title="Drag to move"><Grip size={16}/></span><Dices size={17}/><h3>Dice tray</h3></div><div className="inline widget-controls"><button aria-label="Dock Dice tray widget" className="icon-button" onClick={() => setDiceDetached(false)} title="Dock Dice tray"><Shrink size={15}/></button><button aria-label={`${collapsed['dice'] ? 'Expand' : 'Collapse'} dice widget`} className="icon-button" onClick={() => setCollapsed({ ...collapsed, dice: !collapsed['dice'] })} title={collapsed['dice'] ? 'Expand widget' : 'Collapse widget'}>{collapsed['dice'] ? <ChevronDown size={16}/> : <ChevronUp size={16}/>}</button></div></div>{!collapsed['dice'] && renderDiceContent()}</aside>}
+    {diceDetached && <aside className={`floating-dice-tray widget ${collapsed['dice'] ? 'widget-collapsed' : ''}`} style={{ position: 'fixed', left: `${dicePos.x}px`, top: `${dicePos.y}px`, zIndex: 9990 }}><div className="widget-head floating-head" onPointerDown={onDicePointerDown} onPointerMove={onDicePointerMove} onPointerUp={onDicePointerUp} onPointerCancel={onDicePointerUp}><div className="inline"><span className="drag-handle enabled" title="Drag to move"><Grip size={16}/></span><Dices size={17}/><h3>Dice tray</h3></div><div className="inline widget-controls"><button aria-label="Dock Dice tray widget" className="icon-button" onClick={() => setDiceDetached(false)} title="Dock Dice tray"><Shrink size={15}/></button><button aria-label={`${collapsed['dice'] ? 'Expand' : 'Collapse'} dice widget`} className="icon-button" onClick={() => setCollapsed({ ...collapsed, dice: !collapsed['dice'] })} title={collapsed['dice'] ? 'Expand widget' : 'Collapse widget'}>{collapsed['dice'] ? <ChevronDown size={16}/> : <ChevronUp size={16}/>}</button></div></div>{!collapsed['dice'] && renderDiceContent(true)}</aside>}
   </div>;
 }

@@ -72,6 +72,14 @@ assert.ok(floatingTray, 'Floating dice tray element should be rendered when deta
 assert.equal(floatingTray.props.style.position, 'fixed');
 assert.equal(floatingTray.props.style.zIndex, 9990, 'Must stay on top with z-index 9990');
 
+// Test typing into dice expression input while detached
+const diceInput = floatingTray.findByProps({ 'aria-label': 'Dice expression' });
+assert.ok(diceInput, 'Dice expression input exists inside floating dice tray');
+await act(async () => {
+  diceInput.props.onChange({ target: { value: '3d8+4' } });
+});
+assert.equal(diceInput.props.value, '3d8+4', 'Input must update when typed while detached');
+
 // 4. Test dragging / moving
 const floatingHead = root.find(el => typeof el.props.className === 'string' && el.props.className.includes('floating-head'));
 assert.ok(floatingHead, 'Floating header exists as drag handle');

@@ -268,7 +268,7 @@ export function WikiGraph({ items, onSelectPage, activeId }: WikiGraphProps) {
         // Node Circle
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
-        ctx.fillStyle = isActive ? '#f59e0b' : (isLight ? '#ffffff' : '#0f172a');
+        ctx.fillStyle = isActive ? '#f59e0b' : (isLight ? '#ffffff' : '#171614');
         ctx.fill();
 
         ctx.lineWidth = isActive ? 3 : isHovered ? 2.5 : 1.8;
@@ -281,9 +281,9 @@ export function WikiGraph({ items, onSelectPage, activeId }: WikiGraphProps) {
         ctx.textBaseline = 'top';
         ctx.fillStyle = isMatched 
           ? (isHovered || isActive 
-              ? (isLight ? '#0f172a' : '#f8fafc') 
-              : (isLight ? '#334155' : '#cbd5e1')) 
-          : (isLight ? 'rgba(100, 116, 139, 0.4)' : 'rgba(148, 163, 184, 0.35)');
+              ? (isLight ? '#1c1917' : '#f5f5f4') 
+              : (isLight ? '#57534e' : '#d6d3d1')) 
+          : (isLight ? 'rgba(120, 113, 108, 0.4)' : 'rgba(168, 162, 158, 0.35)');
         ctx.fillText(n.title, n.x, n.y + n.radius + 6);
       }
 

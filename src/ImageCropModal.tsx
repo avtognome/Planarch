@@ -144,9 +144,8 @@ export function ImageCropModal({
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Canvas 2D context unavailable');
 
-      // Clear & set background
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, targetWidth, targetHeight);
+      // Clear canvas with transparency (do NOT fill with solid color so transparent PNG/WebP remains transparent)
+      ctx.clearRect(0, 0, targetWidth, targetHeight);
 
       // Filters for brightness and contrast
       const bVal = 100 + brightness;
@@ -174,10 +173,10 @@ export function ImageCropModal({
       ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
       ctx.restore();
 
-      // Export as WebP with fallback
-      let dataUrl = canvas.toDataURL('image/webp', 0.88);
+      // Export as WebP or PNG fallback to preserve alpha transparency
+      let dataUrl = canvas.toDataURL('image/webp', 0.92);
       if (!dataUrl.startsWith('data:image/webp')) {
-        dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+        dataUrl = canvas.toDataURL('image/png');
       }
 
       onComplete(dataUrl, file.name);

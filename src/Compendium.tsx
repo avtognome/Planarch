@@ -1,9 +1,11 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
-import {BookOpen,Search,Upload,Download,Plus,ChevronLeft,ChevronRight,Check,Swords,RotateCcw,X} from 'lucide-react';
+import {BookOpen,Search,Upload,Download,Plus,ChevronLeft,ChevronRight,Check,Swords,RotateCcw,X,Sparkles} from 'lucide-react';
 import {useSaved} from './storage';
 import {uid,seedEncounters,type Encounter} from './models';
 import {kinds,readMeta,readRecord,writeBatch,activateLibrary,deleteGeneration,importIncluded,indexRecord,monsterToCombatant,plain,type LibraryMeta,type CompendiumRecord,type EntryIndex,type FieldValue} from './compendiumData';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from './select';
+import HomebrewModal from './HomebrewModal';
+import {readHomebrew,deleteHomebrew} from './homebrewData';
 
 const labels:Record<string,string>={monster:'Monsters',spell:'Spells',item:'Items',class:'Classes',race:'Races',feat:'Feats',background:'Backgrounds'};
 const sizeNames:Record<string,string>={T:'Tiny',S:'Small',M:'Medium',L:'Large',H:'Huge',G:'Gargantuan'};
@@ -155,11 +157,24 @@ function parseSpellLevel(summary: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-export default function Compendium({campaign,focus,onFocusHandled,notify}:{campaign:string,focus:string,onFocusHandled:()=>void,notify:(message:string)=>void}){
+export default function Compendium({campaign,focus,onFocusHandled,notify}:{campaign:string,focus?:string,onFocusHandled?:()=>void,notify:(message:string)=>void}){
  const [meta,setMeta]=useState<LibraryMeta|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[progress,setProgress]=useState([0,26393]),[error,setError]=useState(''),[kind,setKind]=useState('All'),[edition,setEdition]=useState('All'),[query,setQuery]=useState(''),[debouncedQuery,setDebouncedQuery]=useState(''),[page,setPage]=useState(0),[selected,setSelected]=useState(''),[record,setRecord]=useState<CompendiumRecord|null>(null),[encounterId,setEncounterId]=useState('');
  const [monsterCR,setMonsterCR]=useState('All'),[monsterType,setMonsterType]=useState('All'),[spellLevel,setSpellLevel]=useState('All'),[spellClass,setSpellClass]=useState('All'),[itemRarity,setItemRarity]=useState('All'),[itemType,setItemType]=useState('All'),[sort,setSort]=useState('name-asc');
  const [encounters,setEncounters]=useSaved<Encounter[]>(`wf-encounters:${campaign}`,seedEncounters(campaign));
+ const [homebrew,setHomebrew]=useState<CompendiumRecord[]>(()=>readHomebrew(campaign));
+ const [homebrewModalOpen,setHomebrewModalOpen]=useState(false);
+ const [editingHomebrew,setEditingHomebrew]=useState<CompendiumRecord|null>(null);
  const worker=useRef<Worker|null>(null),mounted=useRef(true);
+
+ useEffect(()=>{
+   setHomebrew(readHomebrew(campaign));
+ },[campaign]);
+
+ useEffect(()=>{
+   const onHomebrewChange=()=>setHomebrew(readHomebrew(campaign));
+   window.addEventListener('planarch-homebrew-changed',onHomebrewChange);
+   return()=>window.removeEventListener('planarch-homebrew-changed',onHomebrewChange);
+ },[campaign]);
 
  useEffect(()=>{
    const timer = setTimeout(() => {
@@ -170,8 +185,17 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
 
  useEffect(()=>{mounted.current=true;readMeta().then(current=>{setMeta(current);setLoading(false);if(current?.index[0])setSelected(current.index[0].id)}).catch(e=>{setError(e.message);setLoading(false)});return()=>{mounted.current=false}},[]);
  useEffect(()=>{const refresh=()=>{readMeta().then(current=>{setMeta(current);if(current?.index[0])setSelected(current.index[0].id)}).catch(e=>setError(e.message))};window.addEventListener('planarch-compendium-changed',refresh);return()=>window.removeEventListener('planarch-compendium-changed',refresh)},[]);
- useEffect(()=>{if(focus&&meta){setSelected(focus);setKind('All');setEdition('All');setQuery('');onFocusHandled()}},[focus,meta]);
- useEffect(()=>{setRecord(null);if(!meta||!selected)return;let cancelled=false;readRecord(meta.generation,selected).then(result=>{if(!cancelled)setRecord(result)}).catch(e=>setError(e.message));return()=>{cancelled=true}},[meta,selected]);
+ useEffect(()=>{if(focus&&meta){setSelected(focus);setKind('All');setEdition('All');setQuery('');onFocusHandled?.()}},[focus,meta]);
+ useEffect(()=>{
+   setRecord(null);
+   if(!selected)return;
+   const hb=homebrew.find(r=>r.id===selected);
+   if(hb){setRecord(hb);return;}
+   if(!meta)return;
+   let cancelled=false;
+   readRecord(meta.generation,selected).then(result=>{if(!cancelled)setRecord(result)}).catch(e=>setError(e.message));
+   return()=>{cancelled=true};
+ },[meta,selected,homebrew]);
  useEffect(()=>setPage(0),[kind,edition,debouncedQuery,monsterCR,monsterType,spellLevel,spellClass,itemRarity,itemType,sort]);
 
  const hasActiveFilters = kind !== 'All' || edition !== 'All' || query.trim() !== '' || monsterCR !== 'All' || monsterType !== 'All' || spellLevel !== 'All' || spellClass !== 'All' || itemRarity !== 'All' || itemType !== 'All' || sort !== 'name-asc';
@@ -190,10 +214,13 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
  };
 
  const matching = useMemo(() => {
-   if (!meta?.index) return [];
+   const hbIndexes = homebrew.map(indexRecord);
+   const baseIndex = meta?.index || [];
+   const combined = [...hbIndexes, ...baseIndex];
+   if (!combined.length) return [];
    const words = debouncedQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
 
-   return meta.index.filter(entry => {
+   return combined.filter(entry => {
      if (kind !== 'All' && entry.kind !== kind) return false;
      if (edition !== 'All' && entry.edition !== edition) return false;
      if (words.length && !words.every(w => entry.search.includes(w))) return false;
@@ -248,7 +275,7 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
      }
      return a.name.localeCompare(b.name);
    });
- }, [meta, kind, edition, query, monsterCR, monsterType, spellLevel, spellClass, itemRarity, itemType, sort]);
+ }, [meta, homebrew, kind, edition, query, monsterCR, monsterType, spellLevel, spellClass, itemRarity, itemType, sort]);
  const included=async()=>{setBusy(true);setError('');try{const imported=await importIncluded((current,total)=>{if(mounted.current)setProgress([current,total])});if(mounted.current){setMeta(imported);setSelected(imported.index[0].id);notify(`${imported.count.toLocaleString()} compendium entries ready`)}}catch(e){if(mounted.current)setError(e instanceof Error?e.message:'Sourcebook could not be loaded')}finally{if(mounted.current)setBusy(false)}};
  const importXML=async(file:File)=>{
   if(file.size>100*1024*1024){setError('Choose a compendium smaller than 100 MB.');return}
@@ -270,13 +297,22 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
      <input aria-label="Search compendium" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search names, types, classes, CR…"/>
      {query && <button className="icon-button" aria-label="Clear search" onClick={()=>setQuery('')} style={{padding:'2px',marginRight:'4px'}}><X size={14}/></button>}
     </div>
+    <button
+     type="button"
+     className="primary inline"
+     aria-label="Add Homebrew"
+     onClick={()=>{setEditingHomebrew(null);setHomebrewModalOpen(true);}}
+     style={{height:'36px',whiteSpace:'nowrap',padding:'0 14px'}}
+    >
+     <Sparkles size={15}/> Add Homebrew
+    </button>
     <label className={`secondary file-label ${busy?'disabled':''}`}>
      <Upload size={15}/>Import XML
      <input type="file" accept=".xml,text/xml,application/xml" disabled={busy} onChange={e=>{if(e.target.files?.[0])importXML(e.target.files[0]);e.target.value=''}}/>
     </label>
    </div>
 
-   {meta && <div className="compendium-dropdown-row">
+   {(meta || homebrew.length > 0) && <div className="compendium-dropdown-row">
     {/* Category Select */}
     <div className="filter-dropdown-wrap">
      <Select value={kind} onValueChange={setKind}>
@@ -284,8 +320,8 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
        <SelectValue placeholder="Category"/>
       </SelectTrigger>
       <SelectContent>
-       <SelectItem value="All">All categories ({meta.count.toLocaleString()})</SelectItem>
-       {kinds.map(k=><SelectItem key={k} value={k}>{labels[k]} ({(meta.counts[k]||0).toLocaleString()})</SelectItem>)}
+       <SelectItem value="All">All categories ({((meta?.count || 0) + homebrew.length).toLocaleString()})</SelectItem>
+       {kinds.map(k=><SelectItem key={k} value={k}>{labels[k]} ({((meta?.counts[k]||0) + homebrew.filter(h=>h.kind===k).length).toLocaleString()})</SelectItem>)}
       </SelectContent>
      </Select>
     </div>
@@ -300,6 +336,7 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
        <SelectItem value="All">All editions</SelectItem>
        <SelectItem value="Legacy">Legacy</SelectItem>
        <SelectItem value="5.5e">5.5e</SelectItem>
+       <SelectItem value="Homebrew">Homebrew ({homebrew.length})</SelectItem>
        <SelectItem value="Unspecified">Unspecified</SelectItem>
       </SelectContent>
      </Select>
@@ -434,11 +471,19 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
    </div>}
   </div>
   {error&&<p className="form-error">{error}</p>}
-  {loading?<div className="tool-empty"><BookOpen size={30}/><p>Opening your local compendium…</p></div>:busy?<div className="compendium-import"><BookOpen size={30}/><h2>Preparing your sourcebook</h2><p>{progress[1]?`${progress[0].toLocaleString()} / ${progress[1].toLocaleString()} entries stored locally`:'Parsing XML in the background…'}</p><progress max={progress[1]||1} value={progress[0]}/><small>Your existing library stays available until the new import is complete.</small></div>:!meta?<div className="compendium-import"><BookOpen size={40}/><span className="eyebrow">YOUR SOURCEBOOK IS READY TO LOAD</span><h2>Complete Compendium · 5e + 5.5e</h2><p>26,393 entries from your supplied XML. Monsters, spells, items, classes, races, feats and backgrounds.</p><button className="primary" onClick={included}><Download size={16}/>Load included compendium</button><small>Imported once into this browser. You can also choose a different XML file above.</small></div>:<>
-   <div className="compendium-source"><span><Check size={12}/>Stored locally · {meta.name}</span><small>{matching.length.toLocaleString()} matching entries</small></div>
+  {loading?<div className="tool-empty"><BookOpen size={30}/><p>Opening your local compendium…</p></div>:busy?<div className="compendium-import"><BookOpen size={30}/><h2>Preparing your sourcebook</h2><p>{progress[1]?`${progress[0].toLocaleString()} / ${progress[1].toLocaleString()} entries stored locally`:'Parsing XML in the background…'}</p><progress max={progress[1]||1} value={progress[0]}/><small>Your existing library stays available until the new import is complete.</small></div>:(!meta && !homebrew.length)?<div className="compendium-import"><BookOpen size={40}/><span className="eyebrow">YOUR SOURCEBOOK IS READY TO LOAD</span><h2>Complete Compendium · 5e + 5.5e</h2><p>26,393 entries from your supplied XML. Monsters, spells, items, classes, races, feats and backgrounds.</p><button className="primary" onClick={included}><Download size={16}/>Load included compendium</button><small>Imported once into this browser. You can also choose a different XML file above.</small></div>:<>
+   <div className="compendium-source"><span><Check size={12}/>{meta ? `Stored locally · ${meta.name}` : `Campaign Homebrew · ${campaign}`}</span><small>{matching.length.toLocaleString()} matching entries</small></div>
    <div className="compendium-layout"><aside className="record-list"><div className="record-list-title">REFERENCE INDEX<span>{matching.length.toLocaleString()}</span></div>{matching.slice(page*40,(page+1)*40).map(entry=><button key={entry.id} className={`record-row ${selected===entry.id?'selected':''}`} onClick={()=>setSelected(entry.id)}><div><strong>{entry.name}</strong><small>{entry.summary}</small><span className="record-meta">{labels[entry.kind]} · {entry.edition==='Unspecified'?'Original label preserved':entry.edition}</span></div></button>)}{!matching.length&&<div className="tool-empty"><p>No entries match your filters.</p></div>}<div className="index-pagination"><button className="icon-button" aria-label="Previous compendium page" disabled={!page} onClick={()=>setPage(page-1)}><ChevronLeft size={18}/></button><small>{matching.length?`${page+1} / ${Math.ceil(matching.length/40)}`:'0 results'}</small><button className="icon-button" aria-label="Next compendium page" disabled={(page+1)*40>=matching.length} onClick={()=>setPage(page+1)}><ChevronRight size={18}/></button></div></aside>
-    <section className={`record-editor reference-detail dnd-reference reference-${record?.kind||''} ${record?.kind==='monster'?'monster-reference':''}`}>{record?<><div className="editor-title"><span className="eyebrow">{labels[record.kind].toUpperCase()} · {record.edition.toUpperCase()}</span><BookOpen size={19}/></div><h2>{record.name}</h2>{record.kind==='monster'?<><MonsterStatBlock record={record}/><div className="add-from-compendium"><Swords size={18}/><select aria-label="Target encounter" value={encounterId} onChange={e=>setEncounterId(e.target.value)}><option value="">Create new encounter</option>{encounters.filter(entry=>entry.status==='Prepared').map(entry=><option key={entry.id} value={entry.id}>{entry.name}</option>)}</select><button className="primary" onClick={addMonster}><Plus size={14}/>Add monster</button></div></>:<ReferenceStatBlock record={record}/>}</>:<div className="tool-empty"><p>{selected?'Loading entry…':'Select an entry to read its full details.'}</p></div>}</section>
+    <section className={`record-editor reference-detail dnd-reference reference-${record?.kind||''} ${record?.kind==='monster'?'monster-reference':''}`}>{record?<><div className="editor-title"><span className="eyebrow">{labels[record.kind].toUpperCase()} · {record.edition.toUpperCase()}</span><BookOpen size={19}/></div><h2>{record.name}</h2>{record.edition==='Homebrew'&&<div className="inline" style={{gap:'8px',marginBottom:'12px'}}><button type="button" className="secondary" aria-label="Edit homebrew" onClick={()=>{setEditingHomebrew(record);setHomebrewModalOpen(true);}}>Edit Homebrew</button><button type="button" className="secondary danger-text" aria-label="Delete homebrew" onClick={()=>{deleteHomebrew(campaign,record.id);notify(`"${record.name}" deleted from Homebrew`);setSelected('');}}>Delete</button></div>}{record.kind==='monster'?<><MonsterStatBlock record={record}/><div className="add-from-compendium"><Swords size={18}/><select aria-label="Target encounter" value={encounterId} onChange={e=>setEncounterId(e.target.value)}><option value="">Create new encounter</option>{encounters.filter(entry=>entry.status==='Prepared').map(entry=><option key={entry.id} value={entry.id}>{entry.name}</option>)}</select><button className="primary" onClick={addMonster}><Plus size={14}/>Add monster</button></div></>:<ReferenceStatBlock record={record}/>}</>:<div className="tool-empty"><p>{selected?'Loading entry…':'Select an entry to read its full details.'}</p></div>}</section>
    </div>
   </>}
+  <HomebrewModal
+   open={homebrewModalOpen}
+   onClose={()=>{setHomebrewModalOpen(false);setEditingHomebrew(null);}}
+   campaign={campaign}
+   initialRecord={editingHomebrew}
+   onSaved={saved=>{setSelected(saved.id);setHomebrew(readHomebrew(campaign));}}
+   notify={notify}
+  />
  </>;
 }

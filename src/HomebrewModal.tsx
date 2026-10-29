@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { X, Plus, Trash2, Swords, BookOpen, Sparkles, Shield, Heart, Zap, Dices } from 'lucide-react';
-import type { CompendiumRecord, Kind } from './compendiumData';
+import type { CompendiumRecord, Kind, FieldValue } from './compendiumData';
 import { MonsterStatBlock, ReferenceStatBlock } from './Compendium';
 import { saveHomebrew } from './homebrewData';
 import { uid } from './models';
@@ -99,65 +99,68 @@ export default function HomebrewModal({
   const previewRecord: CompendiumRecord = useMemo(() => {
     const recId = initialRecord?.id || 'homebrew-preview';
     if (kind === 'monster') {
+      const fields: Record<string, FieldValue> = {
+        size,
+        type,
+        alignment,
+        ac,
+        hp,
+        speed,
+        str,
+        dex,
+        con,
+        int: intScore,
+        wis,
+        cha,
+        save: saves,
+        skill: skills,
+        resist,
+        immune,
+        senses,
+        languages,
+        cr,
+        trait: traits.map(t => ({ name: t.name, text: t.text })),
+        action: actions.map(a => ({ name: a.name, text: a.text })),
+        description
+      };
       return {
         id: recId,
         kind: 'monster',
         name: name.trim() || 'Unnamed Monster',
         edition: 'Homebrew',
-        fields: {
-          size,
-          type,
-          alignment,
-          ac,
-          hp,
-          speed,
-          str,
-          dex,
-          con,
-          int: intScore,
-          wis,
-          cha,
-          save: saves,
-          skill: skills,
-          resist,
-          immune,
-          senses,
-          languages,
-          cr,
-          trait: traits.map(t => ({ name: t.name, text: t.text })),
-          action: actions.map(a => ({ name: a.name, text: a.text })),
-          description
-        }
+        fields
       };
     }
     if (kind === 'spell') {
+      const fields: Record<string, FieldValue> = {
+        level: spellLevel,
+        school: spellSchool,
+        time: castingTime,
+        range: spellRange,
+        components: spellComponents,
+        duration: spellDuration,
+        classes: spellClasses,
+        text: description
+      };
       return {
         id: recId,
         kind: 'spell',
         name: name.trim() || 'Unnamed Spell',
         edition: 'Homebrew',
-        fields: {
-          level: spellLevel,
-          school: spellSchool,
-          time: castingTime,
-          range: spellRange,
-          components: spellComponents,
-          duration: spellDuration,
-          classes: spellClasses,
-          text: description
-        }
+        fields
       };
     }
+    const fields: Record<string, FieldValue> = {
+      type: itemType,
+      detail: itemRarity,
+      text: description
+    };
     return {
       id: recId,
       kind: 'item',
       name: name.trim() || 'Unnamed Item',
       edition: 'Homebrew',
-      fields: {
-        type: itemType,
-        detail: itemRarity,
-        text: description
-      }
+      fields
     };
   }, [
     initialRecord, kind, name, size, type, alignment, ac, hp, speed,

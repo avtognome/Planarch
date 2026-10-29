@@ -80,6 +80,10 @@ await act(async () => {
 });
 assert.equal(diceInput.props.value, '3d8+4', 'Input must update when typed while detached');
 
+// Assert Target DC is omitted when detached
+const targetDcInFloating = floatingTray.findAll(el => el.props && el.props.children === 'TARGET DC');
+assert.equal(targetDcInFloating.length, 0, 'Target DC should not exist when floating');
+
 // 4. Test dragging / moving
 const floatingHead = root.find(el => typeof el.props.className === 'string' && el.props.className.includes('floating-head'));
 assert.ok(floatingHead, 'Floating header exists as drag handle');

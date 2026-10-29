@@ -3,7 +3,7 @@
 .wiki-media-editor{margin:3px 0 20px;padding:16px;border:1px solid var(--line);border-radius:8px;background:var(--panel-alt)}.wiki-media-editor>.between{gap:20px;align-items:flex-start}.wiki-media-editor h3,.wiki-attachments h3{font-size:11px;margin-bottom:6px}.wiki-media-editor small{font-size:8px;line-height:1.7;display:block;max-width:470px}.wiki-media-editor .file-label{white-space:nowrap}.file-label.disabled{opacity:.5;pointer-events:none}.wiki-image-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:15px}.wiki-image-card{padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);position:relative}.wiki-image-card.thumbnail{border-color:#f59e0b;box-shadow:0 0 0 1px #f59e0b44}.wiki-image-card.thumbnail:before{content:'THUMBNAIL';position:absolute;top:14px;left:14px;z-index:1;background:#f59e0b22;border:1px solid #f59e0b;padding:4px 6px;border-radius:4px;font-size:6px;letter-spacing:1px;color:#f59e0b}.wiki-image-card>img{display:block;width:100%;height:135px;object-fit:cover;border-radius:5px}.wiki-image-card>input{margin:8px 0;padding:8px;font-size:9px}.wiki-image-card .inline{justify-content:space-between}.wiki-image-card .text-button{font-size:8px}.wiki-hero{width:100%;max-height:390px;object-fit:cover;border-radius:8px;border:1px solid var(--line);margin:5px 0 18px}.wiki-inline-image{display:block;margin:22px 0;white-space:normal}.wiki-inline-image img{display:block;max-width:100%;max-height:600px;border-radius:8px;border:1px solid var(--line)}.wiki-inline-image figcaption,.wiki-gallery figcaption{font-size:9px;color:var(--muted);margin-top:8px;font-style:italic}.wiki-missing-image{color:#f87171;background:#241618;padding:3px 6px;border-radius:4px}.wiki-attachments{border-top:1px solid var(--line);margin:0 0 25px;padding-top:18px}.wiki-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.wiki-gallery figure{margin:0}.wiki-gallery img{width:100%;height:180px;object-fit:cover;border-radius:7px;border:1px solid var(--line)}.wiki-record-thumb{object-fit:cover}
 @media(max-width:950px){.encounter-rules{grid-template-columns:repeat(2,minmax(0,1fr))}.balance-panel{grid-template-columns:1fr}.balance-budgets{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:700px){.encounter-rules{grid-template-columns:repeat(2,minmax(0,1fr))}.participant-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.balance-budgets{grid-template-columns:repeat(2,minmax(0,1fr))}.wiki-image-grid,.wiki-gallery{grid-template-columns:1fr}.wiki-media-editor>.between{display:grid}.wiki-media-editor .file-label{width:max-content}.modal[aria-label="delete-campaign"]{margin:15px;width:calc(100% - 30px)}}
-.floating-dice-tray{position:fixed;z-index:9990;width:320px;max-width:calc(100vw - 20px);background:var(--panel);border:1px solid var(--line-strong)!important;border-radius:12px!important;box-shadow:0 16px 42px rgba(0,0,0,0.55),0 0 0 1px rgba(255,255,255,0.06)}
+.floating-dice-tray{position:fixed;z-index:9990;width:330px;max-width:calc(100vw - 20px);background:var(--panel);border:1px solid var(--line-strong)!important;border-radius:12px!important;box-shadow:0 16px 42px rgba(0,0,0,0.55),0 0 0 1px rgba(255,255,255,0.06)}
 .floating-dice-tray .floating-head{cursor:grab;user-select:none;touch-action:none;background:var(--panel-alt);border-top-left-radius:11px;border-top-right-radius:11px;padding:7px 12px;height:38px}
 .floating-dice-tray .floating-head:active{cursor:grabbing}
 .floating-dice-tray .floating-head h3{font-size:12px}
@@ -13,23 +13,22 @@
 .floating-dice-tray .dice-types{padding:8px 10px 6px;gap:4px}
 .floating-dice-tray .dice-types button{padding:5px 2px;gap:3px;border-radius:6px!important}
 .floating-dice-tray .dice-types button span{font-size:7.5px;font-weight:700}
-.floating-dice-tray .dice-bar{padding:0 10px 6px;gap:5px;justify-content:flex-start}
-.floating-dice-tray .dice-mode-toggle{padding:2px;gap:1px}
-.floating-dice-tray .dice-mode-toggle button{font-size:8px;padding:3px 6px}
-.floating-dice-tray .dice-dc-pills{padding:2px 4px;gap:2px}
-.floating-dice-tray .dc-tag{font-size:7px;margin-right:1px}
-.floating-dice-tray .dice-dc-pills button{font-size:8px;padding:2px 5px}
-.floating-dice-tray .dice-entry{padding:0 10px;gap:6px}
-.floating-dice-tray .dice-input-row input{padding:6px 9px!important;font-size:11px}
-.floating-dice-tray .dice-clear-btn{padding:6px 8px;font-size:8.5px}
-.floating-dice-tray .roll-action-btn{padding:6px 11px;font-size:10px}
-.floating-dice-tray .mod-btn{padding:4px 7px;font-size:8px}
-.floating-dice-tray .roll-result{margin:6px 10px;padding:7px 10px;border-radius:8px;gap:10px}
-.floating-dice-tray .roll-result>strong{font-size:24px;min-width:34px}
+.floating-dice-tray .dice-bar{padding:0 10px 6px;gap:6px;display:flex;align-items:center}
+.floating-dice-tray .dice-mode-toggle{padding:2px;gap:1px;flex-shrink:0}
+.floating-dice-tray .dice-mode-toggle button{font-size:8px;padding:3px 5px}
+.dice-inline-entry{display:flex;align-items:center;gap:4px;flex:1;min-width:0}
+.dice-inline-entry input{flex:1;min-width:0;width:100%!important;padding:5px 8px!important;font-size:11px!important;border-radius:6px!important;height:28px}
+.dice-inline-entry .dice-clear-btn{padding:0 6px;height:28px;font-size:13px;line-height:1;border-radius:5px}
+.dice-inline-entry .roll-action-btn{padding:0 10px;height:28px;font-size:10px;border-radius:6px}
+.floating-mods-bar{display:flex;align-items:center;gap:6px;padding:0 10px 6px}
+.floating-mods-bar .mod-btn{padding:3px 6px;font-size:8px}
+.floating-hint{font-size:8px;color:var(--muted);margin-left:auto}
+.floating-dice-tray .roll-result{margin:4px 10px 6px;padding:6px 10px;border-radius:8px;gap:10px}
+.floating-dice-tray .roll-result>strong{font-size:22px;min-width:32px}
 .floating-dice-tray .roll-tags>span:first-child{font-size:9.5px}
 .floating-dice-tray .roll-result small{font-size:8px;margin-top:2px}
 .floating-dice-tray .roll-history{padding:0 10px 8px;gap:4px}
-.floating-dice-tray .roll-history small{padding:3px 5px;font-size:7.5px}
+.floating-dice-tray .roll-history small{padding:2px 5px;font-size:7.5px}
 
 .theme-light .floating-dice-tray{background:#ffffff;border-color:#d6d3d1!important;box-shadow:0 14px 34px rgba(0,0,0,0.18),0 1px 3px rgba(0,0,0,0.08)}
 .theme-light .floating-dice-tray .floating-head{background:#f5f5f4}

@@ -645,8 +645,16 @@ export default function App() {
     };
     const renderDiceContent = (isFloating = false) => <>
         <div className="dice-types">{[4, 6, 8, 10, 12, 20, 100].map(die => <button className={dice.toLowerCase().includes(`d${die}`) ? 'selected' : ''} key={die} onClick={e => handleDieClick(die, e.shiftKey)} title={`Click to select/deselect · Shift+Click to add/increment d${die}`}><Dices size={isFloating ? 15 : 20}/><span>d{die}</span></button>)}</div>
-        <div className="dice-bar"><div className="dice-mode-toggle">{([['normal', 'Normal'], ['adv', 'Advantage'], ['disadv', 'Disadvantage']] as const).map(([m, label]) => <button key={m} className={rollMode === m ? 'active' : ''} onClick={() => setRollMode(m)}>{label}</button>)}</div><div className="dice-dc-pills"><span className="dc-tag">TARGET DC</span>{([null, 10, 15, 20] as const).map(dc => <button key={String(dc)} className={targetDC === dc ? 'active' : ''} onClick={() => setTargetDC(dc)}>{dc === null ? 'Off' : dc}</button>)}</div></div>
-        <div className="dice-entry">
+        <div className="dice-bar">
+            <div className="dice-mode-toggle">{([['normal', isFloating ? 'Norm' : 'Normal'], ['adv', 'Adv'], ['disadv', isFloating ? 'Dis' : 'Disadv']] as const).map(([m, label]) => <button key={m} className={rollMode === m ? 'active' : ''} onClick={() => setRollMode(m)}>{label}</button>)}</div>
+            {!isFloating && <div className="dice-dc-pills"><span className="dc-tag">TARGET DC</span>{([null, 10, 15, 20] as const).map(dc => <button key={String(dc)} className={targetDC === dc ? 'active' : ''} onClick={() => setTargetDC(dc)}>{dc === null ? 'Off' : dc}</button>)}</div>}
+            {isFloating && <div className="dice-inline-entry">
+                <input aria-label="Dice expression" value={dice} placeholder="e.g. 1d20+5" onChange={event => setDice(event.target.value)} onKeyDown={event => event.key === 'Enter' && rollDice()}/>
+                {dice && <button type="button" className="dice-clear-btn" onClick={() => setDice('')} title="Clear all dice">×</button>}
+                <button className="primary roll-action-btn" onClick={() => rollDice()}>Roll</button>
+            </div>}
+        </div>
+        {!isFloating && <div className="dice-entry">
             <div className="dice-input-row">
                 <input aria-label="Dice expression" value={dice} placeholder="Choose dice or type (e.g. 1d20+5d6)" onChange={event => setDice(event.target.value)} onKeyDown={event => event.key === 'Enter' && rollDice()}/>
                 <button type="button" className="dice-clear-btn" onClick={() => setDice('')} title="Clear all dice">Clear</button>
@@ -656,8 +664,13 @@ export default function App() {
                 <span className="mod-label">MOD</span>
                 <div className="quick-mods">{[1, 2, 3, 5].map(v => <button key={v} type="button" className="mod-btn" onClick={() => applyModifier(v)}>+{v}</button>)}<button type="button" className="mod-btn" onClick={() => applyModifier(-1)}>-1</button></div>
             </div>
-        </div>
-        <div className={`roll-result ${critState ? critState : ''} ${targetDC !== null && roll !== null ? (roll >= targetDC ? 'roll-pass' : 'roll-fail') : ''}`}><strong>{roll ?? '—'}</strong><div className="roll-details"><div className="roll-tags"><span>{roll === null ? 'Your next roll awaits' : 'Latest result'}</span>{critState === 'nat20' && <span className="crit-badge crit-nat20">NAT 20 · CRITICAL!</span>}{critState === 'nat1' && <span className="crit-badge crit-nat1">NAT 1 · FUMBLE!</span>}{targetDC !== null && roll !== null && <span className={`dc-badge ${roll >= targetDC ? 'dc-pass' : 'dc-fail'}`}>{roll >= targetDC ? `PASS (DC ${targetDC})` : `FAIL (DC ${targetDC})`}</span>}</div><small>{history[0] || 'Try 2d6+3, or choose a die above.'}</small></div></div>
+        </div>}
+        {isFloating && <div className="floating-mods-bar">
+            <span className="mod-label">MOD</span>
+            <div className="quick-mods">{[1, 2, 3, 5].map(v => <button key={v} type="button" className="mod-btn" onClick={() => applyModifier(v)}>+{v}</button>)}<button type="button" className="mod-btn" onClick={() => applyModifier(-1)}>-1</button></div>
+            {!dice && <span className="floating-hint">Click dice or type</span>}
+        </div>}
+        <div className={`roll-result ${critState ? critState : ''} ${!isFloating && targetDC !== null && roll !== null ? (roll >= targetDC ? 'roll-pass' : 'roll-fail') : ''}`}><strong>{roll ?? '—'}</strong><div className="roll-details"><div className="roll-tags"><span>{roll === null ? 'Your next roll awaits' : 'Latest result'}</span>{critState === 'nat20' && <span className="crit-badge crit-nat20">NAT 20 · CRITICAL!</span>}{critState === 'nat1' && <span className="crit-badge crit-nat1">NAT 1 · FUMBLE!</span>}{!isFloating && targetDC !== null && roll !== null && <span className={`dc-badge ${roll >= targetDC ? 'dc-pass' : 'dc-fail'}`}>{roll >= targetDC ? `PASS (DC ${targetDC})` : `FAIL (DC ${targetDC})`}</span>}</div><small>{history[0] || 'Try 2d6+3, or choose a die above.'}</small></div></div>
         <div className="roll-history">{history.slice(1, isFloating ? 3 : 4).map((entry, index) => <small key={index}>{entry}</small>)}</div>
     </>;
     const reorder = (target: string) => {

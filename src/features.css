@@ -32,3 +32,27 @@
 
 .theme-light .floating-dice-tray{background:#ffffff;border-color:#d6d3d1!important;box-shadow:0 14px 34px rgba(0,0,0,0.18),0 1px 3px rgba(0,0,0,0.08)}
 .theme-light .floating-dice-tray .floating-head{background:#f5f5f4}
+
+/* Homebrew Modal */
+.modal.homebrew-modal{width:min(1100px,calc(100vw - 32px));max-height:calc(100vh - 40px);display:flex;flex-direction:column;padding:0;overflow:hidden;background:var(--panel);border-radius:14px;border:1px solid var(--line-strong)}
+.homebrew-modal-header{padding:16px 22px;border-bottom:1px solid var(--line);background:var(--panel-alt)}
+.homebrew-modal-header h2{font-size:18px;margin:0}
+.homebrew-modal-body{display:grid;grid-template-columns:1.1fr 1fr;gap:0;overflow:hidden;flex:1}
+.homebrew-form-panel{padding:20px 22px;overflow-y:auto;max-height:calc(100vh - 160px);display:flex;flex-direction:column;gap:12px;border-right:1px solid var(--line)}
+.homebrew-preview-panel{padding:20px 22px;overflow-y:auto;max-height:calc(100vh - 160px);background:color-mix(in srgb,var(--panel) 96%,var(--accent))}
+.homebrew-preview-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;margin-top:10px}
+.homebrew-modal-footer{padding:12px 22px;border-top:1px solid var(--line);background:var(--panel-alt)}
+.homebrew-field{display:flex;flex-direction:column;gap:4px}
+.homebrew-field span{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+.homebrew-field input,.homebrew-field select,.homebrew-field textarea{font-size:12px;padding:8px 10px;border-radius:6px}
+.homebrew-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.homebrew-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.homebrew-abilities-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;background:var(--panel-alt);padding:10px;border-radius:8px;border:1px solid var(--line)}
+.ability-input-box{display:flex;flex-direction:column;align-items:center;gap:3px}
+.ability-input-box strong{font-size:10px;color:var(--muted)}
+.ability-input-box input{text-align:center;padding:4px!important;font-size:13px;font-weight:700;border-radius:5px}
+.ability-input-box small{font-size:9.5px;font-weight:600;color:var(--accent)}
+.homebrew-section-editor{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--panel-alt);display:flex;flex-direction:column;gap:8px}
+.homebrew-section-editor h4{font-size:12px;margin:0}
+.action-row{display:flex;flex-direction:column;gap:6px;padding:8px;background:var(--panel);border-radius:6px;border:1px solid var(--line)}
+@media(max-width:900px){.homebrew-modal-body{grid-template-columns:1fr}.homebrew-form-panel{border-right:0;max-height:none}.homebrew-preview-panel{max-height:none}}

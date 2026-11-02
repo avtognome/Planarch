@@ -964,7 +964,28 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                     aria-label="Armor and weapon proficiencies"
                     value={character.proficiencies || ''}
                     onChange={e => onUpdate({ proficiencies: e.target.value })}
-                    placeholder="Light armor, medium armor, shields, simple weapons, martial weapons…"
+                    placeholder="Light armor, medium armor, shields, simple weapons, martial weapons..."
+                  />
+                </div>
+                <div className="char-training-card">
+                  <span className="char-stat-label">TOOLS & KITS</span>
+                  <textarea
+                    rows={2}
+                    className="char-training-input"
+                    aria-label="Tool proficiencies"
+                    value={character.training?.tools?.join(', ') || ''}
+                    onChange={e =>
+                      onUpdate({
+                        training: {
+                          ...character.training,
+                          tools: e.target.value
+                            .split(',')
+                            .map(s => s.trim())
+                            .filter(Boolean),
+                        },
+                      })
+                    }
+                    placeholder="Thieves' tools, Herbalism kit, Alchemist's supplies..."
                   />
                 </div>
                 <div className="char-training-card">
@@ -982,7 +1003,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                           .filter(Boolean),
                       })
                     }
-                    placeholder="Common, Elvish, Draconic…"
+                    placeholder="Common, Elvish, Dwarvish..."
                   />
                 </div>
               </div>

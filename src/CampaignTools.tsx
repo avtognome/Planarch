@@ -103,9 +103,9 @@ function Encounters({ campaign, onStart, onUpdate, activeEncounterId, battleActi
               </div>
               <div className="participant-num-col cr-col" title="Challenge rating">
                 {m.role === 'Monster' ? (
-                  <input aria-label={`${m.name} challenge rating`} value={m.cr || ''} onChange={e => member(m.id, { cr: e.target.value, xp: crToXP(e.target.value) })} placeholder="—" />
+                  <input aria-label={`${m.name} challenge rating`} value={m.cr || ''} onChange={e => member(m.id, { cr: e.target.value, xp: crToXP(e.target.value) })} placeholder="-" />
                 ) : (
-                  <span className="dim-dash">—</span>
+                  <span className="dim-dash">-</span>
                 )}
               </div>
               <div className="participant-row-actions">

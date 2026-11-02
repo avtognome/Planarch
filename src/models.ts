@@ -112,6 +112,8 @@ export type Character = {
   spellSlots?: SpellSlots;
   languages?: string[];
   proficiencies?: string;
+  tools?: string[];
+  training?: { tools?: string[] };
 };
 export type WikiImage={id:string,name:string,data:string,caption:string};
 export type WikiPage={id:string,title:string,category:string,body:string,tags:string,updated:string,thumbnail?:string,images?:WikiImage[]};

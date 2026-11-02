@@ -462,7 +462,7 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
       onClick={clearFilters}
       title="Reset all filters"
       aria-label="Reset all filters"
-      style={{height:'32px',padding:'0 10px',fontSize:'11px',display:'inline-flex',alignItems:'center',gap:'4px'}}
+      style={{height:'32px',padding:'0 10px',fontSize:'13px',display:'inline-flex',alignItems:'center',gap:'4px'}}
      >
       <RotateCcw size={13}/>
       <span>Reset</span>

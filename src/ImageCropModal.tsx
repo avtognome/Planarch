@@ -198,7 +198,7 @@ export function ImageCropModal({
         style={{ maxWidth: '440px', width: '92vw', padding: '20px' }}
       >
         <div className="between" style={{ marginBottom: '14px' }}>
-          <h2 style={{ fontSize: '16px', margin: 0, fontWeight: 700 }}>{title}</h2>
+          <h2 style={{ fontSize: '17px', margin: 0, fontWeight: 600 }}>{title}</h2>
           <button className="icon-button" aria-label="Close" onClick={onCancel}>
             <X size={18} />
           </button>
@@ -265,7 +265,7 @@ export function ImageCropModal({
               position: 'absolute',
               bottom: '8px',
               left: '10px',
-              fontSize: '10px',
+              fontSize: '13px',
               color: '#94a3b8',
               zIndex: 12,
               pointerEvents: 'none'
@@ -292,7 +292,7 @@ export function ImageCropModal({
                 style={{ flex: 1, margin: 0 }}
               />
               <ZoomIn size={15} style={{ opacity: 0.6 }} />
-              <span style={{ fontSize: '11px', minWidth: '32px', textAlign: 'right' }}>
+              <span style={{ fontSize: '13px', minWidth: '32px', textAlign: 'right' }}>
                 {Math.round(zoom * 100)}%
               </span>
             </div>
@@ -312,7 +312,7 @@ export function ImageCropModal({
           {/* Adjustments: Brightness & Contrast */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div className="between" style={{ fontSize: '10px', color: '#94a3b8' }}>
+              <div className="between" style={{ fontSize: '13px', color: '#94a3b8' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <Sun size={12} /> Brightness
                 </span>
@@ -330,7 +330,7 @@ export function ImageCropModal({
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div className="between" style={{ fontSize: '10px', color: '#94a3b8' }}>
+              <div className="between" style={{ fontSize: '13px', color: '#94a3b8' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <Contrast size={12} /> Contrast
                 </span>
@@ -351,7 +351,7 @@ export function ImageCropModal({
           {/* Optional Aspect Ratio presets if not locked */}
           {!initialAspectRatio && (
             <div className="inline" style={{ gap: '6px', marginTop: '2px' }}>
-              <span style={{ fontSize: '10px', color: '#94a3b8', marginRight: '4px' }}>Ratio:</span>
+              <span style={{ fontSize: '13px', color: '#94a3b8', marginRight: '4px' }}>Ratio:</span>
               {[
                 { label: 'Free', val: undefined },
                 { label: '1:1', val: 1 },
@@ -363,7 +363,7 @@ export function ImageCropModal({
                   type="button"
                   className={aspectRatio === opt.val ? 'primary' : 'secondary'}
                   onClick={() => setAspectRatio(opt.val)}
-                  style={{ padding: '3px 8px', fontSize: '10px', borderRadius: '4px' }}
+                  style={{ padding: '3px 8px', fontSize: '13px', borderRadius: '4px' }}
                 >
                   {opt.label}
                 </button>
@@ -377,7 +377,7 @@ export function ImageCropModal({
               type="button"
               className="secondary"
               onClick={handleReset}
-              style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px' }}
+              style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px' }}
             >
               <RotateCcw size={13} /> Reset
             </button>

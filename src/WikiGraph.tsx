@@ -400,7 +400,7 @@ export function WikiGraph({ items, onSelectPage, activeId }: WikiGraphProps) {
             placeholder="Highlight page or tag…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ background: 'transparent', border: 0, padding: 0, fontSize: '11px', color: 'var(--text-main)', width: '160px', outline: 'none' }}
+            style={{ background: 'transparent', border: 0, padding: 0, fontSize: '13px', color: 'var(--text-main)', width: '160px', outline: 'none' }}
           />
         </div>
         <div className="inline" style={{ pointerEvents: 'auto', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(10px)', padding: '4px', borderRadius: '8px', border: '1px solid var(--line)', gap: '4px' }}>
@@ -428,7 +428,7 @@ export function WikiGraph({ items, onSelectPage, activeId }: WikiGraphProps) {
       />
 
       {/* Legend & Hint Overlay */}
-      <div className="graph-legend inline" style={{ position: 'absolute', bottom: '12px', left: '14px', zIndex: 10, background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(10px)', padding: '5px 10px', borderRadius: '8px', border: '1px solid var(--line)', fontSize: '10px', color: 'var(--muted)', gap: '10px' }}>
+      <div className="graph-legend inline" style={{ position: 'absolute', bottom: '12px', left: '14px', zIndex: 10, background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(10px)', padding: '5px 10px', borderRadius: '8px', border: '1px solid var(--line)', fontSize: '13px', color: 'var(--muted)', gap: '10px' }}>
         {Object.entries(CATEGORY_COLORS).filter(([k]) => k !== 'Default').map(([cat, color]) => (
           <div key={cat} className="inline" style={{ gap: '4px' }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color }} />

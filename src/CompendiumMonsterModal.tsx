@@ -201,9 +201,9 @@ export function CompendiumMonsterModal({
         <div className="between" style={{ marginBottom: '14px', flexShrink: 0 }}>
           <div className="inline" style={{ gap: '8px' }}>
             <BookOpen size={18} style={{ color: 'var(--accent)' }} />
-            <h2 style={{ fontSize: '18px', margin: 0, fontWeight: 700 }}>Add Monsters from Compendium</h2>
+            <h2 style={{ fontSize: '17px', margin: 0, fontWeight: 600 }}>Add Monsters from Compendium</h2>
             {addedNotice && (
-              <span className="badge" style={{ background: 'var(--panel-alt)', borderColor: 'var(--accent)', color: 'var(--accent)', fontSize: '11px', animation: 'fadeIn .2s' }}>
+              <span className="badge" style={{ background: 'var(--panel-alt)', borderColor: 'var(--accent)', color: 'var(--accent)', fontSize: '13px', animation: 'fadeIn .2s' }}>
                 <Check size={12} style={{ marginRight: '4px' }} />
                 {addedNotice}
               </span>
@@ -231,7 +231,7 @@ export function CompendiumMonsterModal({
             aria-label="Filter by CR"
             value={selectedCr}
             onChange={e => setSelectedCr(e.target.value)}
-            style={{ width: 'auto', minWidth: '110px', fontSize: '11px', padding: '8px 12px' }}
+            style={{ width: 'auto', minWidth: '110px', fontSize: '13px', padding: '8px 12px' }}
           >
             <option value="All">All CRs</option>
             <option value="0-1">CR 0 – 1</option>
@@ -244,7 +244,7 @@ export function CompendiumMonsterModal({
             aria-label="Filter by Type"
             value={selectedType}
             onChange={e => setSelectedType(e.target.value)}
-            style={{ width: 'auto', minWidth: '120px', fontSize: '11px', padding: '8px 12px' }}
+            style={{ width: 'auto', minWidth: '120px', fontSize: '13px', padding: '8px 12px' }}
           >
             <option value="All">All Types</option>
             {monsterTypes.map(t => (
@@ -269,7 +269,7 @@ export function CompendiumMonsterModal({
               }}
             >
               {filteredMonsters.length === 0 ? (
-                <div style={{ padding: '30px', textAlign: 'center', color: 'var(--muted)', fontSize: '12px' }}>
+                <div style={{ padding: '30px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }}>
                   No monsters match your search or filter criteria.
                 </div>
               ) : (
@@ -297,10 +297,10 @@ export function CompendiumMonsterModal({
                       }}
                     >
                       <div style={{ minWidth: 0, flex: 1, marginRight: '10px' }}>
-                        <strong style={{ display: 'block', fontSize: '12.5px', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <strong style={{ display: 'block', fontSize: '14px', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {m.name}
                         </strong>
-                        <span style={{ fontSize: '10px', color: 'var(--muted)', display: 'block', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <span style={{ fontSize: '13px', color: 'var(--muted)', display: 'block', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {m.summary}
                         </span>
                       </div>
@@ -317,14 +317,14 @@ export function CompendiumMonsterModal({
                             const val = parseInt(e.target.value, 10);
                             setQuantities({ ...quantities, [m.id]: isNaN(val) ? 1 : val });
                           }}
-                          style={{ width: '42px', padding: '4px 6px', textAlign: 'center', fontSize: '11px', height: '28px', borderRadius: '5px' }}
+                          style={{ width: '42px', padding: '4px 6px', textAlign: 'center', fontSize: '13px', height: '28px', borderRadius: '5px' }}
                         />
                         <button
                           className="primary"
                           aria-label={`Add ${m.name} to encounter`}
                           title={`Add ${qty} × ${m.name} to encounter`}
                           onClick={e => handleAdd(m, e)}
-                          style={{ height: '28px', padding: '0 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '3px', borderRadius: '5px' }}
+                          style={{ height: '28px', padding: '0 8px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '3px', borderRadius: '5px' }}
                         >
                           <Plus size={13} />
                           Add
@@ -362,21 +362,21 @@ export function CompendiumMonsterModal({
             }}
           >
             {loadingRecord ? (
-              <div style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--muted)', fontSize: '12px' }}>
+              <div style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }}>
                 Loading monster details…
               </div>
             ) : activeRecord ? (
               <div>
                 <div className="between" style={{ marginBottom: '8px' }}>
-                  <span className="eyebrow" style={{ color: 'var(--accent)', fontSize: '9px', fontWeight: 700 }}>
+                  <span className="eyebrow" style={{ color: 'var(--accent)', fontSize: '13px', fontWeight: 600 }}>
                     {plain(activeRecord.fields.type).toUpperCase() || 'MONSTER'}
                   </span>
-                  <span className="badge subtle" style={{ fontSize: '10px' }}>
+                  <span className="badge subtle" style={{ fontSize: '13px' }}>
                     CR {plain(activeRecord.fields.cr) || '—'}
                   </span>
                 </div>
 
-                <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 4px', color: 'var(--text)' }}>
+                <h3 style={{ fontSize: '17px', fontWeight: 600, margin: '0 0 4px', color: 'var(--text)' }}>
                   {activeRecord.name}
                 </h3>
                 <small style={{ color: 'var(--muted)', fontStyle: 'italic', display: 'block', marginBottom: '12px' }}>
@@ -385,21 +385,21 @@ export function CompendiumMonsterModal({
 
                 <div className="monster-rule" style={{ margin: '8px 0 12px' }} />
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px', fontSize: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px', fontSize: '13px' }}>
                   <div style={{ background: 'var(--panel-alt)', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--line)' }}>
-                    <div style={{ color: 'var(--muted)', fontSize: '9px', fontWeight: 600 }}>ARMOR CLASS</div>
+                    <div style={{ color: 'var(--muted)', fontSize: '13px', fontWeight: 600 }}>ARMOR CLASS</div>
                     <strong style={{ color: 'var(--text)' }}>{plain(activeRecord.fields.ac) || '10'}</strong>
                   </div>
                   <div style={{ background: 'var(--panel-alt)', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--line)' }}>
-                    <div style={{ color: 'var(--muted)', fontSize: '9px', fontWeight: 600 }}>HIT POINTS</div>
+                    <div style={{ color: 'var(--muted)', fontSize: '13px', fontWeight: 600 }}>HIT POINTS</div>
                     <strong style={{ color: 'var(--text)' }}>{plain(activeRecord.fields.hp) || '—'}</strong>
                   </div>
                   <div style={{ background: 'var(--panel-alt)', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--line)' }}>
-                    <div style={{ color: 'var(--muted)', fontSize: '9px', fontWeight: 600 }}>SPEED</div>
+                    <div style={{ color: 'var(--muted)', fontSize: '13px', fontWeight: 600 }}>SPEED</div>
                     <strong style={{ color: 'var(--text)' }}>{plain(activeRecord.fields.speed) || '30 ft.'}</strong>
                   </div>
                   <div style={{ background: 'var(--panel-alt)', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--line)' }}>
-                    <div style={{ color: 'var(--muted)', fontSize: '9px', fontWeight: 600 }}>INITIATIVE MOD</div>
+                    <div style={{ color: 'var(--muted)', fontSize: '13px', fontWeight: 600 }}>INITIATIVE MOD</div>
                     <strong style={{ color: 'var(--text)' }}>
                       {Math.floor(((Number(plain(activeRecord.fields.dex).match(/^\s*(\d+)/)?.[1]) || 10) - 10) / 2) >= 0 ? '+' : ''}
                       {Math.floor(((Number(plain(activeRecord.fields.dex).match(/^\s*(\d+)/)?.[1]) || 10) - 10) / 2)}
@@ -409,15 +409,15 @@ export function CompendiumMonsterModal({
 
                 {plain(activeRecord.fields.text) && (
                   <div>
-                    <strong style={{ fontSize: '11px', color: 'var(--accent)', display: 'block', marginBottom: '4px' }}>TRAITS / ACTIONS</strong>
-                    <p style={{ fontSize: '11.5px', lineHeight: '1.6', color: 'var(--text)', whiteSpace: 'pre-line', margin: 0 }}>
+                    <strong style={{ fontSize: '13px', color: 'var(--accent)', display: 'block', marginBottom: '4px' }}>TRAITS / ACTIONS</strong>
+                    <p style={{ fontSize: '14px', lineHeight: '1.6', color: 'var(--text)', whiteSpace: 'pre-line', margin: 0 }}>
                       {plain(activeRecord.fields.text)}
                     </p>
                   </div>
                 )}
               </div>
             ) : (
-              <div style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--muted)', fontSize: '12px' }}>
+              <div style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }}>
                 Select a monster to view details
               </div>
             )}
@@ -429,7 +429,7 @@ export function CompendiumMonsterModal({
           <small style={{ color: 'var(--muted)' }}>
             Showing {filteredMonsters.length} monster(s) in compendium
           </small>
-          <button className="secondary" onClick={onClose} style={{ padding: '6px 14px', fontSize: '11px' }}>
+          <button className="secondary" onClick={onClose} style={{ padding: '6px 14px', fontSize: '13px' }}>
             Done
           </button>
         </div>

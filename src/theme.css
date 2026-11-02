@@ -345,7 +345,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 .compendium-drawer-backdrop{position:fixed;z-index:68;inset:0;background:rgba(9,13,22,0.75);backdrop-filter:blur(8px)}
 .compendium-drawer{position:absolute;inset:0 0 0 auto;width:min(760px,92vw);background:var(--panel);border-left:1px solid var(--line);box-shadow:-20px 0 60px rgba(0,0,0,0.5);padding:18px;overflow:hidden}
 .compendium-drawer>header{height:58px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);margin-bottom:13px}
-.compendium-drawer>header h2{font-size:23px}.compendium-drawer>header .icon-button{padding:8px}
+.compendium-drawer>header h2{font-size:var(--type-page)}.compendium-drawer>header .icon-button{padding:8px}
 .drawer-search{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:0 10px;margin-bottom:12px;color:var(--accent)}
 .drawer-search input{border:0!important;background:transparent!important}
 .drawer-layout{height:calc(100vh - 125px);display:grid;grid-template-columns:245px minmax(0,1fr);gap:13px}
@@ -374,7 +374,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 .compendium-accordion summary{list-style:none;padding:10px 14px;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;background:var(--panel-alt);font-family:var(--font-ui);font-size:var(--type-label);font-weight:600;color:var(--text);transition:background .15s}
 .compendium-accordion summary::-webkit-details-marker{display:none}
 .compendium-accordion summary:hover{background:var(--panel-elevated);color:var(--accent)}
-.compendium-accordion summary::after{content:'›';font-size:16px;font-weight:600;color:#94a3b8;transition:transform .2s ease;line-height:1}
+.compendium-accordion summary::after{content:'›';font-size:var(--type-section);font-weight:600;color:#94a3b8;transition:transform .2s ease;line-height:1}
 .compendium-accordion[open] summary::after{transform:rotate(90deg);color:#f59e0b}
 .compendium-accordion .accordion-content{padding:12px 14px;border-top:1px solid var(--line);font-size:var(--type-label);line-height:1.7;color:#cbd5e1}
 .compendium-accordion .accordion-content p{margin:0 0 8px}
@@ -551,7 +551,7 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 .session-emblem{width:48px;height:48px;flex-shrink:0;border-radius:12px;display:grid;place-items:center}
 .session-info{flex:1;min-width:0}
 .session-eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:3px}
-.session-banner h2{font-size:20px;font-weight:600;letter-spacing:-.4px;margin:2px 0 6px}
+.session-banner h2{font-size:var(--type-page);font-weight:600;letter-spacing:-.4px;margin:2px 0 6px}
 .session-subtitle{font-size:var(--type-label);margin:0}
 .session-pill{display:inline-flex;align-items:center;gap:6px;border-radius:20px;padding:3px 9px;font-size:var(--type-label);font-weight:600;letter-spacing:.4px}
 .session-pill span{display:inline-block;width:5px;height:5px;border-radius:50%}
@@ -1035,7 +1035,7 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 }
 
 .char-num-hero {
-  font-size: 20px;
+  font-size: var(--type-page);
   font-weight: 600;
   text-align: center;
   background: transparent;
@@ -1090,7 +1090,7 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 }
 
 .char-hp-input {
-  font-size: 20px;
+  font-size: var(--type-page);
   font-weight: 600;
   width: 58px;
   text-align: center;
@@ -1397,7 +1397,7 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 }
 
 .char-mod-hero {
-  font-size: 20px;
+  font-size: var(--type-page);
   font-weight: 600;
   color: var(--accent);
   line-height: 1.1;
@@ -1463,7 +1463,7 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 }
 
 .char-passive-val {
-  font-size: 15px;
+  font-size: var(--type-body);
   font-weight: 600;
   color: var(--accent);
   line-height: 1.2;

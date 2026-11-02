@@ -126,7 +126,7 @@ export function FreesoundModal({ onClose, onSelectSound, targetLayerIndex }: Fre
             <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 600 }}>
               Freesound Library {targetLayerIndex !== undefined ? `· Slot ${targetLayerIndex + 1}` : ''}
             </h3>
-            <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--muted)' }}>
+            <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--muted)' }}>
               Search CC-licensed community ambiences with offline caching
             </p>
           </div>
@@ -147,7 +147,7 @@ export function FreesoundModal({ onClose, onSelectSound, targetLayerIndex }: Fre
             onKeyDown={handleKeyDown}
             style={{ flex: 1, background: 'transparent', border: 0, color: 'var(--text-main)', fontSize: '13px', outline: 'none' }}
           />
-          <button className="primary" onClick={() => performSearch(query)} disabled={loading} style={{ padding: '4px 12px', fontSize: '12px' }}>
+          <button className="primary" onClick={() => performSearch(query)} disabled={loading} style={{ padding: '4px 12px', fontSize: '13px' }}>
             {loading ? <Loader2 size={13} className="spin" /> : 'Search'}
           </button>
         </div>
@@ -162,7 +162,7 @@ export function FreesoundModal({ onClose, onSelectSound, targetLayerIndex }: Fre
                 setQuery(q);
                 performSearch(q);
               }}
-              style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '12px', height: 'auto' }}
+              style={{ fontSize: '13px', padding: '4px 8px', borderRadius: '12px', height: 'auto' }}
             >
               {q}
             </button>
@@ -171,7 +171,7 @@ export function FreesoundModal({ onClose, onSelectSound, targetLayerIndex }: Fre
 
         {/* Error message */}
         {error && (
-          <div className="inline" style={{ padding: '8px 12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', borderRadius: '8px', color: '#fca5a5', fontSize: '12px', marginBottom: '12px', gap: '8px' }}>
+          <div className="inline" style={{ padding: '8px 12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', borderRadius: '8px', color: '#fca5a5', fontSize: '13px', marginBottom: '12px', gap: '8px' }}>
             <AlertCircle size={15} />
             <span>{error}</span>
           </div>
@@ -202,11 +202,11 @@ export function FreesoundModal({ onClose, onSelectSound, targetLayerIndex }: Fre
                     <strong style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {sound.name}
                     </strong>
-                    <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', background: 'var(--panel)', border: '1px solid var(--line)', color: 'var(--muted)' }}>
+                    <span style={{ fontSize: '13px', padding: '2px 6px', borderRadius: '4px', background: 'var(--panel)', border: '1px solid var(--line)', color: 'var(--muted)' }}>
                       {sound.durationFormatted}
                     </span>
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '2px' }}>
                     by {sound.author} · {sound.tags.slice(0, 3).join(', ')}
                   </div>
                 </div>
@@ -225,7 +225,7 @@ export function FreesoundModal({ onClose, onSelectSound, targetLayerIndex }: Fre
                     className="primary"
                     disabled={downloadingId === sound.id}
                     onClick={() => handleImport(sound)}
-                    style={{ fontSize: '11px', padding: '5px 10px', height: 'auto', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    style={{ fontSize: '13px', padding: '5px 10px', height: 'auto', display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
                     {downloadingId === sound.id ? <Loader2 size={13} className="spin" /> : <Download size={13} />}
                     {downloadingId === sound.id ? 'Caching…' : 'Load Layer'}

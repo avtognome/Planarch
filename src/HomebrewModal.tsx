@@ -207,7 +207,7 @@ export default function HomebrewModal({
                   type="button"
                   className={kind === k ? 'primary' : 'secondary'}
                   onClick={() => setKind(k)}
-                  style={{ textTransform: 'capitalize', fontSize: '11px', padding: '5px 12px' }}
+                  style={{ textTransform: 'capitalize', fontSize: '13px', padding: '5px 12px' }}
                 >
                   {k === 'monster' ? 'Monster / NPC' : k}
                 </button>
@@ -473,7 +473,7 @@ export default function HomebrewModal({
                 <span className="eyebrow">{kind.toUpperCase()} · HOMEBREW</span>
                 <BookOpen size={16} />
               </div>
-              <h2 style={{ fontSize: '20px', margin: '4px 0 10px' }}>{previewRecord.name}</h2>
+              <h2 style={{ fontSize: '22px', margin: '4px 0 10px' }}>{previewRecord.name}</h2>
               {kind === 'monster' ? (
                 <MonsterStatBlock record={previewRecord} />
               ) : (

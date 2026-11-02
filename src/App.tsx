@@ -1,6 +1,8 @@
+import { motion, AnimatePresence } from 'motion/react';
 import React, { useState, useEffect, useRef } from 'react';
-import { Compass, LayoutDashboard, Headphones, Swords, BookOpen, Users, Dices, Settings, Search, ChevronDown, ChevronUp, ArrowUpRight, Play, Pause, Volume2, VolumeX, Plus, Grip, MoreHorizontal, CloudRain, Waves, Wind, Flame, Check, Save, X, Music, SlidersHorizontal, PanelTop, RotateCcw, Download, Trash2, Sun, Moon, PanelLeftClose, PanelLeft, SkipForward, Shield, Eye, Lock, Unlock, ArrowUp, ArrowDown, ExternalLink, Shrink } from 'lucide-react';
+import { Compass, LayoutDashboard, Headphones, Swords, BookOpen, Users, Dices, Settings, Search, ChevronDown, ChevronUp, ArrowUpRight, Play, Pause, Volume2, VolumeX, Plus, Grip, MoreHorizontal, Check, Save, X, Music, SlidersHorizontal, PanelTop, RotateCcw, Download, Trash2, PanelLeftClose, PanelLeft, SkipForward, Shield, Eye, Lock, Unlock, ArrowUp, ArrowDown, ExternalLink, Shrink, Edit2 } from 'lucide-react';
 import { type Character, seedCharacters } from './models';
+import { PALETTES, resolvePalette, type PaletteId } from './palettes';
 import './style.css';
 import './features.css';
 import './theme.css';
@@ -65,8 +67,7 @@ function discoverCampaigns() {
 }
 cleanBundledCampaignTemplates();
 const startingCampaigns = discoverCampaigns();
-const icons = [CloudRain, Wind, Waves, Flame];
-const layerNames = ['Rainfall', 'Forest wind', 'Ocean surf', 'Hearth fire'];
+const defaultLayerNames = ['Rainfall', 'Forest wind', 'Ocean surf', 'Hearth fire'];
 export default function App() {
     const cloud = useCloudStatus();
     useEffect(() => { void bootSupabase(); }, []);
@@ -74,17 +75,36 @@ export default function App() {
     const [page, setPage] = useState('Dashboard'), [scene, setScene] = useSaved('wf-scene', 0), [layers, setLayers] = useSaved('wf-layers', [72, 36, 48, 0]), [master, setMaster] = useSaved('wf-master', 70), [music, setMusic] = useSaved('wf-music', 45), [playing, setPlaying] = useState(false), [muted, setMuted] = useState(false), [filter, setFilter] = useState('All scenes'), [query, setQuery] = useState(''), [dashboardTabs, setDashboardTabs] = useSaved<string[]>('wf-dashboard-tabs', ['Main', 'Combat', 'Notes']), [layout, setLayout] = useSaved('wf-layout', 'Main'), [orders, setOrders] = useSaved<Record<string, string[]>>('wf-orders', { Main: ['combat', 'atmosphere', 'journal', 'dice'], Combat: ['combat', 'dice', 'atmosphere', 'journal'], Notes: ['journal', 'atmosphere', 'dice', 'combat'] }), [layoutLocked, setLayoutLocked] = useSaved<boolean>('wf-layout-locked', false), [wide, setWide] = useSaved<Record<string, boolean>>('wf-wide', {}), [collapsed, setCollapsed] = useSaved<Record<string, boolean>>('wf-collapsed-widgets', {}), [diceDetached, setDiceDetached] = useSaved<boolean>('wf-dice-detached', false), [dicePos, setDicePos] = useSaved<{ x: number; y: number }>('wf-dice-pos', { x: 32, y: 120 }), [note, setNote] = useSaved(`wf-note:${campaignKey}`, ''), [round, setRound] = useSaved(`wf-round:${campaignKey}`, 1), [turn, setTurn] = useSaved(`wf-turn:${campaignKey}`, 0), [hp, setHp] = useSaved(`wf-hp:${campaignKey}`, []), [dice, setDice] = useState('1d20+3'), [roll, setRoll] = useState<number | null>(null), [history, setHistory] = useSaved<string[]>('wf-rolls', []), [rollMode, setRollMode] = useState<'normal' | 'adv' | 'disadv'>('normal'), [targetDC, setTargetDC] = useState<number | null>(null), [critState, setCritState] = useState<'nat20' | 'nat1' | null>(null), [rollOverlay, setRollOverlay] = useState<{ label: string; expression: string; total: number; breakdown: string; crit: 'nat20' | 'nat1' | null } | null>(null), [modal, setModal] = useState(startingCampaigns.length ? '' : 'campaign'), [toast, setToast] = useState(''), [source, setSource] = useSaved('wf-source', ''), [sourceInput, setSourceInput] = useState(''), [custom, setCustom] = useSaved<Scene[]>('wf-custom', []), [sceneName, setSceneName] = useState(''), [concentration, setConcentration] = useSaved('wf-concentration', true), [campaignName, setCampaignName] = useState(''), [campaignError, setCampaignError] = useState(''), [deleteCampaignText, setDeleteCampaignText] = useState(''), [deleteCampaignError, setDeleteCampaignError] = useState('');
     const [sourceName, setSourceName] = useState(''), [sourceCategory, setSourceCategory] = useState('EXPLORATION'), [keepMix, setKeepMix] = useState(true), [providerStopped, setProviderStopped] = useState(false), [playerCollapsed, setPlayerCollapsed] = useState(false);
     const [hiddenScenes, setHiddenScenes] = useSaved<string[]>('wf-hidden-builtin-scenes', []), [sceneSelectMode, setSceneSelectMode] = useState(false), [selectedSceneNames, setSelectedSceneNames] = useState<Set<string>>(new Set()), [sceneBulkConfirm, setSceneBulkConfirm] = useState(false);
+    const [layerNames, setLayerNames] = useSaved<string[]>('wf-layer-names', defaultLayerNames);
+    const [editingLayerIndex, setEditingLayerIndex] = useState<number | null>(null);
+    const [editingLayerName, setEditingLayerName] = useState('');
     const [customLayers, setCustomLayers] = useSaved<(FreesoundSound | null)[]>('wf-custom-layers', [null, null, null, null]), [freesoundTargetSlot, setFreesoundTargetSlot] = useState<number | null>(null);
     const customLayersRef = useRef(customLayers);
     customLayersRef.current = customLayers;
-    const [layerActive, setLayerActive] = useState<boolean[]>([true, true, true, true]);
-    const audioNodes = useRef<(AudioBufferSourceNode | null)[]>([null, null, null, null]);
+    const [layerActive, setLayerActive] = useState<boolean[]>(() => layerNames.map(() => true));
+    const audioNodes = useRef<(AudioBufferSourceNode | null)[]>([]);
     const [youtubeDeckA, setYoutubeDeckA] = useSaved('wf-youtube-deck-a', ''), [youtubeDeckB, setYoutubeDeckB] = useSaved('wf-youtube-deck-b', ''), [youtubeVolumeA, setYoutubeVolumeA] = useSaved('wf-youtube-volume-a', 75), [youtubeVolumeB, setYoutubeVolumeB] = useSaved('wf-youtube-volume-b', 75), [youtubeMaster, setYoutubeMaster] = useSaved('wf-youtube-master', 80), [youtubeCrossfade, setYoutubeCrossfade] = useSaved('wf-youtube-crossfade', 50), [youtubeMixerOpen, setYoutubeMixerOpen] = useState(false), [youtubeStopSignal, setYoutubeStopSignal] = useState(0);
     const [battle, setBattle] = useSaved<Combatant[]>(`wf-battle:${campaignKey}`, []), [battleTitle, setBattleTitle] = useSaved(`wf-battle-title:${campaignKey}`, 'No active encounter'), [battleId, setBattleId] = useSaved(`wf-battle-id:${campaignKey}`, ''), [battleActive, setBattleActive] = useSaved(`wf-battle-active:${campaignKey}`, false);
     const preCombatView = useRef<{
         layout: string;
         wide: Record<string, boolean>;
     } | null>(null);
+    useEffect(() => {
+        if (layerActive.length !== layerNames.length) {
+            setLayerActive(layerNames.map((_, i) => layerActive[i] ?? true));
+        }
+        if (layers.length < layerNames.length) {
+            const next = [...layers];
+            while (next.length < layerNames.length) next.push(50);
+            setLayers(next);
+        }
+        if (customLayers.length < layerNames.length) {
+            const next = [...customLayers];
+            while (next.length < layerNames.length) next.push(null);
+            setCustomLayers(next);
+            customLayersRef.current = next;
+        }
+    }, [layerNames.length]);
     useEffect(() => {
         let blobURL = '';
         let cancelled = false;
@@ -119,7 +139,14 @@ export default function App() {
         }
     });
     const openReference = (id: string) => { setCompendiumFocus(id); setPage('Compendium'); };
-    const [theme, setTheme] = useSaved<'light' | 'dark'>('wf-theme', 'light'), [saveError, setSaveError] = useState(false);
+    const [themePref, setThemePref] = useSaved<'light' | 'dark' | PaletteId>('wf-theme', 'premium'), [saveError, setSaveError] = useState(false);
+    const palette = resolvePalette(themePref);
+    const theme = palette.mode;
+    useEffect(() => {
+        if (typeof document !== 'undefined' && document.documentElement) {
+            document.documentElement.className = `theme-${palette.id} theme-${palette.mode}`;
+        }
+    }, [palette.id, palette.mode]);
     const [sidebarCollapsed, setSidebarCollapsed] = useSaved<boolean>('wf-sidebar-collapsed', false);
     useEffect(() => { const failed = () => { setSaveError(true); notify('Browser storage is full or unavailable. Export a backup before closing.'); }; window.addEventListener('planarch-save-error', failed); return () => window.removeEventListener('planarch-save-error', failed); }, []);
     const startEncounter = (e: Encounter) => { const sorted = [...e.members].sort((a, b) => b.initiative - a.initiative); preCombatView.current = { layout, wide }; setBattle(sorted); setBattleTitle(e.name); setBattleId(e.id); setBattleActive(true); setRound(1); setTurn(0); setPage('Dashboard'); setLayout('Combat'); setWide(current => ({ ...current, combat: true })); notify(`${e.name} started · combat workspace activated`); };
@@ -137,7 +164,7 @@ export default function App() {
         setTurn(activeIndex >= 0 ? activeIndex : Math.min(turn, Math.max(0, next.length - 1)));
         notify(`${e.name} roster updated · HP and round ${round} preserved`);
     };
-    const endEncounter = () => { const key = `wf-encounters:${campaign}`; const stored: Encounter[] = JSON.parse(localStorage.getItem(key) || 'null') || seedEncounters(campaign); writeSavedValue(key, stored.map(e => e.id === battleId ? { ...e, status: 'Completed' } : e)); const defeated = battle.filter(m => m.role === 'Monster' && m.hp === 0).map(m => m.name); const log = `${battleTitle} ended after ${round} rounds.\nDefeated monsters: ${defeated.join(', ') || 'None recorded'}.`; setNote(note + '\n\n' + log); const wikiKey = `wf-wiki:${campaign}`, pages: WikiPage[] = JSON.parse(localStorage.getItem(wikiKey) || 'null') || seedPages(campaign); writeSavedValue(wikiKey, [...pages, { id: uid(), title: battleTitle + ' · Encounter log', category: 'Session log', body: log, tags: 'combat', updated: new Date().toISOString() }]); setBattleActive(false); notify('Encounter ended; session journal and wiki log updated'); };
+    const endEncounter = () => { const key = `wf-encounters:${campaign}`; const stored: Encounter[] = JSON.parse(localStorage.getItem(key) || 'null') || seedEncounters(campaign); writeSavedValue(key, stored.map(e => e.id === battleId ? { ...e, status: 'Completed' } : e)); const defeated = battle.filter(m => m.role === 'Monster' && m.hp === 0).map(m => m.name); const log = `${battleTitle} ended after ${round} rounds.\nDefeated monsters: ${defeated.join(', ') || 'None recorded'}.`; setNote(note + '\n\n' + log); const wikiKey = `wf-wiki:${campaign}`, pages: WikiPage[] = JSON.parse(localStorage.getItem(wikiKey) || 'null') || seedPages(campaign); writeSavedValue(wikiKey, [...pages, { id: uid(), title: battleTitle + ' · Encounter log', category: 'Session log', body: log, tags: 'combat', updated: new Date().toISOString() }]); setBattleActive(false); setBattle([]); setBattleTitle('No active encounter'); setBattleId(''); setRound(1); setTurn(0); notify('Encounter ended; session journal and wiki log updated'); };
     const advanceTurn = () => {
         if (!battle.length)
             return;
@@ -353,17 +380,19 @@ export default function App() {
         // Procedural fallback / default synthetic ambience
         const buffer = ctx.createBuffer(1, ctx.sampleRate * 6, ctx.sampleRate), data = buffer.getChannelData(0);
         let last = 0;
+        const slotMod = i % 4;
         for (let n = 0; n < data.length; n++) {
             let white = Math.random() * 2 - 1;
             last = (last + .025 * white) / 1.025;
-            data[n] = i === 3 ? white * (Math.random() > .998 ? 1 : .08) : i === 0 ? white * .45 : last * 6;
+            data[n] = slotMod === 3 ? white * (Math.random() > .998 ? 1 : .08) : slotMod === 0 ? white * .45 : last * 6;
         }
         const node = ctx.createBufferSource();
         node.buffer = buffer;
         node.loop = true;
         const f = ctx.createBiquadFilter();
-        f.type = i === 0 ? 'highpass' : 'lowpass';
-        f.frequency.value = [900, 420, 240, 1800][i];
+        f.type = slotMod === 0 ? 'highpass' : 'lowpass';
+        const freqs = [900, 420, 240, 1800];
+        f.frequency.value = freqs[slotMod];
         node.connect(f).connect(gainNode);
         node.start();
         audioNodes.current[i] = node;
@@ -371,18 +400,18 @@ export default function App() {
 
     async function ensureAudio() {
         if (!audio.current) {
-            const ctx = new AudioContext();
-            audio.current = ctx;
-            for (let i = 0; i < 4; i++) {
-                const g = ctx.createGain();
-                g.gain.value = 0;
-                g.connect(ctx.destination);
-                gains.current.push(g);
-                await setupLayerSource(i, ctx, g, customLayersRef.current[i]);
-            }
+            audio.current = new AudioContext();
         }
-        if (audio.current.state === 'suspended') {
-            await audio.current.resume();
+        const ctx = audio.current;
+        for (let i = gains.current.length; i < layerNames.length; i++) {
+            const g = ctx.createGain();
+            g.gain.value = 0;
+            g.connect(ctx.destination);
+            gains.current.push(g);
+            await setupLayerSource(i, ctx, g, customLayersRef.current[i]);
+        }
+        if (ctx.state === 'suspended') {
+            await ctx.resume();
         }
     }
 
@@ -390,7 +419,7 @@ export default function App() {
         await ensureAudio();
         if (!playing) {
             if (layerActive.every(a => !a)) {
-                setLayerActive([true, true, true, true]);
+                setLayerActive(layerNames.map(() => true));
             }
             setPlaying(true);
         } else {
@@ -401,20 +430,19 @@ export default function App() {
     async function toggleLayerPlay(i: number, solo = false) {
         await ensureAudio();
         if (solo) {
-            const next = [false, false, false, false];
-            next[i] = true;
+            const next = layerNames.map((_, idx) => idx === i);
             setLayerActive(next);
-            if (layers[i] === 0) {
-                setLayers(layers.map((v, j) => j === i ? (active.layers[i] || 50) : v));
+            if ((layers[i] ?? 0) === 0) {
+                setLayers(layers.map((v, j) => j === i ? (active.layers[i] || 50) : (layers[j] ?? 50)));
             }
             setPlaying(true);
             notify(`Soloing ${layerNames[i]}`);
             return;
         }
 
-        const isCurrentlyPlaying = playing && layerActive[i];
+        const isCurrentlyPlaying = playing && (layerActive[i] ?? true);
         if (isCurrentlyPlaying) {
-            const next = [...layerActive];
+            const next = layerNames.map((_, idx) => layerActive[idx] ?? true);
             next[i] = false;
             setLayerActive(next);
             if (next.every(a => !a)) {
@@ -422,20 +450,95 @@ export default function App() {
             }
         } else {
             if (!playing) {
-                const next = [false, false, false, false];
-                next[i] = true;
+                const next = layerNames.map((_, idx) => idx === i);
                 setLayerActive(next);
             } else {
-                const next = [...layerActive];
+                const next = layerNames.map((_, idx) => layerActive[idx] ?? true);
                 next[i] = true;
                 setLayerActive(next);
             }
-            if (layers[i] === 0) {
-                setLayers(layers.map((v, j) => j === i ? (active.layers[i] || 50) : v));
+            if ((layers[i] ?? 0) === 0) {
+                setLayers(layers.map((v, j) => j === i ? (active.layers[i] || 50) : (layers[j] ?? 50)));
             }
             setPlaying(true);
         }
     }
+
+    const addLayer = async (name?: string) => {
+        const newName = (name || `Layer ${layerNames.length + 1}`).trim();
+        const nextNames = [...layerNames, newName];
+        const nextLayers = [...layers, 50];
+        const nextActive = [...layerActive, true];
+        const nextCustom = [...customLayers, null];
+
+        setLayerNames(nextNames);
+        setLayers(nextLayers);
+        setLayerActive(nextActive);
+        setCustomLayers(nextCustom);
+        customLayersRef.current = nextCustom;
+
+        if (audio.current) {
+            const ctx = audio.current;
+            const newIndex = gains.current.length;
+            const g = ctx.createGain();
+            const isAudible = playing && !muted;
+            g.gain.value = isAudible ? (50 / 100) * (master / 100) * 0.22 : 0;
+            g.connect(ctx.destination);
+            gains.current.push(g);
+            await setupLayerSource(newIndex, ctx, g, null);
+        }
+        notify(`Added layer "${newName}"`);
+    };
+
+    const commitRename = (i: number) => {
+        const trimmed = editingLayerName.trim();
+        if (trimmed && trimmed !== layerNames[i]) {
+            const next = [...layerNames];
+            next[i] = trimmed;
+            setLayerNames(next);
+            notify(`Renamed layer to "${trimmed}"`);
+        }
+        setEditingLayerIndex(null);
+    };
+
+    const deleteLayer = (i: number) => {
+        if (layerNames.length <= 1) {
+            notify('Mixer must keep at least one layer');
+            return;
+        }
+        const removedName = layerNames[i];
+        if (audioNodes.current[i]) {
+            try {
+                audioNodes.current[i]?.stop();
+                audioNodes.current[i]?.disconnect();
+            } catch {}
+        }
+        if (gains.current[i]) {
+            try {
+                gains.current[i]?.disconnect();
+            } catch {}
+        }
+        audioNodes.current.splice(i, 1);
+        gains.current.splice(i, 1);
+
+        const nextNames = layerNames.filter((_, idx) => idx !== i);
+        const nextLayers = layers.filter((_, idx) => idx !== i);
+        const nextActive = layerActive.filter((_, idx) => idx !== i);
+        const nextCustom = customLayers.filter((_, idx) => idx !== i);
+
+        setLayerNames(nextNames);
+        setLayers(nextLayers);
+        setLayerActive(nextActive);
+        setCustomLayers(nextCustom);
+        customLayersRef.current = nextCustom;
+        if (editingLayerIndex === i) {
+            setEditingLayerIndex(null);
+        } else if (editingLayerIndex !== null && editingLayerIndex > i) {
+            setEditingLayerIndex(editingLayerIndex - 1);
+        }
+        notify(`Deleted layer "${removedName}"`);
+    };
+
     const loadYouTubeDeck = (identity: string, deck: 'A' | 'B') => {
         if (deck === 'A')
             setYoutubeDeckA(identity);
@@ -447,8 +550,8 @@ export default function App() {
     const activate = (i: number) => {
         const selected = allScenes[i];
         setScene(i);
-        setLayers(selected.layers);
-        setLayerActive([true, true, true, true]);
+        setLayers(layerNames.map((_, idx) => selected.layers[idx] ?? 50));
+        setLayerActive(layerNames.map(() => true));
         if (selected.source?.provider === 'YouTube') {
             if (!youtubeDeckA)
                 loadYouTubeDeck(selected.source.identity, 'A');
@@ -670,7 +773,7 @@ export default function App() {
             <div className="quick-mods">{[1, 2, 3, 5].map(v => <button key={v} type="button" className="mod-btn" onClick={() => applyModifier(v)}>+{v}</button>)}<button type="button" className="mod-btn" onClick={() => applyModifier(-1)}>-1</button></div>
             {!dice && <span className="floating-hint">Click dice or type</span>}
         </div>}
-        <div className={`roll-result ${critState ? critState : ''} ${!isFloating && targetDC !== null && roll !== null ? (roll >= targetDC ? 'roll-pass' : 'roll-fail') : ''}`}><strong>{roll ?? '—'}</strong><div className="roll-details"><div className="roll-tags"><span>{roll === null ? 'Your next roll awaits' : 'Latest result'}</span>{critState === 'nat20' && <span className="crit-badge crit-nat20">NAT 20 · CRITICAL!</span>}{critState === 'nat1' && <span className="crit-badge crit-nat1">NAT 1 · FUMBLE!</span>}{!isFloating && targetDC !== null && roll !== null && <span className={`dc-badge ${roll >= targetDC ? 'dc-pass' : 'dc-fail'}`}>{roll >= targetDC ? `PASS (DC ${targetDC})` : `FAIL (DC ${targetDC})`}</span>}</div><small>{history[0] || 'Try 2d6+3, or choose a die above.'}</small></div></div>
+        <motion.div key={String(roll) + ':' + (history[0] || '')} initial={{ scale: 0.92, opacity: 0.8 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', damping: 20, stiffness: 400 }} className={`roll-result ${critState ? critState : ''} ${!isFloating && targetDC !== null && roll !== null ? (roll >= targetDC ? 'roll-pass' : 'roll-fail') : ''}`}><strong>{roll ?? '-'}</strong><div className="roll-details"><div className="roll-tags"><span>{roll === null ? 'Your next roll awaits' : 'Latest result'}</span>{critState === 'nat20' && <span className="crit-badge crit-nat20">NAT 20 · CRITICAL!</span>}{critState === 'nat1' && <span className="crit-badge crit-nat1">NAT 1 · FUMBLE!</span>}{!isFloating && targetDC !== null && roll !== null && <span className={`dc-badge ${roll >= targetDC ? 'dc-pass' : 'dc-fail'}`}>{roll >= targetDC ? `PASS (DC ${targetDC})` : `FAIL (DC ${targetDC})`}</span>}</div><small>{history[0] || 'Try 2d6+3, or choose a die above.'}</small></div></motion.div>
         <div className="roll-history">{history.slice(1, isFloating ? 3 : 4).map((entry, index) => <small key={index}>{entry}</small>)}</div>
     </>;
     const reorder = (target: string) => {
@@ -696,80 +799,133 @@ export default function App() {
     };
     const exportData = () => { const data = Object.fromEntries(Object.keys(localStorage).filter(k => k.startsWith('wf-')).map(k => [k, JSON.parse(localStorage.getItem(k)!)])); const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = 'planarch-backup.json'; a.click(); URL.revokeObjectURL(url); notify('Backup exported'); };
     function mixer(compact = false) {
-        return <div className={compact ? 'mini-mixer' : 'layer-list'}>{layerNames.map((n, i) => {
-            const Icon = icons[i];
-            const customSound = customLayers[i];
-            const displayName = customSound ? customSound.name : n;
-            const isLayerPlaying = playing && !muted && layerActive[i];
-            return <div className={`layer ${isLayerPlaying ? 'layer-active' : ''}`} key={i}>
-                <button
-                    className={`layer-icon layer-play-btn ${isLayerPlaying ? 'playing' : ''}`}
-                    aria-label={isLayerPlaying ? `Pause ${displayName}` : `Play ${displayName}`}
-                    title={isLayerPlaying ? `Pause ${displayName}` : `Play ${displayName} individually (Shift+click to solo)`}
-                    onClick={e => { void toggleLayerPlay(i, e.shiftKey); }}
-                >
-                    {isLayerPlaying ? <Pause size={16}/> : <Icon size={18}/>}
-                </button>
-                <div className="layer-content">
-                    <div className="between">
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }} title={displayName}>{displayName}</span>
-                        <small>{layers[i]}%</small>
-                    </div>
-                    <input
-                        aria-label={`${displayName} volume`}
-                        type="range"
-                        value={layers[i]}
-                        onChange={e => {
-                            const val = +e.target.value;
-                            setLayers(layers.map((v, j) => j === i ? val : v));
-                            if (val > 0 && !layerActive[i] && playing) {
-                                setLayerActive(la => la.map((a, j) => j === i ? true : a));
-                            }
-                        }}
-                    />
-                </div>
-                <div className="inline" style={{ gap: '2px' }}>
+        return <div className={compact ? 'mini-mixer' : 'layer-list'}>
+            {layerNames.map((n, i) => {
+                const customSound = customLayers[i];
+                const displayName = customSound ? customSound.name : n;
+                const isLayerPlaying = playing && !muted && (layerActive[i] ?? true);
+                const isEditing = editingLayerIndex === i;
+
+                return <div className={`layer ${isLayerPlaying ? 'layer-active' : ''}`} key={i}>
                     <button
-                        className={`icon-button ${isLayerPlaying ? 'primary-icon' : ''}`}
+                        className={`layer-icon layer-play-btn ${isLayerPlaying ? 'playing' : ''}`}
                         aria-label={isLayerPlaying ? `Pause ${displayName}` : `Play ${displayName}`}
                         title={isLayerPlaying ? `Pause ${displayName}` : `Play ${displayName} individually (Shift+click to solo)`}
                         onClick={e => { void toggleLayerPlay(i, e.shiftKey); }}
                     >
-                        {isLayerPlaying ? <Pause size={15}/> : <Play size={15}/>}
+                        {isLayerPlaying ? <Pause size={15}/> : <span className="layer-track-num">{String(i + 1).padStart(2, '0')}</span>}
                     </button>
+                    <div className="layer-content">
+                        <div className="between">
+                            {isEditing ? (
+                                <input
+                                    autoFocus
+                                    className="layer-rename-input"
+                                    aria-label={`Edit name for layer ${i + 1}`}
+                                    value={editingLayerName}
+                                    onChange={e => setEditingLayerName(e.target.value)}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter') commitRename(i);
+                                        if (e.key === 'Escape') setEditingLayerIndex(null);
+                                    }}
+                                    onBlur={() => commitRename(i)}
+                                />
+                            ) : (
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }} title={displayName}>{displayName}</span>
+                            )}
+                            <small>{layers[i] ?? 50}%</small>
+                        </div>
+                        <input
+                            aria-label={`${displayName} volume`}
+                            type="range"
+                            value={layers[i] ?? 50}
+                            onChange={e => {
+                                const val = +e.target.value;
+                                setLayers(layers.map((v, j) => j === i ? val : (layers[j] ?? 50)));
+                                if (val > 0 && !(layerActive[i] ?? true) && playing) {
+                                    setLayerActive(la => la.map((a, j) => j === i ? true : a));
+                                }
+                            }}
+                        />
+                    </div>
+                    <div className="inline" style={{ gap: '2px' }}>
+                        <button
+                            className={`icon-button ${isLayerPlaying ? 'primary-icon' : ''}`}
+                            aria-label={isLayerPlaying ? `Pause ${displayName}` : `Play ${displayName}`}
+                            title={isLayerPlaying ? `Pause ${displayName}` : `Play ${displayName} individually (Shift+click to solo)`}
+                            onClick={e => { void toggleLayerPlay(i, e.shiftKey); }}
+                        >
+                            {isLayerPlaying ? <Pause size={15}/> : <Play size={15}/>}
+                        </button>
+                        <button
+                            className="icon-button"
+                            aria-label={`Mute ${displayName}`}
+                            title={(layers[i] ?? 50) ? `Mute ${displayName}` : `Unmute ${displayName}`}
+                            onClick={() => setLayers(layers.map((v, j) => j === i ? (v ? 0 : (active.layers[i] || 50)) : (layers[j] ?? 50)))}
+                        >
+                            {(layers[i] ?? 50) ? <Volume2 size={16}/> : <VolumeX size={16}/>}
+                        </button>
+                        {!compact && (
+                            <button
+                                className="icon-button"
+                                aria-label={`Rename ${displayName}`}
+                                title={`Rename ${displayName}`}
+                                onClick={() => {
+                                    setEditingLayerIndex(i);
+                                    setEditingLayerName(layerNames[i]);
+                                }}
+                            >
+                                <Edit2 size={13}/>
+                            </button>
+                        )}
+                        <button className="icon-button" aria-label={`Change sound for ${displayName}`} title="Pick Freesound audio" onClick={() => setFreesoundTargetSlot(i)}>
+                            <Music size={14}/>
+                        </button>
+                        {customSound && <button className="icon-button danger-text" aria-label={`Reset ${displayName} to default`} title="Reset to procedural" onClick={async () => {
+                            const next = [...customLayers];
+                            next[i] = null;
+                            customLayersRef.current = next;
+                            setCustomLayers(next);
+                            if (audio.current && gains.current[i]) {
+                                await setupLayerSource(i, audio.current, gains.current[i], null);
+                            }
+                            notify(`Layer ${i + 1} reset to default`);
+                        }}><RotateCcw size={13}/></button>}
+                        {!compact && layerNames.length > 1 && (
+                            <button
+                                className="icon-button danger-text"
+                                aria-label={`Delete layer ${displayName}`}
+                                title={`Delete layer ${displayName}`}
+                                onClick={() => deleteLayer(i)}
+                            >
+                                <Trash2 size={13}/>
+                            </button>
+                        )}
+                    </div>
+                </div>;
+            })}
+            {!compact && (
+                <div className="mixer-add-layer" style={{ marginTop: '8px' }}>
                     <button
-                        className="icon-button"
-                        aria-label={`Mute ${displayName}`}
-                        title={layers[i] ? `Mute ${displayName}` : `Unmute ${displayName}`}
-                        onClick={() => setLayers(layers.map((v, j) => j === i ? (v ? 0 : (active.layers[i] || 50)) : v))}
+                        className="secondary small"
+                        aria-label="Add ambience layer"
+                        onClick={() => addLayer()}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                     >
-                        {layers[i] ? <Volume2 size={16}/> : <VolumeX size={16}/>}
+                        <Plus size={14} /> Add layer
                     </button>
-                    <button className="icon-button" aria-label={`Change sound for ${displayName}`} title="Pick Freesound audio" onClick={() => setFreesoundTargetSlot(i)}>
-                        <Music size={14}/>
-                    </button>
-                    {customSound && <button className="icon-button danger-text" aria-label={`Reset ${displayName} to default`} title="Reset to procedural" onClick={async () => {
-                        const next = [...customLayers];
-                        next[i] = null;
-                        customLayersRef.current = next;
-                        setCustomLayers(next);
-                        if (audio.current && gains.current[i]) {
-                            await setupLayerSource(i, audio.current, gains.current[i], null);
-                        }
-                        notify(`Layer ${i + 1} reset to default`);
-                    }}><RotateCcw size={13}/></button>}
                 </div>
-            </div>;
-        })}</div>;
+            )}
+        </div>;
     }
     function widget(id: string) {
         const isCollapsed = Boolean(collapsed[id]);
         return <section key={id} className={`widget ${wide[id] ? 'wide' : ''} ${isCollapsed ? 'widget-collapsed' : ''}`} onDragOver={event => !layoutLocked && event.preventDefault()} onDrop={() => !layoutLocked && reorder(id)}>
       <div className="widget-head"><div className="inline"><span draggable={!layoutLocked} onDragStart={() => { drag.current = id; }} className={!layoutLocked ? 'drag-handle enabled' : 'drag-handle'} title={!layoutLocked ? 'Drag to rearrange' : 'Layout locked'}><Grip size={16}/></span>{id === 'combat' ? <Swords size={17}/> : id === 'atmosphere' ? <Headphones size={17}/> : id === 'journal' ? <BookOpen size={17}/> : <Dices size={17}/>}<h3>{({ combat: 'Live encounter', atmosphere: 'Atmosphere', journal: 'Session journal', dice: 'Dice tray' } as Record<string, string>)[id]}</h3></div><div className="inline widget-controls">{!layoutLocked && <><button aria-label={`Move ${id} up`} className="icon-button" onClick={() => moveWidget(id, -1)} title="Move up in order"><ArrowUp size={15}/></button><button aria-label={`Move ${id} down`} className="icon-button" onClick={() => moveWidget(id, 1)} title="Move down in order"><ArrowDown size={15}/></button></>}{id === 'dice' && <button aria-label="Detach Dice tray widget" className="icon-button" onClick={() => setDiceDetached(true)} title="Detach and float"><ExternalLink size={15}/></button>}<button aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${id} widget`} className="icon-button" onClick={() => setCollapsed({ ...collapsed, [id]: !isCollapsed })} title={isCollapsed ? 'Expand widget' : 'Collapse widget'}>{isCollapsed ? <ChevronDown size={16}/> : <ChevronUp size={16}/>}</button><button aria-label={`Resize ${id} widget`} className="icon-button" onClick={() => setWide({ ...wide, [id]: !wide[id] })} title="Toggle wide span"><PanelTop size={16}/></button></div></div>
-      {!isCollapsed && (id === 'combat' ? <CombatTracker battle={battle} setBattle={setBattle} battleTitle={battleTitle} battleActive={battleActive} round={round} setRound={setRound} turn={turn} setTurn={setTurn} onReference={openReference} onOpenEncounters={() => setPage('Encounters')} onEnd={endEncounter} notify={notify}/> : id === 'atmosphere' ? <><div className={`mini-art ${active.art}`}><div><span className="eyebrow">CURRENT SCENE</span><h2>{active.name}</h2></div><button className="play-circle" aria-label="Toggle ambience" onClick={toggleAudio}>{playing ? <Pause size={20}/> : <Play size={20}/>}</button></div>{mixer(true)}<button className="text-button widget-link" onClick={() => setPage('Atmosphere Studio')}>Open Atmosphere Studio <ArrowUpRight size={15}/></button></> : id === 'journal' ? <><div className="between journal-meta"><span className="badge subtle">Session notes</span><small><Check size={12}/> Autosaved locally</small></div><textarea aria-label="Session journal" value={note} onChange={event => setNote(event.target.value)}/><div className="widget-bottom between"><small>Private notes · {campaign}</small><button className="text-button" onClick={() => setNote(note + '\n• ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' — ')}>+ Timestamp</button></div></> : renderDiceContent())}
+      {!isCollapsed && (id === 'combat' ? <CombatTracker battle={battle} setBattle={setBattle} battleTitle={battleTitle} battleActive={battleActive} round={round} setRound={setRound} turn={turn} setTurn={setTurn} onReference={openReference} onOpenEncounters={() => setPage('Encounters')} onEnd={endEncounter} notify={notify}/> : id === 'atmosphere' ? <><div className={`mini-art ${active.art}`}><div><span className="eyebrow">CURRENT SCENE</span><h2>{active.name}</h2></div><button className="play-circle" aria-label="Toggle ambience" onClick={toggleAudio}>{playing ? <Pause size={20}/> : <Play size={20}/>}</button></div>{mixer(true)}<button className="text-button widget-link" onClick={() => setPage('Atmosphere Studio')}>Open Atmosphere Studio <ArrowUpRight size={15}/></button></> : id === 'journal' ? <><div className="between journal-meta"><span className="badge subtle">Session notes</span><small><Check size={12}/> Autosaved locally</small></div><textarea aria-label="Session journal" value={note} onChange={event => setNote(event.target.value)}/><div className="widget-bottom between"><small>Private notes · {campaign}</small><button className="text-button" onClick={() => setNote(note + '\n• ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' - ')}>+ Timestamp</button></div></> : renderDiceContent())}
     </section>;
     }
-    return <div className={`app theme-${theme}${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}><aside className="sidebar"><div className="brand"><button className="brand-link" aria-label="Planarch Dashboard" onClick={() => setPage('Dashboard')}><PlanarchBrand mode={theme} className="brand-logo" alt="Planarch" /></button><button className="icon-button collapse-sidebar-button" aria-label="Collapse sidebar" title="Collapse sidebar" onClick={() => setSidebarCollapsed(true)}><PanelLeftClose size={18}/></button></div><div className="campaign-switch"><small>ACTIVE CAMPAIGN</small><select aria-label="Active campaign" value={campaign} disabled={!campaigns.length} onChange={e => { setCampaign(e.target.value); setPage('Dashboard'); }}>{!campaigns.length && <option value="">No campaigns yet</option>}{campaigns.map(name => <option key={name} value={name}>{name}</option>)}</select><div className="campaign-actions"><button className="new-campaign-button" onClick={() => { setCampaignName(''); setCampaignError(''); setModal('campaign'); }}><Plus size={14}/>New campaign</button><button className="delete-campaign-button" disabled={!campaign} aria-label="Delete active campaign" onClick={() => { setDeleteCampaignText(''); setDeleteCampaignError(''); setModal('delete-campaign'); }}><Trash2 size={13}/></button></div><span className="campaign-status">● &nbsp;{battleActive ? 'Encounter in progress' : 'Ready to plan'}</span></div><div className="nav-label">WORKSPACE</div><nav>{[[LayoutDashboard, 'Dashboard']].map(([Icon, n]) => <button key={String(n)} className={page === n ? 'active' : ''} onClick={() => setPage(String(n))}>{React.createElement(Icon as typeof Compass, { size: 19 })}{String(n)}</button>)}</nav><div className="nav-label">CAMPAIGN TOOLS</div><nav className="campaign-nav">{[[Headphones, 'Atmosphere Studio'], [Swords, 'Encounters'], [Users, 'Characters & NPCs'], [BookOpen, 'Campaign wiki'], [BookOpen, 'Compendium']].map(([Icon, n]) => <button className={page === n ? 'active' : ''} key={String(n)} onClick={() => setPage(String(n))}>{React.createElement(Icon as typeof Compass, { size: 18 })}{String(n)}</button>)}</nav><div className="sidebar-bottom"><button onClick={() => setModal('settings')}><Settings size={17}/> Settings & backup</button></div></aside>{!sidebarCollapsed && <div className="sidebar-backdrop" onClick={() => setSidebarCollapsed(true)} />}<main><header className="topbar"><button className="icon-button toggle-sidebar-button" aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => setSidebarCollapsed(!sidebarCollapsed)}><PanelLeft size={18}/></button>{sidebarCollapsed && <button className="topbar-brand-link" aria-label="Planarch Dashboard" onClick={() => setPage('Dashboard')}><PlanarchBrand mode={theme} compact className="topbar-brand-mark" alt="Planarch" /></button>}<div className="breadcrumb">Workspace <span>/</span> <strong>{page}</strong></div><button className="search-button" onClick={() => setModal('search')}><Search size={16}/> Quick search <kbd>⌘ K</kbd></button><button className="theme-toggle icon-button" aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'} title={theme === 'light' ? 'Dark theme' : 'Light theme'} onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>{theme === 'light' ? <Moon size={17}/> : <Sun size={17}/>}</button><button className="settings-toggle icon-button" aria-label="Settings & backup" title="Settings & backup" onClick={() => setModal('settings')}><Settings size={17}/></button><span className="sync-status-indicator" title={saveError ? 'Storage full · export a backup' : cloud.transfer ? 'Cloud transfer in progress' : cloud.user ? (cloud.status === 'synced' ? 'Synced to Supabase' : cloud.status === 'conflict' ? 'Sync conflict' : cloud.status === 'error' ? 'Cloud sync error' : cloud.status === 'offline' ? 'Offline' : 'Syncing to Supabase') : 'Local-first workspace'}><span className={`sync-status-dot ${saveError || (cloud.user && (cloud.status === 'error' || cloud.status === 'conflict')) ? 'sync-status-red' : cloud.transfer || (cloud.user && cloud.status === 'syncing') ? 'sync-status-yellow' : 'sync-status-green'}`} /></span></header><div className="content">{page !== 'Dashboard' && <div className="campaign-hero-header page-hero-header"><div className="between wrap" style={{ gap: '16px' }}><div><div className="campaign-hero-eyebrow">{page === 'Atmosphere Studio' ? 'ATMOSPHERE STUDIO' : `${campaign.toUpperCase()} · ${page.toUpperCase()}`}</div><h1 className="campaign-hero-title">{page}</h1></div><div className="inline">{page === 'Atmosphere Studio' ? <div className="inline"><button className="secondary" aria-label="Toggle scene multi-select" onClick={() => { setSceneSelectMode(!sceneSelectMode); setSelectedSceneNames(new Set()); setSceneBulkConfirm(false); }}>{sceneSelectMode ? 'Cancel selection' : 'Select'}</button>{hiddenScenes.length > 0 && <button className="secondary" onClick={() => { setHiddenScenes([]); notify('Default scenes restored'); }} title="Restore all default scenes"><RotateCcw size={14}/> Restore defaults</button>}<button className="primary" onClick={() => setModal('scene')}><Plus size={17}/> Save current scene</button></div> : <span className="badge subtle">Campaign records · autosaved</span>}</div></div></div>}{page === 'Dashboard' ? <>{battleActive ? <div className="session-banner battle-mode"><div className="session-emblem"><Swords size={26}/></div><div className="session-info"><div className="session-eyebrow"><span className="eyebrow">{campaign.toUpperCase()}</span><span className="session-pill live"><span /> Encounter Active</span></div><h2>{battleTitle}</h2><div className="session-combat-meta"><span className="combat-chip round-chip">Round <strong>{round}</strong></span><span className="combat-chip turn-chip">Turn: <strong>{battle[turn]?.name || 'Initiative'}</strong></span>{battle[turn] && <span className="combat-chip hp-chip">{battle[turn].hp} / {battle[turn].maxHp} HP</span>}</div></div><div className="session-actions"><button className="primary session-action-btn" onClick={advanceTurn} title="Next Turn"><SkipForward size={14}/> Next Turn</button><button className="secondary session-action-btn" onClick={() => setModal('journal')} title="Session Notes"><BookOpen size={14}/> Notes</button><button className="danger-text session-action-btn" onClick={endEncounter} title="End Encounter">End Battle</button></div></div> : <div className="campaign-hero-header"><div className="campaign-hero-eyebrow">ACTIVE CAMPAIGN</div><h1 className="campaign-hero-title">{campaign || 'Campaign'}</h1></div>}{partyCharacters.filter(c => c.kind === 'Player').length > 0 && <div className="party-status-strip" aria-label="Party status overview"><div className="party-strip-heading"><div className="inline"><Shield size={14}/><span>PARTY VITALS</span></div><button className="text-button party-manage-btn" onClick={() => setPage('Characters & NPCs')}>Manage party <ArrowUpRight size={13}/></button></div><div className="party-cards-grid">{partyCharacters.filter(c => c.kind === 'Player').map(pc => <div key={pc.id} className="party-card"><div className="party-card-avatar">{pc.portrait ? <img src={pc.portrait} alt="" /> : pc.name.slice(0, 1)}</div><div className="party-card-info"><strong>{pc.name}</strong><small>{pc.role || 'Player Character'}</small></div><div className="party-card-stats"><span className="party-stat ac-stat" title="Armor Class"><Shield size={12}/><strong>{pc.ac ?? 10}</strong><small>AC</small></span><span className="party-stat pp-stat" title="Passive Perception"><Eye size={12}/><strong>{pc.passivePerception ?? 10}</strong><small>PP</small></span><span className="party-stat hp-stat" title="Hit Points"><small>HP</small><strong>{pc.hp}</strong></span></div></div>)}</div></div>}<div className="workspace-toolbar"><div className="inline" style={{ gap: '10px', flexWrap: 'wrap' }}><div className="tabs" style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>{dashboardTabs.map(t => <div key={t} className="inline" style={{ gap: '2px' }}><button onClick={() => setLayout(t)} className={layout === t ? 'selected' : ''}>{t}</button>{dashboardTabs.length > 1 && !layoutLocked && <button className="icon-button" aria-label={`Remove tab ${t}`} title={`Remove tab ${t}`} onClick={(e) => { e.stopPropagation(); const remaining = dashboardTabs.filter(tab => tab !== t); setDashboardTabs(remaining); if (layout === t) setLayout(remaining[0]); notify(`Tab "${t}" removed`); }} style={{ padding: '2px', opacity: 0.7 }}><X size={12}/></button>}</div>)}<button className="icon-button" aria-label="Add tab" title="Add new dashboard tab" onClick={() => { const name = prompt('Tab name:', `Tab ${dashboardTabs.length + 1}`)?.trim(); if (name && !dashboardTabs.includes(name)) { setDashboardTabs([...dashboardTabs, name]); if (!orders[name]) setOrders({ ...orders, [name]: ['combat', 'atmosphere', 'journal', 'dice'] }); setLayout(name); notify(`Tab "${name}" created`); } }} style={{ padding: '6px', border: '1px dashed var(--line)', borderRadius: '6px' }}><Plus size={14}/></button></div><button className={layoutLocked ? 'secondary layout-lock-toggle' : 'primary layout-lock-toggle'} aria-label={layoutLocked ? 'Unlock layout' : 'Lock layout'} title={layoutLocked ? 'Unlock layout to reorder and resize widgets' : 'Lock layout to prevent accidental changes'} onClick={() => {
+    return <div className={`app theme-${palette.id} theme-${palette.mode}${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}><aside className="sidebar"><div className="brand"><button className="brand-link" aria-label="Planarch Dashboard" onClick={() => setPage('Dashboard')}><PlanarchBrand mode={theme} className="brand-logo" alt="Planarch" /></button><button className="icon-button collapse-sidebar-button" aria-label="Collapse sidebar" title="Collapse sidebar" onClick={() => setSidebarCollapsed(true)}><PanelLeftClose size={18}/></button></div><div className="campaign-switch"><small>ACTIVE CAMPAIGN</small><select aria-label="Active campaign" value={campaign} disabled={!campaigns.length} onChange={e => { setCampaign(e.target.value); setPage('Dashboard'); }}>{!campaigns.length && <option value="">No campaigns yet</option>}{campaigns.map(name => <option key={name} value={name}>{name}</option>)}</select><div className="campaign-actions"><button className="new-campaign-button" onClick={() => { setCampaignName(''); setCampaignError(''); setModal('campaign'); }}><Plus size={14}/>New campaign</button><button className="delete-campaign-button" disabled={!campaign} aria-label="Delete active campaign" onClick={() => { setDeleteCampaignText(''); setDeleteCampaignError(''); setModal('delete-campaign'); }}><Trash2 size={13}/></button></div><span className="campaign-status">● &nbsp;{battleActive ? 'Encounter in progress' : 'Ready to plan'}</span></div><div className="nav-label">WORKSPACE</div><nav>{[[LayoutDashboard, 'Dashboard']].map(([Icon, n]) => <button key={String(n)} className={page === n ? 'active' : ''} onClick={() => setPage(String(n))}>{React.createElement(Icon as typeof Compass, { size: 19 })}{String(n)}</button>)}</nav><div className="nav-label">CAMPAIGN TOOLS</div><nav className="campaign-nav">{[[Headphones, 'Atmosphere Studio'], [Swords, 'Encounters'], [Users, 'Characters & NPCs'], [BookOpen, 'Campaign wiki'], [BookOpen, 'Compendium']].map(([Icon, n]) => <button className={page === n ? 'active' : ''} key={String(n)} onClick={() => setPage(String(n))}>{React.createElement(Icon as typeof Compass, { size: 18 })}{String(n)}</button>)}</nav><div className="sidebar-bottom"><button onClick={() => setModal('settings')}><Settings size={17}/> Settings & backup</button></div></aside>{!sidebarCollapsed && <div className="sidebar-backdrop" onClick={() => setSidebarCollapsed(true)} />}<main><header className="topbar"><button className="icon-button toggle-sidebar-button" aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => setSidebarCollapsed(!sidebarCollapsed)}><PanelLeft size={18}/></button>{sidebarCollapsed && <button className="topbar-brand-link" aria-label="Planarch Dashboard" onClick={() => setPage('Dashboard')}><PlanarchBrand mode={theme} compact className="topbar-brand-mark" alt="Planarch" /></button>}<div className="breadcrumb">Workspace <span>/</span> <strong>{page}</strong></div><button className="search-button" onClick={() => setModal('search')}><Search size={16}/> Quick search <kbd>⌘ K</kbd></button><button className="settings-toggle icon-button" aria-label="Settings & backup" title="Settings & backup" onClick={() => setModal('settings')}><Settings size={17}/></button><span className="sync-status-indicator" title={saveError ? 'Storage full · export a backup' : cloud.transfer ? 'Cloud transfer in progress' : cloud.user ? (cloud.status === 'synced' ? 'Synced to Supabase' : cloud.status === 'conflict' ? 'Sync conflict' : cloud.status === 'error' ? 'Cloud sync error' : cloud.status === 'offline' ? 'Offline' : 'Syncing to Supabase') : 'Local-first workspace'}><span className={`sync-status-dot ${saveError || (cloud.user && (cloud.status === 'error' || cloud.status === 'conflict')) ? 'sync-status-red' : cloud.transfer || (cloud.user && cloud.status === 'syncing') ? 'sync-status-yellow' : 'sync-status-green'}`} /></span></header><div className="content">{page !== 'Dashboard' && <div className="campaign-hero-header page-hero-header"><div className="between wrap" style={{ gap: '16px' }}><div><div className="campaign-hero-eyebrow">{page === 'Atmosphere Studio' ? 'ATMOSPHERE STUDIO' : `${campaign.toUpperCase()} · ${page.toUpperCase()}`}</div><h1 className="campaign-hero-title">{page}</h1></div><div className="inline">{page === 'Atmosphere Studio' ? <div className="inline"><button className="secondary" aria-label="Toggle scene multi-select" onClick={() => { setSceneSelectMode(!sceneSelectMode); setSelectedSceneNames(new Set()); setSceneBulkConfirm(false); }}>{sceneSelectMode ? 'Cancel selection' : 'Select'}</button>{hiddenScenes.length > 0 && <button className="secondary" onClick={() => { setHiddenScenes([]); notify('Default scenes restored'); }} title="Restore all default scenes"><RotateCcw size={14}/> Restore defaults</button>}<button className="primary" onClick={() => setModal('scene')}><Plus size={17}/> Save current scene</button></div> : <span className="badge subtle">Campaign records · autosaved</span>}</div></div></div>}{page === 'Dashboard' ? <>{battleActive ? <div className="session-banner battle-mode"><div className="session-emblem"><Swords size={26}/></div><div className="session-info"><div className="session-eyebrow"><span className="eyebrow">{campaign.toUpperCase()}</span></div><h2>{battleTitle}</h2><div className="session-combat-meta"><span className="combat-chip round-chip">Round <strong>{round}</strong></span><span className="combat-chip turn-chip">Turn: <strong>{battle[turn]?.name || 'Initiative'}</strong></span>{battle[turn] && <span className="combat-chip hp-chip">{battle[turn].hp} / {battle[turn].maxHp} HP</span>}</div></div><div className="session-actions"><button className="primary session-action-btn" onClick={advanceTurn} title="Next Turn"><SkipForward size={14}/> Next Turn</button><button className="secondary session-action-btn" onClick={() => setModal('journal')} title="Session Notes"><BookOpen size={14}/> Notes</button><button className="danger-text session-action-btn" onClick={endEncounter} title="End Encounter">End Battle</button></div></div> : <div className="campaign-hero-header"><div className="campaign-hero-eyebrow">ACTIVE CAMPAIGN</div><h1 className="campaign-hero-title">{campaign || 'Campaign'}</h1></div>}{partyCharacters.filter(c => c.kind === 'Player').length > 0 && <div className="party-status-strip" aria-label="Party status overview"><div className="party-strip-heading"><div className="inline"><Shield size={14}/><span>PARTY VITALS</span></div><button className="text-button party-manage-btn" onClick={() => setPage('Characters & NPCs')}>Manage party <ArrowUpRight size={13}/></button></div><div className="party-cards-grid">{partyCharacters.filter(c => c.kind === 'Player').map(pc => <div key={pc.id} className="party-card"><div className="party-card-avatar">{pc.portrait ? <img src={pc.portrait} alt="" /> : pc.name.slice(0, 1)}</div><div className="party-card-info"><strong>{pc.name}</strong><small>{pc.role || 'Player Character'}</small></div><div className="party-card-stats"><span className="party-stat ac-stat" title="Armor Class"><Shield size={12}/><strong>{pc.ac ?? 10}</strong><small>AC</small></span><span className="party-stat pp-stat" title="Passive Perception"><Eye size={12}/><strong>{pc.passivePerception ?? 10}</strong><small>PP</small></span><span className="party-stat hp-stat" title="Hit Points"><small>HP</small><strong>{pc.hp}</strong></span></div></div>)}</div></div>}<div className="workspace-toolbar"><div className="inline" style={{ gap: '10px', flexWrap: 'wrap' }}><div className="tabs" style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>{dashboardTabs.map(t => <div key={t} className="inline" style={{ gap: '2px' }}><button onClick={() => setLayout(t)} className={layout === t ? 'selected' : ''}>{t}</button>{dashboardTabs.length > 1 && !layoutLocked && <button className="icon-button" aria-label={`Remove tab ${t}`} title={`Remove tab ${t}`} onClick={(e) => { e.stopPropagation(); const remaining = dashboardTabs.filter(tab => tab !== t); setDashboardTabs(remaining); if (layout === t) setLayout(remaining[0]); notify(`Tab "${t}" removed`); }} style={{ padding: '2px', opacity: 0.7 }}><X size={12}/></button>}</div>)}<button className="icon-button" aria-label="Add tab" title="Add new dashboard tab" onClick={() => { const name = prompt('Tab name:', `Tab ${dashboardTabs.length + 1}`)?.trim(); if (name && !dashboardTabs.includes(name)) { setDashboardTabs([...dashboardTabs, name]); if (!orders[name]) setOrders({ ...orders, [name]: ['combat', 'atmosphere', 'journal', 'dice'] }); setLayout(name); notify(`Tab "${name}" created`); } }} style={{ padding: '6px', border: '1px dashed var(--line)', borderRadius: '6px' }}><Plus size={14}/></button></div><button className={layoutLocked ? 'secondary layout-lock-toggle' : 'primary layout-lock-toggle'} aria-label={layoutLocked ? 'Unlock layout' : 'Lock layout'} title={layoutLocked ? 'Unlock layout to reorder and resize widgets' : 'Lock layout to prevent accidental changes'} onClick={() => {
                 const next = !layoutLocked;
                 setLayoutLocked(next);
                 notify(next ? 'Layout locked' : 'Layout unlocked · reorder & resize enabled');
@@ -789,7 +945,7 @@ export default function App() {
                         setProviderStopped(false);
                         setPlayerCollapsed(false);
                     }
-                }}>{active.source.provider === 'YouTube' ? 'Open mixer' : 'Show player'}</button></div>}<div className="playback"><button className="secondary" aria-label="Reset mix" onClick={() => setLayers(active.layers)}><RotateCcw size={17}/></button><button className="primary" onClick={toggleAudio}>{playing ? <Pause size={18}/> : <Play size={18}/>} {playing ? 'Pause ambience' : active.source ? 'Play ambience' : 'Play scene'}</button><button className="secondary" aria-label="Mute all" onClick={() => setMuted(!muted)}>{muted ? <VolumeX size={17}/> : <Volume2 size={17}/>}</button></div><div className="console-divider"/><div className="between"><h3>Ambience layers</h3><small>Independent mix</small></div>{mixer()}<div className="console-divider"/><div className="between"><h3>Music channel</h3><small>{music}%</small></div><input aria-label="Music volume" type="range" value={music} onChange={e => { setMusic(+e.target.value); (document.getElementById('local-audio') as HTMLAudioElement).volume = +e.target.value / 100; }}/><p className="control-note">Controls local audio. Provider players use their own volume controls.</p><div className="master"><div className="between"><h3><Volume2 size={16}/> Ambience master</h3><strong>{muted ? 'Muted' : master + '%'}</strong></div><input aria-label="Ambience master volume" type="range" value={master} onChange={e => setMaster(+e.target.value)}/></div><div className="console-foot"><span><Check size={13}/> Mix autosaved locally</span><button className="text-button" onClick={() => { setPlaying(false); setLayerActive([true, true, true, true]); const el = document.getElementById('local-audio') as HTMLAudioElement | null; el?.pause(); setProviderStopped(true); setYoutubeStopSignal(value => value + 1); notify('Audio stopped'); }}>Stop all</button></div></aside></div></>}</div>{playing && <footer className="now-playing"><div className="inline"><div className={`now-art ${active.art}`}><Headphones size={19}/></div><div><strong>{active.name}</strong><small>Ambience playing <span>·</span> {campaign}</small></div></div><div className="now-center"><button aria-label="Toggle ambience playback" className="icon-button" onClick={toggleAudio}><Pause size={20}/></button><div className="equalizer animated">{[8, 18, 12, 25, 16, 22, 10, 18, 27, 15, 20, 10, 23, 17, 12, 21, 9, 18].map((h, i) => <i key={i} style={{ height: h, animationDelay: `${i * .07}s` }}/>)}</div><span>LIVE MIX</span></div><div className="inline"><button className="icon-button" aria-label="Toggle mute" onClick={() => setMuted(!muted)}>{muted ? <VolumeX size={17}/> : <Volume2 size={17}/>}</button><input aria-label="Quick master volume" type="range" value={master} onChange={e => setMaster(+e.target.value)}/><button className="text-button" onClick={() => setPage('Atmosphere Studio')}>Open mixer <ArrowUpRight size={15}/></button></div></footer>}</main><YouTubeMixer sources={youtubeSources} deckA={youtubeDeckA} deckB={youtubeDeckB} setDeckA={setYoutubeDeckA} setDeckB={setYoutubeDeckB} volumeA={youtubeVolumeA} volumeB={youtubeVolumeB} setVolumeA={setYoutubeVolumeA} setVolumeB={setYoutubeVolumeB} master={youtubeMaster} crossfade={youtubeCrossfade} setMaster={setYoutubeMaster} setCrossfade={setYoutubeCrossfade} open={youtubeMixerOpen} setOpen={setYoutubeMixerOpen} stopSignal={youtubeStopSignal}/>{active.source?.provider === 'Spotify' && !providerStopped && <aside className={`source-player-dock ${playerCollapsed ? 'collapsed' : ''}`} aria-label="Source playback"><div className="source-player-heading"><div><Music size={14}/><strong>{active.name}</strong><small>{active.source.provider}</small></div><button className="icon-button" aria-label={playerCollapsed ? 'Expand source player' : 'Minimize source player'} onClick={() => setPlayerCollapsed(!playerCollapsed)}><ChevronDown size={17}/></button><button className="icon-button" aria-label="Stop source player" onClick={() => setProviderStopped(true)}><X size={16}/></button></div><div className="provider-player"><iframe key={active.source.embed} src={active.source.embed} title={`${active.source.provider}: ${active.name}`} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/><a href={active.source.url} target="_blank" rel="noreferrer">Open in {active.source.provider} <ArrowUpRight size={13}/></a><small>Source volume and playback use the provider controls.</small></div></aside>}{freesoundTargetSlot !== null && <FreesoundModal targetLayerIndex={freesoundTargetSlot} onClose={() => setFreesoundTargetSlot(null)} onSelectSound={async (sound, buffer) => {
+                }}>{active.source.provider === 'YouTube' ? 'Open mixer' : 'Show player'}</button></div>}<div className="playback"><button className="secondary" aria-label="Reset mix" onClick={() => setLayers(layerNames.map((_, idx) => active.layers[idx] ?? 50))}><RotateCcw size={17}/></button><button className="primary" onClick={toggleAudio}>{playing ? <Pause size={18}/> : <Play size={18}/>} {playing ? 'Pause ambience' : active.source ? 'Play ambience' : 'Play scene'}</button><button className="secondary" aria-label="Mute all" onClick={() => setMuted(!muted)}>{muted ? <VolumeX size={17}/> : <Volume2 size={17}/>}</button></div><div className="console-divider"/><div className="between"><h3>Ambience layers</h3><small>Independent mix</small></div>{mixer()}<div className="console-divider"/><div className="between"><h3>Music channel</h3><small>{music}%</small></div><input aria-label="Music volume" type="range" value={music} onChange={e => { setMusic(+e.target.value); (document.getElementById('local-audio') as HTMLAudioElement).volume = +e.target.value / 100; }}/><p className="control-note">Controls local audio. Provider players use their own volume controls.</p><div className="master"><div className="between"><h3><Volume2 size={16}/> Ambience master</h3><strong>{muted ? 'Muted' : master + '%'}</strong></div><input aria-label="Ambience master volume" type="range" value={master} onChange={e => setMaster(+e.target.value)}/></div><div className="console-foot"><span><Check size={13}/> Mix autosaved locally</span><button className="text-button" onClick={() => { setPlaying(false); setLayerActive(layerNames.map(() => true)); const el = document.getElementById('local-audio') as HTMLAudioElement | null; el?.pause(); setProviderStopped(true); setYoutubeStopSignal(value => value + 1); notify('Audio stopped'); }}>Stop all</button></div></aside></div></>}</div>{playing && <footer className="now-playing"><div className="inline"><div className={`now-art ${active.art}`}><Headphones size={19}/></div><div><strong>{active.name}</strong><small>Ambience playing <span>·</span> {campaign}</small></div></div><div className="now-center"><button aria-label="Toggle ambience playback" className="icon-button" onClick={toggleAudio}><Pause size={20}/></button><div className="equalizer animated">{[8, 18, 12, 25, 16, 22, 10, 18, 27, 15, 20, 10, 23, 17, 12, 21, 9, 18].map((h, i) => <i key={i} style={{ height: h, animationDelay: `${i * .07}s` }}/>)}</div><span>LIVE MIX</span></div><div className="inline"><button className="icon-button" aria-label="Toggle mute" onClick={() => setMuted(!muted)}>{muted ? <VolumeX size={17}/> : <Volume2 size={17}/>}</button><input aria-label="Quick master volume" type="range" value={master} onChange={e => setMaster(+e.target.value)}/><button className="text-button" onClick={() => setPage('Atmosphere Studio')}>Open mixer <ArrowUpRight size={15}/></button></div></footer>}</main><YouTubeMixer sources={youtubeSources} deckA={youtubeDeckA} deckB={youtubeDeckB} setDeckA={setYoutubeDeckA} setDeckB={setYoutubeDeckB} volumeA={youtubeVolumeA} volumeB={youtubeVolumeB} setVolumeA={setYoutubeVolumeA} setVolumeB={setYoutubeVolumeB} master={youtubeMaster} crossfade={youtubeCrossfade} setMaster={setYoutubeMaster} setCrossfade={setYoutubeCrossfade} open={youtubeMixerOpen} setOpen={setYoutubeMixerOpen} stopSignal={youtubeStopSignal}/>{active.source?.provider === 'Spotify' && !providerStopped && <aside className={`source-player-dock ${playerCollapsed ? 'collapsed' : ''}`} aria-label="Source playback"><div className="source-player-heading"><div><Music size={14}/><strong>{active.name}</strong><small>{active.source.provider}</small></div><button className="icon-button" aria-label={playerCollapsed ? 'Expand source player' : 'Minimize source player'} onClick={() => setPlayerCollapsed(!playerCollapsed)}><ChevronDown size={17}/></button><button className="icon-button" aria-label="Stop source player" onClick={() => setProviderStopped(true)}><X size={16}/></button></div><div className="provider-player"><iframe key={active.source.embed} src={active.source.embed} title={`${active.source.provider}: ${active.name}`} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/><a href={active.source.url} target="_blank" rel="noreferrer">Open in {active.source.provider} <ArrowUpRight size={13}/></a><small>Source volume and playback use the provider controls.</small></div></aside>}{freesoundTargetSlot !== null && <FreesoundModal targetLayerIndex={freesoundTargetSlot} onClose={() => setFreesoundTargetSlot(null)} onSelectSound={async (sound, buffer) => {
         const slot = freesoundTargetSlot;
         const next = [...customLayers];
         next[slot] = sound;
@@ -800,7 +956,7 @@ export default function App() {
             await setupLayerSource(slot, audio.current, gains.current[slot], sound, buffer);
         }
         notify(`Loaded "${sound.name}" into slot ${slot + 1}`);
-    }}/>}{toast && <div role="status" className="toast"><Check size={16}/>{toast}</div>}{modal && <div className="modal-backdrop" onClick={() => campaigns.length && setModal('')}><div className="modal" role="dialog" aria-modal="true" aria-label={modal} onClick={e => e.stopPropagation()}>{(modal !== 'campaign' || campaigns.length > 0) && <button className="modal-close icon-button" aria-label="Close dialog" onClick={() => setModal('')}><X size={20}/></button>}{modal === 'campaign' ? <>{campaigns.length ? <div className="campaign-create-icon"><PlanarchBrand mode={theme} compact className="modal-seal-mark" alt="Planarch"/></div> : <PlanarchBrand mode={theme} variant="stacked" className="welcome-brand-logo" alt="Planarch"/>}<span className="eyebrow">{campaigns.length ? 'NEW ADVENTURE' : 'WELCOME TO PLANARCH'}</span><h2>{campaigns.length ? 'Create a campaign' : 'Name your first campaign'}</h2><p>Campaigns keep encounters, characters, wiki pages, combat state and session notes separate.</p><label>Campaign name<input autoFocus aria-label="New campaign name" value={campaignName} maxLength={80} onChange={e => { setCampaignName(e.target.value); setCampaignError(''); }} onKeyDown={e => e.key === 'Enter' && createCampaign()} placeholder="e.g. The Shattered Crown"/></label>{campaignError && <p role="alert" className="form-error">{campaignError}</p>}<button className="primary campaign-create-submit" disabled={!campaignName.trim()} onClick={createCampaign}><Plus size={16}/>Create and activate</button></> : modal === 'delete-campaign' ? <><div className="campaign-delete-icon"><Trash2 size={25}/></div><span className="eyebrow">DELETE CAMPAIGN</span><h2>Delete {campaign}?</h2><p>This permanently clears its encounters, characters, wiki posts and images, combat state, and session notes from this workspace and queues those empty records for Supabase sync.</p><label>Type the campaign name to confirm<input autoFocus aria-label="Confirm campaign deletion" value={deleteCampaignText} onChange={e => { setDeleteCampaignText(e.target.value); setDeleteCampaignError(''); }} onKeyDown={e => e.key === 'Enter' && deleteCampaign()} placeholder={campaign}/></label>{deleteCampaignError && <p role="alert" className="form-error">{deleteCampaignError}</p>}<button className="danger campaign-delete-submit" disabled={deleteCampaignText.trim() !== campaign} onClick={deleteCampaign}><Trash2 size={16}/>Delete campaign permanently</button></> : modal === 'search' ? <><h2>Find your way</h2><input autoFocus placeholder="Search workspaces or scenes…" value={query} onChange={e => setQuery(e.target.value)}/>{['Dashboard', 'Atmosphere Studio', 'Encounters', 'Characters & NPCs', 'Campaign wiki', 'Compendium', ...allScenes.map(s => s.name)].filter(n => n.toLowerCase().includes(query.toLowerCase())).map(n => <button className="search-result" key={n} onClick={() => {
+    }}/>}{toast && <motion.div role="status" className="toast" initial={{ opacity: 0, y: 16, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.95 }} transition={{ type: 'spring', damping: 25, stiffness: 350 }}><Check size={16}/>{toast}</motion.div>}{modal && <motion.div className="modal-backdrop" onClick={() => campaigns.length && setModal('')} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}><motion.div className="modal" role="dialog" aria-modal="true" aria-label={modal} onClick={e => e.stopPropagation()} initial={{ opacity: 0, scale: 0.96, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 10 }} transition={{ type: 'spring', damping: 26, stiffness: 360 }}>{(modal !== 'campaign' || campaigns.length > 0) && <button className="modal-close icon-button" aria-label="Close dialog" onClick={() => setModal('')}><X size={20}/></button>}{modal === 'campaign' ? <>{campaigns.length ? <div className="campaign-create-icon"><PlanarchBrand mode={theme} compact className="modal-seal-mark" alt="Planarch"/></div> : <PlanarchBrand mode={theme} variant="stacked" className="welcome-brand-logo" alt="Planarch"/>}<span className="eyebrow">{campaigns.length ? 'NEW ADVENTURE' : 'WELCOME TO PLANARCH'}</span><h2>{campaigns.length ? 'Create a campaign' : 'Name your first campaign'}</h2><p>Campaigns keep encounters, characters, wiki pages, combat state and session notes separate.</p><label>Campaign name<input autoFocus aria-label="New campaign name" value={campaignName} maxLength={80} onChange={e => { setCampaignName(e.target.value); setCampaignError(''); }} onKeyDown={e => e.key === 'Enter' && createCampaign()} placeholder="e.g. The Shattered Crown"/></label>{campaignError && <p role="alert" className="form-error">{campaignError}</p>}<button className="primary campaign-create-submit" disabled={!campaignName.trim()} onClick={createCampaign}><Plus size={16}/>Create and activate</button></> : modal === 'delete-campaign' ? <><div className="campaign-delete-icon"><Trash2 size={25}/></div><span className="eyebrow">DELETE CAMPAIGN</span><h2>Delete {campaign}?</h2><p>This permanently clears its encounters, characters, wiki posts and images, combat state, and session notes from this workspace and queues those empty records for Supabase sync.</p><label>Type the campaign name to confirm<input autoFocus aria-label="Confirm campaign deletion" value={deleteCampaignText} onChange={e => { setDeleteCampaignText(e.target.value); setDeleteCampaignError(''); }} onKeyDown={e => e.key === 'Enter' && deleteCampaign()} placeholder={campaign}/></label>{deleteCampaignError && <p role="alert" className="form-error">{deleteCampaignError}</p>}<button className="danger campaign-delete-submit" disabled={deleteCampaignText.trim() !== campaign} onClick={deleteCampaign}><Trash2 size={16}/>Delete campaign permanently</button></> : modal === 'search' ? <><h2>Find your way</h2><input autoFocus placeholder="Search workspaces or scenes…" value={query} onChange={e => setQuery(e.target.value)}/>{['Dashboard', 'Atmosphere Studio', 'Encounters', 'Characters & NPCs', 'Campaign wiki', 'Compendium', ...allScenes.map(s => s.name)].filter(n => n.toLowerCase().includes(query.toLowerCase())).map(n => <button className="search-result" key={n} onClick={() => {
                         const i = allScenes.findIndex(s => s.name === n);
                         if (i >= 0) {
                             activate(i);
@@ -838,7 +994,7 @@ export default function App() {
                     setFilter('All scenes');
                     setModal('');
                     notify('Source added to atmosphere selection');
-                }}/> : modal === 'journal' ? <><h2>{campaign} · Session notes</h2><textarea value={note} onChange={e => setNote(e.target.value)} aria-label="Expanded journal"/><small>Autosaved to this browser.</small></> : <><div className="settings-brand-header"><PlanarchBrand mode={theme} className="settings-brand-logo" alt="Planarch"/></div><h2>Your workspace</h2><p>Connect Supabase to synchronize your workspace across devices. JSON backups remain available; the compendium and uploaded audio are synchronized separately through Cloud Storage.</p><CloudSettings /><button className="secondary" onClick={exportData}><Download size={16}/> Export workspace backup</button><label className="secondary file-label">Import backup<input type="file" accept="application/json" onChange={async (e) => {
+                }}/> : modal === 'journal' ? <><h2>{campaign} · Session notes</h2><textarea value={note} onChange={e => setNote(e.target.value)} aria-label="Expanded journal"/><small>Autosaved to this browser.</small></> : <><div className="settings-brand-header"><PlanarchBrand mode={theme} className="settings-brand-logo" alt="Planarch"/></div><h2>Your workspace</h2><div className="palette-picker-section"><h3>Theme & Palette</h3><div className="palette-group"><div className="palette-group-label">DARK THEMES</div><div className="palette-grid" role="radiogroup" aria-label="Dark theme palettes">{PALETTES.filter(p => p.mode === 'dark').map(p => <button key={p.id} type="button" role="radio" aria-checked={palette.id === p.id} data-palette={p.id} className={`palette-card ${palette.id === p.id ? 'selected' : ''}`} onClick={() => setThemePref(p.id)} aria-label={`${p.name} (Dark theme)`}><div className="palette-header"><span className="palette-name">{p.name}</span><span className="badge subtle">Dark</span></div><div className="palette-swatches" aria-hidden="true"><span className="swatch-circle" style={{ backgroundColor: p.canvas }} title="Canvas" /><span className="swatch-circle" style={{ backgroundColor: p.surface }} title="Surface" /><span className="swatch-circle" style={{ backgroundColor: p.text }} title="Text" /><span className="swatch-circle" style={{ backgroundColor: p.accent }} title="Accent" /></div></button>)}</div></div><div className="palette-group"><div className="palette-group-label">LIGHT THEMES</div><div className="palette-grid" role="radiogroup" aria-label="Light theme palettes">{PALETTES.filter(p => p.mode === 'light').map(p => <button key={p.id} type="button" role="radio" aria-checked={palette.id === p.id} data-palette={p.id} className={`palette-card ${palette.id === p.id ? 'selected' : ''}`} onClick={() => setThemePref(p.id)} aria-label={`${p.name} (Light theme)`}><div className="palette-header"><span className="palette-name">{p.name}</span><span className="badge subtle">Light</span></div><div className="palette-swatches" aria-hidden="true"><span className="swatch-circle" style={{ backgroundColor: p.canvas }} title="Canvas" /><span className="swatch-circle" style={{ backgroundColor: p.surface }} title="Surface" /><span className="swatch-circle" style={{ backgroundColor: p.text }} title="Text" /><span className="swatch-circle" style={{ backgroundColor: p.accent }} title="Accent" /></div></button>)}</div></div></div><p>Connect Supabase to synchronize your workspace across devices. JSON backups remain available; the compendium and uploaded audio are synchronized separately through Cloud Storage.</p><CloudSettings /><button className="secondary" onClick={exportData}><Download size={16}/> Export workspace backup</button><label className="secondary file-label">Import backup<input type="file" accept="application/json" onChange={async (e) => {
                     try {
                         const f = e.target.files?.[0];
                         if (!f)
@@ -866,7 +1022,7 @@ export default function App() {
                         sessionStorage.setItem('planarch-youtube-key', e.target.value);
                     }
                     catch { }
-                }}/><small>No key? You can still open a title search and paste a matching video.</small></div><div className="settings-note">React + TypeScript + Vite<br />Netlify: npm run build → dist<br />Keyboard: Ctrl / ⌘ K to search, Esc to close</div></>}</div></div>}
+                }}/><small>No key? You can still open a title search and paste a matching video.</small></div><div className="settings-note">React + TypeScript + Vite<br />Netlify: npm run build → dist<br />Keyboard: Ctrl / ⌘ K to search, Esc to close</div></>}</motion.div></motion.div>}
     {rollOverlay && <div className="quick-roll-overlay" role="status" aria-live="polite">
       <div className="quick-roll-header">
         <span className="quick-roll-label">{rollOverlay.label}</span>

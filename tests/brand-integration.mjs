@@ -1,3 +1,4 @@
+globalThis.document = globalThis.document || { documentElement: { scrollLeft: 0, scrollTop: 0 }, body: { scrollLeft: 0, scrollTop: 0 } };
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -150,10 +151,14 @@ assert.ok(brandImgs.length > 0, 'App failed to render Planarch brand image in DO
 assert.equal(brandImgs[0].props.src, '/branding/planarch-logo-horizontal-on-light.svg');
 console.log('PASS app integration: App renders Planarch horizontal brand logo on light surface');
 
-// Switch to dark theme and verify logo updates
-const themeToggle = appRender.root.findByProps({ 'aria-label': 'Switch to dark theme' });
+// Switch to dark theme via Settings and verify logo updates
+const settingsBtn = appRender.root.findByProps({ 'aria-label': 'Settings & backup' });
 await act(async () => {
-  themeToggle.props.onClick();
+  settingsBtn.props.onClick();
+});
+const darkPaletteBtn = appRender.root.findAllByType('button').find(b => b.props['data-palette'] === 'mission-control');
+await act(async () => {
+  darkPaletteBtn.props.onClick();
 });
 
 const darkBrandImgs = appRender.root.findAllByType('img').filter(img => img.props.alt === 'Planarch');

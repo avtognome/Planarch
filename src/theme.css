@@ -749,4 +749,77 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
   color: #b45309;
 }
 
+/* Palette Selector in Settings Modal */
+.palette-picker-section {
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.palette-picker-section h3 {
+  margin-bottom: 4px;
+}
+.palette-group {
+  margin-top: 14px;
+}
+.palette-group-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+.palette-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.palette-card:hover {
+  border-color: var(--accent);
+}
+.palette-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.palette-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.palette-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.palette-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+.palette-swatches {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.swatch-circle {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+
 

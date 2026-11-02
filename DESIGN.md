@@ -17,37 +17,31 @@ colors:
   text-muted: "#94a3b8"
   text-muted-light: "#64748b"
 typography:
-  display:
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro', system-ui, sans-serif"
-    fontSize: "1.75rem"
-    fontWeight: 700
-    lineHeight: 1.2
-    letterSpacing: "-0.02em"
-  headline:
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro', system-ui, sans-serif"
-    fontSize: "1.25rem"
+  family: "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+  weights:
+    regular: 400
+    semibold: 600
+  page:
+    fontFamily: "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    fontSize: "22px"
     fontWeight: 600
-    lineHeight: 1.25
-  title:
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro', system-ui, sans-serif"
-    fontSize: "0.95rem"
+    lineHeight: 1.2
+    letterSpacing: "-0.01em"
+  section:
+    fontFamily: "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    fontSize: "17px"
     fontWeight: 600
     lineHeight: 1.3
   body:
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro', system-ui, sans-serif"
-    fontSize: "0.85rem"
+    fontFamily: "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.45
   label:
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro', system-ui, sans-serif"
-    fontSize: "0.75rem"
-    fontWeight: 500
-    letterSpacing: "0.04em"
-  reference:
-    fontFamily: "Georgia, 'Times New Roman', serif"
-    fontSize: "0.85rem"
+    fontFamily: "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    fontSize: "13px"
     fontWeight: 400
-    lineHeight: 1.55
+    lineHeight: 1.4
 rounded:
   sm: "6px"
   md: "8px"

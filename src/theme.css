@@ -821,5 +821,948 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
   flex-shrink: 0;
 }
 
+/* Character Sheet UI */
+.char-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--text);
+  font-family: inherit;
+}
+
+.char-sheet-header {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 18px;
+}
+
+.char-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.char-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 240px;
+}
+
+.char-name-input {
+  font-size: 20px;
+  font-weight: 700;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--line);
+  color: var(--text);
+  padding: 2px 4px;
+  width: 100%;
+  border-radius: 0;
+}
+
+.char-name-input:focus {
+  border-bottom-color: var(--accent);
+  outline: none;
+}
+
+.char-details-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.char-detail-input {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px dashed transparent;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.char-detail-input:focus,
+.char-detail-input:hover {
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+.char-detail-sep {
+  color: var(--line-strong);
+  font-size: 11px;
+}
+
+.char-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.char-level-badge,
+.char-pb-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  padding: 4px 8px;
+  border-radius: 8px;
+  min-width: 58px;
+}
+
+.char-level-label,
+.char-pb-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.char-level-spinner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.char-level-btn {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.char-level-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.char-level-num,
+.char-pb-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.char-rest-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.char-rest-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 6px 10px;
+}
+
+/* Sections */
+.char-section {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.char-section-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--panel-alt);
+  border: none;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.char-section-toggle:hover {
+  background: var(--panel-elevated);
+}
+
+.char-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+
+.char-section-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Common cards */
+.char-stat-card {
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.char-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.char-num-hero {
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--accent);
+  width: 100%;
+}
+
+.char-num-hero:focus {
+  border-color: var(--accent);
+  background: var(--panel);
+}
+
+/* Combat section */
+.char-combat-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.char-hp-card {
+  background: var(--stat-hp-bg);
+  border-color: var(--stat-hp-border);
+}
+
+.char-hp-readout {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 8px;
+}
+
+.char-hp-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.char-hp-input {
+  font-size: 26px;
+  font-weight: 800;
+  width: 72px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--stat-hp-color);
+}
+
+.char-temp-hp .char-hp-input {
+  color: var(--accent);
+}
+
+.char-hp-divider {
+  font-size: 24px;
+  color: var(--text-muted);
+  font-weight: 300;
+}
+
+.char-hp-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.char-hp-delta-input {
+  width: 90px;
+  text-align: center;
+  font-size: 13px;
+  padding: 4px 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.char-damage-btn {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.char-heal-btn {
+  background: #10b981;
+  color: #fff;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.char-core-trio {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.char-speed-val {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+}
+
+.char-combat-secondary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.char-hit-dice-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.char-mini-num {
+  width: 48px;
+  text-align: center;
+  font-size: 13px;
+  padding: 4px 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.char-die-type {
+  width: 48px;
+  text-align: center;
+  font-size: 13px;
+  padding: 4px 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.char-death-saves {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.char-save-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.char-save-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.char-pips {
+  display: flex;
+  gap: 6px;
+}
+
+.char-pip {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  background: var(--panel);
+  cursor: pointer;
+  padding: 0;
+}
+
+.char-pip.succ.active {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.char-pip.fail.active {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+.char-insp-exh {
+  justify-content: space-between;
+}
+
+.char-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.char-exhaustion-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.char-exh-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.char-combat-tertiary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.char-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.char-condition-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.char-condition-opt {
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.char-condition-opt:hover {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+}
+
+.char-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 28px;
+}
+
+.char-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.char-chip button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  display: flex;
+  padding: 0;
+}
+
+.char-inline-add {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.char-add-input {
+  flex: 1;
+  font-size: 12px;
+  padding: 4px 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+}
+
+.char-empty-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* 2. Ability Scores & Saving Throws */
+.char-abilities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 10px;
+}
+
+.char-ability-box {
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.char-ability-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.char-mod-hero {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.char-score-row {
+  display: flex;
+  justify-content: center;
+}
+
+.char-score-input {
+  width: 44px;
+  text-align: center;
+  font-size: 12px;
+  padding: 2px 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text);
+}
+
+.char-save-block {
+  margin-top: 4px;
+}
+
+.char-save-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.char-save-val {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* 3. Skills & Senses */
+.char-passives-banner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.char-passive-box {
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.char-passive-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.char-passive-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.char-skills-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 6px;
+}
+
+.char-skill-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.char-skill-checks {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.char-expertise-btn {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 1px 3px;
+  cursor: pointer;
+}
+
+.char-expertise-btn.active {
+  background: var(--accent);
+  color: var(--panel);
+  border-color: var(--accent);
+}
+
+.char-skill-ability {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 24px;
+}
+
+.char-skill-name {
+  flex: 1;
+  color: var(--text);
+}
+
+.char-skill-bonus {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* 4. Proficiencies & Training */
+.char-training-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.char-training-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.char-training-input {
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text);
+  resize: vertical;
+}
+
+/* 5. Features & Tracked Resources */
+.char-resources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.char-resource-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.char-resource-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.char-res-reset {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.char-res-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.char-res-btn {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--accent);
+  font-weight: 700;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.char-res-val {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.char-add-resource-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.char-features-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* 6. Items & Inventory */
+.char-attunement-counter,
+.char-prepared-counter {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.char-inventory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.char-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.char-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.char-item-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.char-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.char-attune-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.char-add-item-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* 7. Spells & Spell Slots */
+.char-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+  gap: 6px;
+}
+
+.char-slot-card {
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.char-slot-lvl {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.char-slot-counts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.char-slot-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.char-slot-field small {
+  font-size: 8px;
+  color: var(--text-muted);
+}
+
+.char-slot-field .char-mini-num {
+  width: 32px;
+  padding: 2px;
+  font-size: 11px;
+}
+
+.char-slot-sep {
+  font-size: 12px;
+  color: var(--line-strong);
+}
+
+.char-spells-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.char-spell-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--panel-alt);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.char-spell-prep {
+  display: flex;
+  align-items: center;
+}
+
+.char-cantrip-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 4px;
+  background: var(--line);
+  border-radius: 3px;
+  color: var(--text-muted);
+}
+
+.char-spell-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.char-spell-name {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.char-spell-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.char-spell-tags {
+  display: flex;
+  gap: 4px;
+}
+
+.char-spell-tag {
+  font-size: 9px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text-muted);
+}
+
+.char-add-spell-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.char-school-input {
+  max-width: 130px;
+}
+
+.char-spell-checkboxes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.char-mini-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+
 
 

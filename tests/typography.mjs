@@ -36,4 +36,33 @@ const designMdPath = path.join(root, 'DESIGN.md');
 const designMd = fs.readFileSync(designMdPath, 'utf8');
 assert(/IBM Plex Sans/i.test(designMd), 'DESIGN.md must reference IBM Plex Sans');
 
+// Check 5: CSS files must not contain legacy font families outside fallback definitions
+const cssFiles = [
+  path.join(root, 'src', 'style.css'),
+  path.join(root, 'src', 'features.css'),
+  path.join(root, 'src', 'theme.css'),
+];
+
+for (const file of cssFiles) {
+  const content = fs.readFileSync(file, 'utf8');
+  const basename = path.basename(file);
+
+  // No Georgia, Manrope, or monospace families
+  assert(!/\b(Georgia|Manrope|ui-monospace|SFMono-Regular|Menlo|Monaco)\b/i.test(content), `${basename} must not contain legacy font families (Georgia/Manrope/monospace)`);
+
+  // No literal -apple-system/BlinkMacSystemFont outside --font-ui token definition
+  const withoutFontUiDef = content.replace(/--font-ui:[^;]+;/g, '');
+  assert(!/-apple-system|BlinkMacSystemFont|"SF Pro Display"|"SF Pro Text"/i.test(withoutFontUiDef), `${basename} must not contain hardcoded Apple system fonts outside --font-ui definition`);
+
+  // No visible font-size below 13px: regex matches [1-9]px or 1[0-2](\.\d+)?px (excluding 0px / 0)
+  // Match font-size: Xpx or font: ... Xpx
+  const undersizedMatches = content.match(/(?:font-size:\s*|font:\s*(?:[^;}]*\s+)?)([1-9](?:\.\d+)?|1[0-2](?:\.\d+)?)px\b/gi) || [];
+  assert.equal(undersizedMatches.length, 0, `${basename} contains undersized text (< 13px): ${undersizedMatches.slice(0, 10).join(', ')}`);
+
+  // No font-weight other than 400 or 600 (or inherit/normal/bold if mapped, but plan specifies 400/600 only)
+  // We check for explicit numbers like 500, 650, 700, 750, 800, 900
+  const nonStandardWeights = content.match(/font-weight:\s*(?:100|200|300|500|650|700|750|800|900)\b/gi) || [];
+  assert.equal(nonStandardWeights.length, 0, `${basename} contains non-standard font weights: ${nonStandardWeights.slice(0, 10).join(', ')}`);
+}
+
 console.log('tests/typography.mjs: all base typography assertions passed.');

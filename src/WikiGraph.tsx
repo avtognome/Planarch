@@ -276,7 +276,7 @@ export function WikiGraph({ items, onSelectPage, activeId }: WikiGraphProps) {
         ctx.stroke();
 
         // Node Label
-        ctx.font = '600 11px -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif';
+        ctx.font = '600 13px "IBM Plex Sans", system-ui, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.fillStyle = isMatched 

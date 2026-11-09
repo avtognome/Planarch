@@ -170,3 +170,28 @@ await act(()=>field('Close dialog').props.onClick());
 await act(()=>render.unmount());
 console.log('PASS campaign display-name mapping: rename validation, scoped record stability, switch/reload persistence, deletion cleanup, and backup round-trip');
 
+// Test first-launch onboarding bypass and persistence
+store.clear();
+let freshRender;
+await act(async () => { freshRender = TestRenderer.create(React.createElement(App)); });
+const freshRoot = () => freshRender.root;
+assert.ok(freshRoot().findByProps({ 'aria-label': 'campaign' }));
+const closeBtn = freshRoot().findByProps({ 'aria-label': 'Close dialog' });
+assert.ok(closeBtn);
+await act(() => closeBtn.props.onClick());
+assert.equal(freshRoot().findAllByProps({ 'aria-label': 'campaign' }).length, 0);
+assert.equal(JSON.parse(store.get('wf-campaign-modal-dismissed') || 'false'), true);
+await act(() => freshRender.unmount());
+
+// On reload with 0 campaigns, dismissed state keeps modal closed
+await act(async () => { freshRender = TestRenderer.create(React.createElement(App)); });
+assert.equal(freshRender.root.findAllByProps({ 'aria-label': 'campaign' }).length, 0);
+// Clicking 'New campaign' still opens it cleanly
+const newCampaignBtn = freshRender.root.findAllByType('button').find(b => text(b).includes('New campaign'));
+assert.ok(newCampaignBtn);
+await act(() => newCampaignBtn.props.onClick());
+assert.ok(freshRender.root.findByProps({ 'aria-label': 'campaign' }));
+await act(() => freshRender.unmount());
+console.log('PASS first-launch campaign modal bypass and dismissal persistence');
+
+

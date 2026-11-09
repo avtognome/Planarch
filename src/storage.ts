@@ -4,6 +4,7 @@ const listeners=new Set<(change:SavedChange)=>void>();
 export function subscribeSaved(fn:(change:SavedChange)=>void){listeners.add(fn);return()=>{listeners.delete(fn)}}
 export function writeSavedJSON(key:string,json:string,remote=false){if(localStorage.getItem(key)===json)return;localStorage.setItem(key,json);for(const fn of listeners)fn({key,json,remote})}
 export function writeSavedValue(key:string,value:unknown,remote=false){writeSavedJSON(key,JSON.stringify(value),remote)}
+export function readSavedValue<T>(key:string,fallback:T):T{try{const raw=key.startsWith('archeron-')?readFallbackStorage(key):localStorage.getItem(key);return JSON.parse(raw||'null')??fallback}catch{return fallback}}
 export function workspaceKeys(){return Object.keys(localStorage).filter(k=>k.startsWith('wf-'))}
 export function readFallbackStorage(key:string,storage:Storage=localStorage):string|null{
  const primary=storage.getItem(key);

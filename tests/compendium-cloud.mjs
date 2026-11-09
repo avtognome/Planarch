@@ -161,3 +161,16 @@ const readHb = hbData.readHomebrew('test-camp');
 assert.equal(readHb.length, 1);
 assert.equal(readHb[0].name, 'Cave Stalker');
 console.log('PASS homebrew data remains accessible and usable offline');
+
+console.log('--- Test 8: Bundled compendium corpus removal regressions ---');
+assert.ok(!fs.existsSync('public/compendium'), 'public/compendium directory must be removed');
+assert.equal(typeof compData.importIncluded, 'undefined', 'importIncluded must not be exported');
+const compDataSrc = fs.readFileSync('src/compendiumData.ts', 'utf8');
+assert.ok(!compDataSrc.includes('/compendium/manifest.json'), 'compendiumData.ts must not fetch /compendium/manifest.json');
+assert.ok(!compDataSrc.includes('importIncluded'), 'compendiumData.ts must not define importIncluded');
+const compSrc = fs.readFileSync('src/Compendium.tsx', 'utf8');
+assert.ok(!compSrc.includes('importIncluded'), 'Compendium.tsx must not reference importIncluded');
+assert.ok(!compSrc.includes('Load included compendium'), 'Compendium.tsx must not have included sourcebook button');
+assert.ok(compSrc.includes('Import XML'), 'Compendium.tsx must still offer XML import');
+console.log('PASS bundled compendium corpus fully removed and XML import preserved');
+

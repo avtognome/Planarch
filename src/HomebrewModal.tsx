@@ -9,6 +9,7 @@ interface HomebrewModalProps {
   open: boolean;
   onClose: () => void;
   campaign: string;
+  campaignLabel?: string;
   onSaved?: (record: CompendiumRecord) => void;
   notify?: (msg: string) => void;
   initialRecord?: CompendiumRecord | null;
@@ -24,6 +25,7 @@ export default function HomebrewModal({
   open,
   onClose,
   campaign,
+  campaignLabel,
   onSaved,
   notify,
   initialRecord
@@ -191,7 +193,7 @@ export default function HomebrewModal({
           <div className="inline" style={{ gap: '8px' }}>
             <Sparkles size={20} className="brand-sparkle" />
             <h2>{initialRecord ? 'Edit Homebrew' : 'Create Homebrew'}</h2>
-            <span className="badge subtle">Campaign: {campaign}</span>
+            <span className="badge subtle">Campaign: {campaignLabel || campaign}</span>
           </div>
           <button className="modal-close icon-button" aria-label="Close dialog" onClick={onClose}><X size={20} /></button>
         </div>

@@ -315,7 +315,7 @@ export default function HomebrewModal({
                     <h4>Traits</h4>
                     <button
                       type="button"
-                      className="text-button"
+                      className="secondary small"
                       onClick={() => setTraits([...traits, { id: uid(), name: 'New Trait', text: '' }])}
                     >
                       <Plus size={13} /> Add Trait
@@ -357,7 +357,7 @@ export default function HomebrewModal({
                     <h4>Actions</h4>
                     <button
                       type="button"
-                      className="text-button"
+                      className="secondary small"
                       onClick={() => setActions([...actions, { id: uid(), name: 'Attack', text: '+5 to hit, reach 5 ft. Hit: 1d8+3 slashing damage.' }])}
                     >
                       <Plus size={13} /> Add Action

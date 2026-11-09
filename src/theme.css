@@ -73,6 +73,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .collapse-sidebar-button,.toggle-sidebar-button{min-width:44px;min-height:44px}
   .quick-roll-close{min-width:44px;min-height:44px;padding:10px}
   .party-manage-btn{min-height:44px;display:inline-flex;align-items:center}
+  .primary,.secondary,.text-button,.wiki-backlink-btn{min-height:44px}
   .new-campaign-button,.delete-campaign-button{min-height:44px}
   .hp-inline>button,.hp-custom button{min-height:44px;min-width:44px;padding:8px 12px}
   .tags button{min-height:44px;padding:8px 12px}
@@ -93,7 +94,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .theme-dark .theme-toggle:hover,.theme-dark .settings-toggle:hover{background:var(--line)!important;color:var(--accent)!important}
 .theme-light .primary{background:var(--accent);color:var(--panel);border-color:var(--accent);border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,0.08)}
 .theme-light .secondary{background:var(--panel);border-color:var(--line-strong);color:var(--text);border-radius:8px}
-.theme-light .text-button{color:var(--accent)}
+.theme-light .text-button{background:var(--panel);border-color:var(--line-strong);color:var(--text);border-radius:8px}
 .theme-light input:not([type=range]),.theme-light textarea,.theme-light select{color:var(--text);background:var(--panel);border-color:var(--line-strong);border-radius:8px}
 .theme-light input::placeholder,.theme-light textarea::placeholder{color:var(--muted)}
 .theme-light input[type=range]{background:var(--line)}.theme-light input[type=range]::-webkit-slider-thumb{background:var(--accent)}
@@ -139,7 +140,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .theme-dark .badge,.theme-dark .badge.subtle{background:var(--panel-alt);color:var(--accent);border-color:var(--line-strong);border-radius:6px}
 .theme-dark .scene-card{background:var(--panel);border-color:var(--line);border-radius:12px}
 .theme-dark .modal{background:var(--panel);border-color:var(--line);border-radius:12px;box-shadow:0 20px 48px -12px rgba(0,0,0,0.5)}
-.theme-dark .text-button,.theme-dark .eyebrow{color:var(--accent)}
+.theme-dark .text-button{background:var(--panel-alt);border-color:var(--line-strong);color:var(--text);border-radius:8px}.theme-dark .eyebrow{color:var(--accent)}
 
 /* Remove the final legacy green accents from records, sync, compendium and media controls. */
 .theme-light :is(a,.icon-button,.tool-search>svg,.editor-title>.inline,.record-list-title,.record-meta,.editor-field>span,.field-help,.tool-empty,.tool-empty h3,.tool-empty p,.autosave-note,.wiki-backlinks h3,.checkbox-field,.console-foot span,.control-note,.now-center>span){color:var(--accent)}
@@ -631,7 +632,7 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 .party-strip-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .party-strip-heading .inline{font-size:var(--type-label);font-weight:600;letter-spacing:1px;color:var(--muted);gap:6px}
 .party-strip-heading .inline svg{color:#f59e0b}
-.party-manage-btn{font-size:var(--type-label);font-weight:600;color:var(--muted);display:inline-flex;align-items:center;gap:4px;padding:0}
+.party-manage-btn{font-size:var(--type-label);font-weight:600;display:inline-flex;align-items:center;gap:4px}
 .party-manage-btn:hover{color:var(--accent)}
 .party-cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
 .party-card{display:flex;align-items:center;gap:10px;background:var(--panel-alt);border:1px solid var(--line);border-radius:10px;padding:8px 12px;transition:border-color .15s,box-shadow .15s}
@@ -651,8 +652,6 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 /* Theme light overrides for party status */
 .theme-light .party-status-strip{background:var(--panel);border-color:var(--line);box-shadow:0 1px 3px rgba(0,0,0,0.04),0 4px 12px rgba(0,0,0,0.02)}
 .theme-light .party-strip-heading .inline{color:var(--muted)}
-.theme-light .party-manage-btn{color:var(--muted)}
-.theme-light .party-manage-btn:hover{color:var(--accent)}
 .theme-light .party-card{background:var(--panel-alt);border-color:var(--line)}
 .theme-light .party-card:hover{border-color:var(--line-strong);box-shadow:0 2px 8px rgba(0,0,0,0.04)}
 .theme-light .party-card-info strong{color:var(--text)}

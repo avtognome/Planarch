@@ -1116,7 +1116,7 @@ export default function App() {
                         sessionStorage.setItem('archeron-youtube-key', e.target.value);
                     }
                     catch { }
-                }}/><small>No key? You can still open a title search and paste a matching video.</small></div><div className="settings-note">React + TypeScript + Vite<br />Netlify: npm run build → dist<br />Keyboard: Ctrl / ⌘ K to search, Esc to close</div></>}</motion.div></motion.div>}
+                }}/><small>No key? You can still open a title search and paste a matching video.</small></div><div className="settings-note">React + TypeScript + Vite<br />Vercel: npm run build → dist<br />Keyboard: Ctrl / ⌘ K to search, Esc to close</div></>}</motion.div></motion.div>}
     {rollOverlay && <div className="quick-roll-overlay" role="status" aria-live="polite">
       <div className="quick-roll-header">
         <span className="quick-roll-label">{rollOverlay.label}</span>

@@ -1,6 +1,6 @@
 # Connect Planarch to Supabase Free
 
-The website stays on Netlify. Supabase provides account sign-in, database synchronization and private file storage.
+The website stays on Vercel. Supabase provides account sign-in, database synchronization and private file storage.
 
 ## 1. Create your Supabase project
 
@@ -33,7 +33,7 @@ In Authentication → Sign-in / Providers, enable Email sign-in.
 
 In Authentication → URL Configuration:
 
-- Site URL: your Netlify website origin, for example `https://planarch.netlify.app`
+- Site URL: your Vercel website origin, for example `https://planarch.vercel.app`
 - Redirect URLs: add that same website and any custom domain you use
 
 Email confirmation may be enabled by default. If enabled, confirm your account from the signup email before signing in. Password reset emails return you to the app; open Settings after following the email link, then use Change or reset your password.

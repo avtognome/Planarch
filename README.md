@@ -1,6 +1,6 @@
 # Planarch — DM Command Center
 
-A local-first React + TypeScript + Vite application with a customizable modern-medieval DM workspace. It opens in an ivory-and-gold light theme and includes a remembered dark theme. Static hosting compatible with Netlify.
+A local-first React + TypeScript + Vite application with a customizable modern-medieval DM workspace. It opens in an ivory-and-gold light theme and includes a remembered dark theme. Static hosting compatible with Vercel.
 
 ## Run & deploy
 
@@ -14,7 +14,7 @@ npm test
 npm run build
 ```
 
-Netlify builds with `npm run build` and publishes `dist`. `netlify.toml` includes SPA routing. The checked-in pnpm lockfile also supports `pnpm install`.
+Vercel builds with `npm run build` and publishes `dist`. SPA routing and API functions run natively on Vercel. The checked-in pnpm lockfile also supports `pnpm install`.
 
 ## Dashboard
 
@@ -72,7 +72,7 @@ Spotify individual song links default to a YouTube matching workflow. Spotify oE
 
 The optional API key is entered by the user, stored in sessionStorage for the current tab, and never included in JSON backups or source files. Browser API keys must be restricted to the deployed site's HTTP referrers and the YouTube Data API. Without a key, the interface opens a song-title search on YouTube and accepts a chosen video URL. Direct Spotify embeds remain optional.
 
-For Netlify, `netlify/functions/spotify-title.mjs` supplies a same-origin fallback for Spotify metadata if direct browser oEmbed access fails. The current static Sites preview has no Netlify Functions runtime; if direct oEmbed is blocked there, the UI asks for a song title/artist. Automatic YouTube search uses the official API from the browser and does not depend on this function. Actual external playback/metadata availability and browser audio remain unverified by component tests.
+For Vercel, `api/spotify-title.mjs` supplies a same-origin fallback for Spotify metadata if direct browser oEmbed access fails. If direct oEmbed is blocked and the API function is unavailable, the UI asks for a song title/artist. Automatic YouTube search uses the official API from the browser and does not depend on this function. Actual external playback/metadata availability and browser audio remain unverified by component tests.
 
 Additional modules: `Compendium.tsx`, `compendiumData.ts`, `compendiumParser.ts`, `compendium.worker.ts`, `SourcePicker.tsx`, `musicLookup.ts`.
 

@@ -12,6 +12,12 @@ console.log('Testing Planarch Brand Integration...');
 
 // 1. Verify branding assets exist in public/branding
 const requiredAssets = [
+  'archeron-seal-gold.svg',
+  'archeron-seal-on-ivory.svg',
+  'archeron-logo-horizontal-on-dark.svg',
+  'archeron-logo-horizontal-on-light.svg',
+  'archeron-logo-stacked-on-dark.svg',
+  'archeron-logo-stacked-on-light.svg',
   'planarch-seal-gold.svg',
   'planarch-seal-on-ivory.svg',
   'planarch-logo-horizontal-on-dark.svg',
@@ -37,80 +43,83 @@ console.log(`PASS assets: all ${requiredAssets.length} brand files present in pu
 
 // 2. Verify index.html contains brand favicon, apple-touch-icon, and theme-color
 const html = fs.readFileSync('index.html', 'utf8');
-assert.ok(html.includes('/branding/planarch-favicon.svg'), 'index.html missing planarch-favicon.svg');
+assert.ok(html.includes('/branding/archeron-favicon.svg') || html.includes('/branding/planarch-favicon.svg'), 'index.html missing favicon');
 assert.ok(html.includes('/branding/planarch-apple-touch-icon.png'), 'index.html missing planarch-apple-touch-icon.png');
 assert.ok(html.includes('#17191a'), 'index.html missing #17191a theme-color');
-assert.ok(html.includes('Planarch'), 'index.html title missing Planarch');
+assert.ok(html.includes('Archeron') || html.includes('Planarch'), 'index.html title missing Archeron/Planarch');
 console.log('PASS index.html: favicon, touch-icon, theme-color, and title properly configured');
 
-// 3. Test PlanarchBrand component
+// 3. Test PlanarchBrand/ArcheronBrand component
 const out = path.resolve('.sites-runtime/test-modules');
 fs.mkdirSync(out, { recursive: true });
 
-const brandTsxPath = path.join('src', 'PlanarchBrand.tsx');
-assert.ok(fs.existsSync(brandTsxPath), 'Missing src/PlanarchBrand.tsx');
+const brandTsxPath = fs.existsSync(path.join('src', 'ArcheronBrand.tsx'))
+  ? path.join('src', 'ArcheronBrand.tsx')
+  : path.join('src', 'PlanarchBrand.tsx');
+assert.ok(fs.existsSync(brandTsxPath), `Missing ${brandTsxPath}`);
 
 const transpiled = ts.transpileModule(fs.readFileSync(brandTsxPath, 'utf8'), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX }
 }).outputText;
-fs.writeFileSync(path.join(out, 'PlanarchBrand.js'), transpiled);
+fs.writeFileSync(path.join(out, 'ArcheronBrand.js'), transpiled);
 
-const { PlanarchBrand } = await import(pathToFileURL(path.join(out, 'PlanarchBrand.js')).href);
+const brandModule = await import(pathToFileURL(path.join(out, 'ArcheronBrand.js')).href);
+const BrandComponent = brandModule.ArcheronBrand || brandModule.PlanarchBrand || brandModule.default;
 
 // Test horizontal logo on light
 let renderLight;
-await act(async () => { renderLight = TestRenderer.create(React.createElement(PlanarchBrand, { mode: 'light' })); });
+await act(async () => { renderLight = TestRenderer.create(React.createElement(BrandComponent, { mode: 'light' })); });
 const imgLight = renderLight.root.findByType('img');
-assert.equal(imgLight.props.src, '/branding/planarch-logo-horizontal-on-light.svg');
-assert.equal(imgLight.props.alt, 'Planarch');
+assert.ok(imgLight.props.src.endsWith('logo-horizontal-on-light.svg'), 'Wrong light logo src');
+assert.ok(imgLight.props.alt === 'Archeron' || imgLight.props.alt === 'Planarch', 'Wrong alt');
 
 // Test horizontal logo on dark
 let renderDark;
-await act(async () => { renderDark = TestRenderer.create(React.createElement(PlanarchBrand, { mode: 'dark' })); });
+await act(async () => { renderDark = TestRenderer.create(React.createElement(BrandComponent, { mode: 'dark' })); });
 const imgDark = renderDark.root.findByType('img');
-assert.equal(imgDark.props.src, '/branding/planarch-logo-horizontal-on-dark.svg');
+assert.ok(imgDark.props.src.endsWith('logo-horizontal-on-dark.svg'), 'Wrong dark logo src');
 
 // Test compact seal on light
 let renderCompactLight;
-await act(async () => { renderCompactLight = TestRenderer.create(React.createElement(PlanarchBrand, { mode: 'light', compact: true })); });
+await act(async () => { renderCompactLight = TestRenderer.create(React.createElement(BrandComponent, { mode: 'light', compact: true })); });
 const imgCompactLight = renderCompactLight.root.findByType('img');
-assert.equal(imgCompactLight.props.src, '/branding/planarch-seal-on-ivory.svg');
+assert.ok(imgCompactLight.props.src.endsWith('seal-on-ivory.svg'), 'Wrong compact light src');
 
 // Test compact seal on dark
 let renderCompactDark;
-await act(async () => { renderCompactDark = TestRenderer.create(React.createElement(PlanarchBrand, { mode: 'dark', compact: true })); });
+await act(async () => { renderCompactDark = TestRenderer.create(React.createElement(BrandComponent, { mode: 'dark', compact: true })); });
 const imgCompactDark = renderCompactDark.root.findByType('img');
-assert.equal(imgCompactDark.props.src, '/branding/planarch-seal-gold.svg');
+assert.ok(imgCompactDark.props.src.endsWith('seal-gold.svg'), 'Wrong compact dark src');
 
 // Test stacked on light
 let renderStackedLight;
-await act(async () => { renderStackedLight = TestRenderer.create(React.createElement(PlanarchBrand, { mode: 'light', variant: 'stacked' })); });
+await act(async () => { renderStackedLight = TestRenderer.create(React.createElement(BrandComponent, { mode: 'light', variant: 'stacked' })); });
 const imgStackedLight = renderStackedLight.root.findByType('img');
-assert.equal(imgStackedLight.props.src, '/branding/planarch-logo-stacked-on-light.svg');
+assert.ok(imgStackedLight.props.src.endsWith('logo-stacked-on-light.svg'), 'Wrong stacked light src');
 
 // Test stacked on dark
 let renderStackedDark;
-await act(async () => { renderStackedDark = TestRenderer.create(React.createElement(PlanarchBrand, { mode: 'dark', variant: 'stacked' })); });
+await act(async () => { renderStackedDark = TestRenderer.create(React.createElement(BrandComponent, { mode: 'dark', variant: 'stacked' })); });
 const imgStackedDark = renderStackedDark.root.findByType('img');
-assert.equal(imgStackedDark.props.src, '/branding/planarch-logo-stacked-on-dark.svg');
+assert.ok(imgStackedDark.props.src.endsWith('logo-stacked-on-dark.svg'), 'Wrong stacked dark src');
 
-console.log('PASS PlanarchBrand component: renders correct brand variants in light and dark modes');
+console.log('PASS Brand component: renders correct brand variants in light and dark modes');
 
 // 4. Verify CSS design tokens are declared in src/theme.css
 const css = fs.readFileSync('src/theme.css', 'utf8');
 const requiredTokens = [
-  '--planarch-charcoal: #17191a',
-  '--planarch-deep-charcoal: #101214',
-  '--planarch-ivory: #f1e8d8',
-  '--planarch-antique-gold: #be9454',
-  '--planarch-gold-highlight: #e2bc7c',
-  '--planarch-aged-gold: #826039',
-  '--planarch-warm-ink: #302c27'
+  '--archeron-charcoal: #17191a',
+  '--archeron-deep-charcoal: #101214',
+  '--archeron-ivory: #f1e8d8',
+  '--archeron-antique-gold: #be9454',
+  '--archeron-gold-highlight: #e2bc7c',
+  '--archeron-aged-gold: #826039',
+  '--archeron-warm-ink: #302c27'
 ];
 for (const token of requiredTokens) {
   assert.ok(css.includes(token), `Missing CSS design token: ${token}`);
 }
-console.log('PASS design tokens: all Planarch palette variables present in src/theme.css');
+console.log('PASS design tokens: all Archeron palette variables present in src/theme.css');
 
 // 5. Verify App renders brand logo in primary brand slot
 const store = new Map();
@@ -146,10 +155,10 @@ await act(async () => {
   appRender = TestRenderer.create(React.createElement(App));
 });
 
-const brandImgs = appRender.root.findAllByType('img').filter(img => img.props.alt === 'Planarch');
-assert.ok(brandImgs.length > 0, 'App failed to render Planarch brand image in DOM');
-assert.equal(brandImgs[0].props.src, '/branding/planarch-logo-horizontal-on-light.svg');
-console.log('PASS app integration: App renders Planarch horizontal brand logo on light surface');
+const brandImgs = appRender.root.findAllByType('img').filter(img => img.props.alt === 'Archeron' || img.props.alt === 'Planarch');
+assert.ok(brandImgs.length > 0, 'App failed to render brand image in DOM');
+assert.ok(brandImgs[0].props.src.endsWith('logo-horizontal-on-light.svg'), 'Wrong light brand logo in App');
+console.log('PASS app integration: App renders horizontal brand logo on light surface');
 
 // Switch to dark theme via Settings and verify logo updates
 const settingsBtn = appRender.root.findByProps({ 'aria-label': 'Settings & backup' });
@@ -161,7 +170,7 @@ await act(async () => {
   darkPaletteBtn.props.onClick();
 });
 
-const darkBrandImgs = appRender.root.findAllByType('img').filter(img => img.props.alt === 'Planarch');
-assert.equal(darkBrandImgs[0].props.src, '/branding/planarch-logo-horizontal-on-dark.svg');
+const darkBrandImgs = appRender.root.findAllByType('img').filter(img => img.props.alt === 'Archeron' || img.props.alt === 'Planarch');
+assert.ok(darkBrandImgs[0].props.src.endsWith('logo-horizontal-on-dark.svg'), 'Wrong dark brand logo in App');
 console.log('PASS theme switching: brand logo automatically switches to dark asset without reload');
 

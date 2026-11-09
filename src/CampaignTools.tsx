@@ -29,8 +29,12 @@ function Encounters({ campaign, onStart, onUpdate, activeEncounterId, battleActi
       setHomebrewMonsters(readHomebrew(campaign).filter(r => r.kind === 'monster'));
     };
     updateHb();
+    window.addEventListener('archeron-homebrew-changed', updateHb);
     window.addEventListener('planarch-homebrew-changed', updateHb);
-    return () => window.removeEventListener('planarch-homebrew-changed', updateHb);
+    return () => {
+      window.removeEventListener('archeron-homebrew-changed', updateHb);
+      window.removeEventListener('planarch-homebrew-changed', updateHb);
+    };
   }, [campaign]);
 
   const openCompendiumPicker = async () => {

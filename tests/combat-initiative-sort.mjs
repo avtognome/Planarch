@@ -20,7 +20,9 @@ globalThis.window = {
   dispatchEvent() {}
 };
 globalThis.document = {
-  querySelector() { return null; }
+  querySelector() { return null; },
+  documentElement: { scrollLeft: 0, scrollTop: 0 },
+  body: { scrollLeft: 0, scrollTop: 0 }
 };
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 

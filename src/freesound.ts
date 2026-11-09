@@ -65,16 +65,17 @@ export async function searchFreesound(query: string, page: number = 1, apiKey: s
 }
 
 // IndexedDB Audio Cache
-const DB_NAME = 'planarch-audio-cache';
+const DB_NAME = 'archeron-audio-cache';
+const LEGACY_DB_NAME = 'planarch-audio-cache';
 const DB_VERSION = 1;
 const STORE_NAME = 'blobs';
 
-function openAudioDb(): Promise<IDBDatabase> {
+function openAudioDb(name: string = DB_NAME): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof indexedDB === 'undefined') {
       return reject(new Error('IndexedDB not supported in current context'));
     }
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    const req = indexedDB.open(name, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -88,14 +89,38 @@ function openAudioDb(): Promise<IDBDatabase> {
 
 export async function getCachedAudioBlob(id: string): Promise<ArrayBuffer | null> {
   try {
-    const db = await openAudioDb();
-    return new Promise((resolve, reject) => {
+    const db = await openAudioDb(DB_NAME);
+    const result = await new Promise<ArrayBuffer | null>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const store = tx.objectStore(STORE_NAME);
       const req = store.get(id);
       req.onsuccess = () => resolve(req.result || null);
       req.onerror = () => reject(req.error);
     });
+    if (result) return result;
+
+    try {
+      const legacyDb = await openAudioDb(LEGACY_DB_NAME);
+      const legacyResult = await new Promise<ArrayBuffer | null>((resolve, reject) => {
+        if (!legacyDb.objectStoreNames.contains(STORE_NAME)) {
+          resolve(null);
+          return;
+        }
+        const tx = legacyDb.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.get(id);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+      if (legacyResult) {
+        void cacheAudioBlob(id, legacyResult);
+        return legacyResult;
+      }
+    } catch {
+      // Legacy cache unavailable
+    }
+
+    return null;
   } catch {
     return null;
   }
@@ -103,7 +128,7 @@ export async function getCachedAudioBlob(id: string): Promise<ArrayBuffer | null
 
 export async function cacheAudioBlob(id: string, buffer: ArrayBuffer): Promise<void> {
   try {
-    const db = await openAudioDb();
+    const db = await openAudioDb(DB_NAME);
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);

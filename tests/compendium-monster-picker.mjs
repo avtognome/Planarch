@@ -1,3 +1,4 @@
+globalThis.document = globalThis.document || { documentElement: { scrollLeft: 0, scrollTop: 0 }, body: { scrollLeft: 0, scrollTop: 0 } };
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';

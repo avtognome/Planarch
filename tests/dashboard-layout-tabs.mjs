@@ -1,3 +1,4 @@
+globalThis.document = globalThis.document || { documentElement: { scrollLeft: 0, scrollTop: 0 }, body: { scrollLeft: 0, scrollTop: 0 } };
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -100,5 +101,17 @@ const upButtonsAfterLock = root.findAll(node =>
 );
 assert.equal(upButtonsAfterLock.length, 0, 'Move up buttons should be hidden when layout is locked');
 console.log('✓ Locked state disables editing/touch shifts successfully');
+
+// Test 4: Collapsed widget in grid does not stretch into a blank box
+const themeCss = fs.readFileSync('src/theme.css', 'utf8');
+assert.ok(
+  themeCss.includes('.widget.widget-collapsed') || themeCss.includes('.widget-collapsed'),
+  'theme.css must define .widget-collapsed'
+);
+assert.ok(
+  /widget-collapsed[^{]*\{[^}]*align-self:\s*start/i.test(themeCss) || /widget-grid[^{]*\{[^}]*align-items:\s*start/i.test(themeCss),
+  '.widget-collapsed or .widget-grid must specify align-self: start or align-items: start to prevent stretching when sibling is expanded'
+);
+console.log('✓ Collapsed widget grid alignment verified');
 
 console.log('All dashboard layout & tab tests passed!');

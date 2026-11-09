@@ -1,5 +1,5 @@
 ---
-name: "Planarch DM Command Center"
+name: "Archeron DM Command Center"
 description: "Precision macOS-native tactical console for tabletop Dungeon Masters"
 colors:
   primary: "#f59e0b"
@@ -66,13 +66,13 @@ components:
     padding: "16px"
 ---
 
-# Design System: Planarch DM Command Center
+# Design System: Archeron DM Command Center
 
 ## Overview
 
 **Creative North Star: "The Cartographer's Glass Console"**
 
-Planarch balances the dense utility of a tactical flight deck with the quiet refinement of a native macOS utility. It discards decorative fantasy parchment and loud neon sci-fi glows in favor of hairline borders, vibrant translucent sidebars, and restrained amber accents that direct the eye during high-stress table combat.
+Archeron balances the dense utility of a tactical flight deck with the quiet refinement of a native macOS utility. It discards decorative fantasy parchment and loud neon sci-fi glows in favor of hairline borders, vibrant translucent sidebars, and restrained amber accents that direct the eye during high-stress table combat.
 
 ### Key Characteristics:
 - **Restraint Over Spectacle:** Color is reserved strictly for interactive focus, status indicators, and HP danger thresholds.

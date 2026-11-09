@@ -1,3 +1,4 @@
+globalThis.document = globalThis.document || { documentElement: { scrollLeft: 0, scrollTop: 0 }, body: { scrollLeft: 0, scrollTop: 0 } };
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 const file=process.argv[2];if(!file)throw Error('Pass the original XML path.');

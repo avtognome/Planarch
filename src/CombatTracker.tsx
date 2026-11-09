@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState, type Dispatch, type DragEvent, type SetStateAction } from 'react';
 import { BookOpen, ChevronDown, ChevronUp, Command, CopyPlus, Dices, GripVertical, HeartPulse, History, MoreHorizontal, Plus, RotateCcw, ShieldCheck, SkipBack, SkipForward, Swords, Trash2, Volume2, VolumeX, X } from 'lucide-react';
 import { uid, type Combatant } from './models';
@@ -30,12 +31,6 @@ export default function CombatTracker({ battle, setBattle, battleTitle, battleAc
   const [dragging, setDragging] = useState('');
   const [history, setHistory] = useState<Snapshot[]>([]);
   const [lastDelta, setLastDelta] = useState(0);
-  const [sessionAmount, setSessionAmount] = useState('5');
-  const [sessionMode, setSessionMode] = useState<'damage' | 'heal'>('damage');
-  const [quickCustom, setQuickCustom] = useState('');
-  const [quickExhaustion, setQuickExhaustion] = useState(1);
-  const [quickDice, setQuickDice] = useState('1d20');
-  const [sessionTray, setSessionTray] = useState<'conditions' | 'tools' | null>(null);
   const [commandOpen, setCommandOpen] = useState(false);
   const [command, setCommand] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -43,15 +38,6 @@ export default function CombatTracker({ battle, setBattle, battleTitle, battleAc
   const commandInput = useRef<HTMLInputElement>(null);
   const currentId = battle[turn]?.id;
   const current = battle[turn];
-
-  const toggleSessionTray = (tray: 'conditions' | 'tools') => {
-    window.dispatchEvent(new CustomEvent('planarch-youtube-mixer-close'));
-    setSessionTray(value => value === tray ? null : tray);
-  };
-  const openAudioTray = () => {
-    setSessionTray(null);
-    window.dispatchEvent(new CustomEvent('planarch-youtube-mixer-open'));
-  };
 
   const pushHistory = (label: string) => setHistory(items => [{ id: uid(), label, battle: battle.map(member => ({ ...member })), round, turn }, ...items].slice(0, 12));
   const undo = () => {
@@ -235,8 +221,8 @@ export default function CombatTracker({ battle, setBattle, battleTitle, battleAc
     else if (['previous', 'previous turn', 'prev', 'p'].includes(lower)) previousTurn();
     else if (['undo', 'ctrl z'].includes(lower)) undo();
     else if (lower === 'compendium' || lower === 'open compendium') setDrawerOpen(true);
-    else if (lower === 'mute ambience') window.dispatchEvent(new CustomEvent('planarch-audio-mute'));
-    else if (['play ambience', 'pause ambience', 'toggle ambience'].includes(lower)) window.dispatchEvent(new CustomEvent('planarch-audio-toggle'));
+    else if (lower === 'mute ambience') window.dispatchEvent(new CustomEvent('archeron-audio-mute'));
+    else if (['play ambience', 'pause ambience', 'toggle ambience'].includes(lower)) window.dispatchEvent(new CustomEvent('archeron-audio-toggle'));
     else if (lower.startsWith('roll ')) rollExpression(value.slice(5));
     else {
       const hpMatch = value.match(/^(.+?)\s+([+-])(\d+)$/);
@@ -263,8 +249,12 @@ export default function CombatTracker({ battle, setBattle, battleTitle, battleAc
 
   useEffect(() => {
     const open = () => { setCommandOpen(true); setTimeout(() => commandInput.current?.focus(), 0); };
+    window.addEventListener('archeron-command-open', open);
     window.addEventListener('planarch-command-open', open);
-    return () => window.removeEventListener('planarch-command-open', open);
+    return () => {
+      window.removeEventListener('archeron-command-open', open);
+      window.removeEventListener('planarch-command-open', open);
+    };
   }, []);
 
   useEffect(() => {
@@ -276,15 +266,11 @@ export default function CombatTracker({ battle, setBattle, battleTitle, battleAc
       if (typing) return;
       if (event.key.toLowerCase() === 'n') nextTurn();
       else if (event.key.toLowerCase() === 'p') previousTurn();
-      else if (event.key.toLowerCase() === 'd') { event.preventDefault(); setSessionMode('damage'); document.getElementById('session-amount')?.focus(); }
-      else if (event.key.toLowerCase() === 'h') { event.preventDefault(); setSessionMode('heal'); document.getElementById('session-amount')?.focus(); }
-      else if (event.key.toLowerCase() === 'c') { event.preventDefault(); toggleSessionTray('conditions'); }
-      else if (event.key.toLowerCase() === 'r') rollExpression(quickDice);
-      else if (event.code === 'Space') { event.preventDefault(); window.dispatchEvent(new CustomEvent('planarch-audio-toggle')); }
+      else if (event.code === 'Space') { event.preventDefault(); window.dispatchEvent(new CustomEvent('archeron-audio-toggle')); }
     };
     window.addEventListener('keydown', shortcut);
     return () => window.removeEventListener('keydown', shortcut);
-  }, [battleActive, battle, turn, round, history, quickDice]);
+  }, [battleActive, battle, turn, round, history]);
 
   const commandSuggestions = useMemo(() => [
     { label: 'Next turn', command: 'next turn' },
@@ -298,34 +284,82 @@ export default function CombatTracker({ battle, setBattle, battleTitle, battleAc
 
   const indexed = battle.map((member, index) => ({ member, index }));
   const standing = indexed.filter(({ member }) => member.hp > 0), defeated = indexed.filter(({ member }) => member.hp <= 0);
-  const row = ({ member, index }: { member: Combatant; index: number }) => <div key={member.id} draggable onDragStart={() => setDragging(member.id)} onDragOver={event => event.preventDefault()} onDrop={event => drop(event, member.id)} className={`combatant combatant-live ${index === turn && battleActive ? 'current' : ''} ${member.hp <= 0 ? 'defeated' : ''}`}>
-    <div className="combat-order"><GripVertical size={16} aria-hidden="true" /><div className="initiative"><input aria-label={`Initiative for ${member.name}`} type="number" value={initDrafts[member.id] ?? String(member.initiative)} onChange={event => setInitDrafts(values => ({ ...values, [member.id]: event.target.value }))} onBlur={() => commitInitiative(member)} onKeyDown={event => { if (event.key === 'Enter') { commitInitiative(member); event.currentTarget.blur(); } if (event.key === 'Escape') clearInitDraft(member.id); }} /><small>INIT</small></div><div className={`combat-avatar ${member.role.toLowerCase()}`}>{member.name.slice(0, 1)}</div></div>
-    <div className="combat-identity"><strong>{member.name}</strong><small>{member.role}{member.cr ? ` · CR ${member.cr}` : ''}</small><div className="tags">{splitConditions(member.conditions).map(condition => <button key={condition} title={`Remove ${condition}`} onClick={() => removeMemberCondition(member, condition)}>{condition}<X size={9} /></button>)}{member.concentration && <button className="concentration" title="Clear concentration" onClick={() => setConcentration(member, '')}>◈ {member.concentration}<X size={9} /></button>}{member.turnState && <span className="turn-state">{member.turnState}</span>}</div></div>
-    <div className="hp-inline" aria-label={`${member.name} hit point controls`}><button aria-label={`Damage 5 ${member.name}`} onClick={() => adjust(member.id, -5)}>−5</button><button aria-label={`Damage 1 ${member.name}`} onClick={() => adjust(member.id, -1)}>−1</button><label><span>HP</span><input aria-label={`Current HP for ${member.name}`} type="number" min={0} max={member.maxHp} value={hpDrafts[member.id] ?? String(member.hp)} onChange={event => setHpDrafts(values => ({ ...values, [member.id]: event.target.value }))} onBlur={() => commitHp(member)} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') clearHpDraft(member.id); }} /><small>/ {member.maxHp}</small></label><button aria-label={`Heal 1 ${member.name}`} onClick={() => adjust(member.id, 1)}>+1</button><button aria-label={`Heal 5 ${member.name}`} onClick={() => adjust(member.id, 5)}>+5</button>{lastDelta !== 0 && <button className="repeat-hp" aria-label={`Repeat ${Math.abs(lastDelta)} ${lastDelta < 0 ? 'damage' : 'healing'} for ${member.name}`} onClick={() => adjust(member.id, lastDelta)}><RotateCcw size={11} />{lastDelta > 0 ? '+' : '−'}{Math.abs(lastDelta)}</button>}<div className="hp-custom"><input aria-label={`Custom HP amount for ${member.name}`} type="number" min={0} placeholder="Any" value={amounts[member.id] || ''} onChange={event => setAmounts({ ...amounts, [member.id]: event.target.value })} /><button disabled={!amount(member.id)} aria-label={`Apply damage to ${member.name}`} onClick={() => adjust(member.id, -amount(member.id))}><Swords size={13} /></button><button disabled={!amount(member.id)} aria-label={`Apply healing to ${member.name}`} onClick={() => adjust(member.id, amount(member.id))}><HeartPulse size={13} /></button></div></div>
-    <div className="combat-actions"><details className="condition-menu"><summary aria-label={`Manage conditions for ${member.name}`}>Conditions</summary><div className="condition-popover"><strong>Official conditions</strong><div>{DND_CONDITIONS.map(condition => <button key={condition} className={splitConditions(member.conditions).some(item => conditionName(item) === condition) ? 'selected' : ''} onClick={() => condition === 'Exhaustion' ? changeCondition(member, `Exhaustion ${exhaustionLevels[member.id] || 1}`) : changeCondition(member, condition)}>{condition}</button>)}</div><label>Exhaustion level<select aria-label={`Exhaustion level for ${member.name}`} value={exhaustionLevels[member.id] || 1} onChange={event => setExhaustionLevels(values => ({ ...values, [member.id]: Number(event.target.value) }))}>{[1, 2, 3, 4, 5, 6].map(level => <option key={level}>{level}</option>)}</select></label><label>Custom<input aria-label={`Custom condition for ${member.name}`} value={customConditions[member.id] || ''} onChange={event => setCustomConditions(values => ({ ...values, [member.id]: event.target.value }))} onKeyDown={event => { if (event.key === 'Enter') { changeCondition(member, event.currentTarget.value.trim()); setCustomConditions(values => ({ ...values, [member.id]: '' })); } }} placeholder="Add custom condition" /></label><button className="secondary" disabled={!customConditions[member.id]?.trim()} onClick={() => { changeCondition(member, customConditions[member.id]); setCustomConditions(values => ({ ...values, [member.id]: '' })); }}>Add custom</button></div></details><button className="icon-button" aria-label={`Move ${member.name} up`} disabled={index === 0} onClick={() => move(member.id, -1)}><ChevronUp size={14} /></button><button className="icon-button" aria-label={`Move ${member.name} down`} disabled={index === battle.length - 1} onClick={() => move(member.id, 1)}><ChevronDown size={14} /></button><button className="icon-button danger-text" aria-label={`Remove ${member.name} from encounter`} title="Remove from encounter" onClick={() => setBattle(members => members.filter(item => item.id !== member.id))}><Trash2 size={13} /></button><button className={`icon-button ${member.turnState === 'ready' ? 'selected' : ''}`} aria-label={`Ready action for ${member.name}`} title="Ready action" onClick={() => toggleReady(member.id)}><ShieldCheck size={14} /></button><button className="icon-button" aria-label={`Delay turn for ${member.name}`} title="Delay one place" disabled={index === battle.length - 1} onClick={() => delay(member.id)}><SkipForward size={14} /></button><button className="icon-button" aria-label={`Roll initiative for ${member.name}`} title="Roll only this combatant" onClick={() => roll(member.id)}><Dices size={14} /></button>{member.reference && <button className="icon-button" aria-label={`Open ${member.name} stat block`} onClick={() => { setDrawerFocus(member.reference!.id); setDrawerOpen(true); }}><BookOpen size={14} /></button>}{member.role === 'Monster' && <button className="icon-button" aria-label={`Duplicate ${member.name}`} title="Duplicate and roll newcomer" onClick={() => duplicate(member.id)}><CopyPlus size={14} /></button>}<button className="icon-button danger-text" aria-label={`Remove ${member.name} from combat`} onClick={() => remove(member.id)}><Trash2 size={14} /></button></div>
-  </div>;
+  const row = ({ member, index }: { member: Combatant; index: number }) => {
+    const isCurrent = index === turn && battleActive;
+    const hpPct = Math.max(0, Math.min(100, Math.round((member.hp / (member.maxHp || 1)) * 100)));
+    const hpColor = hpPct > 50 ? '#22c55e' : hpPct > 20 ? '#f59e0b' : '#ef4444';
+
+    return <motion.div layout transition={{ type: 'spring', damping: 28, stiffness: 380 }} key={member.id} draggable onDragStart={() => setDragging(member.id)} onDragOver={event => event.preventDefault()} onDrop={event => drop(event, member.id)} className={`combatant combatant-live ${isCurrent ? 'current' : ''} ${member.hp <= 0 ? 'defeated' : ''}`}>
+      <div className="combat-order">
+        <GripVertical size={16} aria-hidden="true" />
+        <div className="initiative">
+          <input aria-label={`Initiative for ${member.name}`} type="number" value={initDrafts[member.id] ?? String(member.initiative)} onChange={event => setInitDrafts(values => ({ ...values, [member.id]: event.target.value }))} onBlur={() => commitInitiative(member)} onKeyDown={event => { if (event.key === 'Enter') { commitInitiative(member); event.currentTarget.blur(); } if (event.key === 'Escape') clearInitDraft(member.id); }} />
+          <small>INIT</small>
+        </div>
+        <div className={`combat-avatar ${member.role.toLowerCase()}`}>{member.name.slice(0, 1)}</div>
+      </div>
+
+      <div className="combat-identity">
+        <div className="combat-name-row">
+          <strong>{member.name}</strong>
+          {isCurrent && <span className="active-turn-badge">TURN</span>}
+        </div>
+        <small>{member.role}{member.cr ? ` · CR ${member.cr}` : ''}</small>
+        <div className="tags">
+          {splitConditions(member.conditions).map(condition => <button key={condition} title={`Remove ${condition}`} onClick={() => removeMemberCondition(member, condition)}>{condition}<X size={9} /></button>)}
+          {member.concentration && <button className="concentration" title="Clear concentration" onClick={() => setConcentration(member, '')}>◈ {member.concentration}<X size={9} /></button>}
+          {member.turnState && <span className="turn-state">{member.turnState}</span>}
+        </div>
+      </div>
+
+      <div className="hp-inline streamlined" aria-label={`${member.name} hit point controls`}>
+        <div className="hp-meter-box">
+          <div className="hp-bar-track">
+            <div className="hp-bar-fill" style={{ width: `${hpPct}%`, background: hpColor }} />
+          </div>
+          <label className="hp-label">
+            <span className="hp-tag">HP</span>
+            <input aria-label={`Current HP for ${member.name}`} type="number" min={0} max={member.maxHp} value={hpDrafts[member.id] ?? String(member.hp)} onChange={event => setHpDrafts(values => ({ ...values, [member.id]: event.target.value }))} onBlur={() => commitHp(member)} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') clearHpDraft(member.id); }} />
+            <small>/ {member.maxHp}</small>
+          </label>
+        </div>
+
+        <div className="hp-quick-adjust">
+          <button className="adjust-btn dmg" disabled={!amount(member.id)} aria-label={`Apply damage to ${member.name}`} title={`Damage ${member.name}`} onClick={() => adjust(member.id, -amount(member.id))}>−</button>
+          <input aria-label={`Custom HP amount for ${member.name}`} type="number" min={0} placeholder="Amt" value={amounts[member.id] || ''} onChange={event => setAmounts({ ...amounts, [member.id]: event.target.value })} onKeyDown={event => { if (event.key === 'Enter' && amount(member.id)) { adjust(member.id, -amount(member.id)); } }} />
+          <button className="adjust-btn heal" disabled={!amount(member.id)} aria-label={`Apply healing to ${member.name}`} title={`Heal ${member.name}`} onClick={() => adjust(member.id, amount(member.id))}>+</button>
+          {lastDelta !== 0 && <button className="repeat-hp" aria-label={`Repeat ${Math.abs(lastDelta)} ${lastDelta < 0 ? 'damage' : 'healing'} for ${member.name}`} title={`Repeat ${lastDelta > 0 ? '+' : '−'}${Math.abs(lastDelta)}`} onClick={() => adjust(member.id, lastDelta)}><RotateCcw size={11} /><span>{lastDelta > 0 ? '+' : '−'}{Math.abs(lastDelta)}</span></button>}
+        </div>
+      </div>
+
+      <div className="combat-actions">
+        <details className="condition-menu">
+          <summary aria-label={`Manage conditions for ${member.name}`}>Conditions</summary>
+          <div className="condition-popover">
+            <strong>Official conditions</strong>
+            <div>{DND_CONDITIONS.map(condition => <button key={condition} className={splitConditions(member.conditions).some(item => conditionName(item) === condition) ? 'selected' : ''} onClick={() => condition === 'Exhaustion' ? changeCondition(member, `Exhaustion ${exhaustionLevels[member.id] || 1}`) : changeCondition(member, condition)}>{condition}</button>)}</div>
+            <label>Exhaustion level<select aria-label={`Exhaustion level for ${member.name}`} value={exhaustionLevels[member.id] || 1} onChange={event => setExhaustionLevels(values => ({ ...values, [member.id]: Number(event.target.value) }))}>{[1, 2, 3, 4, 5, 6].map(level => <option key={level}>{level}</option>)}</select></label>
+            <label>Custom<input aria-label={`Custom condition for ${member.name}`} value={customConditions[member.id] || ''} onChange={event => setCustomConditions(values => ({ ...values, [member.id]: event.target.value }))} onKeyDown={event => { if (event.key === 'Enter') { changeCondition(member, event.currentTarget.value.trim()); setCustomConditions(values => ({ ...values, [member.id]: '' })); } }} placeholder="Add custom condition" /></label>
+            <button className="secondary" disabled={!customConditions[member.id]?.trim()} onClick={() => { changeCondition(member, customConditions[member.id]); setCustomConditions(values => ({ ...values, [member.id]: '' })); }}>Add custom</button>
+          </div>
+        </details>
+        <div className="row-order-actions">
+          <button className="icon-button" aria-label={`Move ${member.name} up`} disabled={index === 0} onClick={() => move(member.id, -1)} title="Move up"><ChevronUp size={14} /></button>
+          <button className="icon-button" aria-label={`Move ${member.name} down`} disabled={index === battle.length - 1} onClick={() => move(member.id, 1)} title="Move down"><ChevronDown size={14} /></button>
+          <button className={`icon-button ${member.turnState === 'ready' ? 'selected' : ''}`} aria-label={`Ready action for ${member.name}`} title="Ready action" onClick={() => toggleReady(member.id)}><ShieldCheck size={14} /></button>
+          <button className="icon-button" aria-label={`Delay turn for ${member.name}`} title="Delay one place" disabled={index === battle.length - 1} onClick={() => delay(member.id)}><SkipForward size={14} /></button>
+          <button className="icon-button" aria-label={`Roll initiative for ${member.name}`} title="Roll only this combatant" onClick={() => roll(member.id)}><Dices size={14} /></button>
+          {member.reference && <button className="icon-button" aria-label={`Open ${member.name} stat block`} onClick={() => { setDrawerFocus(member.reference!.id); setDrawerOpen(true); }}><BookOpen size={14} /></button>}
+          {member.role === 'Monster' && <button className="icon-button" aria-label={`Duplicate ${member.name}`} title="Duplicate and roll newcomer" onClick={() => duplicate(member.id)}><CopyPlus size={14} /></button>}
+          <button className="icon-button danger-text" aria-label={`Remove ${member.name} from combat`} onClick={() => remove(member.id)} title="Remove"><Trash2 size={14} /></button>
+        </div>
+      </div>
+    </motion.div>;
+  };
 
   return <>
     <div className="between encounter-title"><div><span className="eyebrow">{battleActive ? 'LIVE ENCOUNTER' : 'ENCOUNTER TRACKER'}</span><h3>{battleActive ? battleTitle : 'No encounter running'}</h3></div>{battleActive && <span className="round-medallion">ROUND <strong>{round}</strong></span>}</div>
-    {battle.length ? <><div className="combat-list">{standing.map(row)}</div>{defeated.length > 0 && <details className="defeated-list"><summary><X size={13} />{defeated.length} defeated</summary><div className="combat-list">{defeated.map(row)}</div></details>}<div className="combat-footer"><div className="inline wrap"><button className="secondary small" onClick={onOpenEncounters}><Plus size={14} />Manage roster</button><small>Drag rows or use arrows to reorder. Every creature keeps its own turn.</small></div><div className="inline wrap"><button className="secondary" onClick={onEnd}>End encounter</button><button className="primary" disabled={!battleActive} onClick={nextTurn}>Next turn <SkipForward size={15} /></button></div></div></> : <div className="combat-empty"><Swords size={28} /><p>Start an encounter, then manage HP and initiative here without restarting the round.</p><button className="primary" onClick={onOpenEncounters}><Plus size={15} />Open encounters</button></div>}
-
-    {battleActive && current && <div className={`session-control-dock ${sessionTray ? 'tray-open' : ''}`} aria-label="Session controls">
-      {sessionTray === 'conditions' && <section className="session-dock-tray" aria-label="Current actor conditions">
-        <header><div><span className="eyebrow">CURRENT ACTOR</span><strong>Conditions for {current.name}</strong></div><button className="icon-button" aria-label="Close condition tray" onClick={() => setSessionTray(null)}><X size={16} /></button></header>
-        <div className="session-condition-grid">{DND_CONDITIONS.filter(condition => condition !== 'Exhaustion').map(condition => <button key={condition} aria-label={`Toggle ${condition} condition`} className={splitConditions(current.conditions).some(item => conditionName(item) === condition) ? 'selected' : ''} onClick={() => changeCondition(current, condition)}>{condition}</button>)}</div>
-        <div className="session-condition-special"><label><span>Exhaustion level</span><select aria-label="Session exhaustion level" value={quickExhaustion} onChange={event => setQuickExhaustion(Number(event.target.value))}>{[1, 2, 3, 4, 5, 6].map(level => <option key={level}>{level}</option>)}</select></label><button aria-label="Apply exhaustion" onClick={() => changeCondition(current, `Exhaustion ${quickExhaustion}`)}>Apply exhaustion</button><label className="session-custom-condition"><span>Custom</span><input aria-label="Session custom condition" value={quickCustom} onChange={event => setQuickCustom(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && quickCustom.trim()) { changeCondition(current, quickCustom); setQuickCustom(''); } }} placeholder="Custom condition" /></label><button disabled={!quickCustom.trim()} onClick={() => { changeCondition(current, quickCustom); setQuickCustom(''); }}>Add current custom condition</button></div>
-      </section>}
-      {sessionTray === 'tools' && <section className="session-dock-tray session-tools-tray" aria-label="Session utilities">
-        <header><div><span className="eyebrow">QUICK TOOLS</span><strong>Session utilities</strong></div><button className="icon-button" aria-label="Close tools tray" onClick={() => setSessionTray(null)}><X size={16} /></button></header>
-        <div className="session-tools-layout"><div className="session-utilities"><button aria-label="Open command palette" onClick={() => setCommandOpen(true)}><Command size={15} /> Commands</button><button aria-label="Open quick compendium" onClick={() => { setDrawerFocus(''); setDrawerOpen(true); }}><BookOpen size={15} /> Compendium</button><button aria-label="Toggle ambience" onClick={() => window.dispatchEvent(new CustomEvent('planarch-audio-toggle'))}><Volume2 size={15} /> Ambience</button><button aria-label="Mute ambience" onClick={() => window.dispatchEvent(new CustomEvent('planarch-audio-mute'))}><VolumeX size={15} /> Mute</button><button disabled={!history.length} aria-label="Undo last action" onClick={undo}><RotateCcw size={15} /> Undo</button></div><div className="session-dice"><span>Quick roll</span><input aria-label="Session dice expression" value={quickDice} onChange={event => setQuickDice(event.target.value)} onKeyDown={event => event.key === 'Enter' && rollExpression(quickDice)} /><button onClick={() => rollExpression(quickDice)}><Dices size={14} /> Roll</button></div><div className="session-history"><span><History size={14} /> Recent actions</span>{history.length ? history.slice(0, 4).map((entry, index) => <button key={entry.id} disabled={index > 0} onClick={undo}>{entry.label}{index === 0 && <strong>Undo</strong>}</button>) : <small>No reversible actions yet.</small>}</div></div>
-      </section>}
-      <div className="session-dock-row">
-        <div className="session-current"><span className="session-round-seal">{round}</span><div><small>ROUND {round} · CURRENT TURN</small><strong>{current.name}</strong><span>{current.hp} / {current.maxHp} HP{splitConditions(current.conditions).length ? ` · ${splitConditions(current.conditions).join(', ')}` : ''}</span></div></div>
-        <div className="session-turn-controls"><button className="icon-button" aria-label="Previous turn" onClick={previousTurn}><SkipBack size={17} /></button><button className="primary" onClick={nextTurn}>Next turn <SkipForward size={15} /></button></div>
-        <div className="session-hp"><input id="session-amount" className={`mode-${sessionMode}`} aria-label="Session HP amount" type="number" min={1} value={sessionAmount} onChange={event => setSessionAmount(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') adjust(current.id, (sessionMode === 'damage' ? -1 : 1) * Math.max(0, Number(sessionAmount) || 0)); }} /><button className={sessionMode === 'damage' ? 'selected damage' : 'damage'} aria-label={`Damage ${current.name}`} onClick={() => { setSessionMode('damage'); adjust(current.id, -Math.max(0, Number(sessionAmount) || 0)); }}><Swords size={13} /> Damage</button><button className={sessionMode === 'heal' ? 'selected heal' : 'heal'} aria-label={`Heal ${current.name}`} onClick={() => { setSessionMode('heal'); adjust(current.id, Math.max(0, Number(sessionAmount) || 0)); }}><HeartPulse size={13} /> Heal</button>{lastDelta !== 0 && <button className="session-repeat" aria-label="Repeat last HP action" title={`Repeat ${lastDelta > 0 ? 'healing' : 'damage'} ${Math.abs(lastDelta)}`} onClick={() => adjust(current.id, lastDelta)}><RotateCcw size={13} /><span>{lastDelta > 0 ? '+' : '−'}{Math.abs(lastDelta)}</span></button>}</div>
-        <div className="session-dock-actions"><button className={sessionTray === 'conditions' ? 'selected' : ''} aria-label="Manage current conditions" onClick={() => toggleSessionTray('conditions')}><Plus size={14} /><span>{splitConditions(current.conditions).length ? `${splitConditions(current.conditions).length} conditions` : 'Condition'}</span></button><button aria-label="Open YouTube mixer" onClick={openAudioTray}><Volume2 size={15} /><span>YouTube mix</span></button><button className={sessionTray === 'tools' ? 'selected' : ''} aria-label="Open session tools" onClick={() => toggleSessionTray('tools')}><MoreHorizontal size={17} /><span>Tools</span></button></div>
-      </div>
-    </div>}
+    {battle.length ? <><motion.div layout className="combat-list">{standing.map(row)}</motion.div>{defeated.length > 0 && <details className="defeated-list"><summary><X size={13} />{defeated.length} defeated</summary><div className="combat-list">{defeated.map(row)}</div></details>}<div className="combat-footer"><button className="secondary small" onClick={onOpenEncounters}><Plus size={14} />Manage roster</button><div className="inline"><button className="secondary" onClick={onEnd}>End encounter</button><button className="primary" disabled={!battleActive} onClick={nextTurn}>Next turn <SkipForward size={15} /></button></div></div></> : <div className="combat-empty"><Swords size={28} /><p>Start an encounter, then manage HP and initiative here without restarting the round.</p><button className="primary" onClick={onOpenEncounters}><Plus size={15} />Open encounters</button></div>}
 
     {commandOpen && <div className="command-backdrop" onClick={() => setCommandOpen(false)}><div className="command-palette" role="dialog" aria-modal="true" aria-label="Session command palette" onClick={event => event.stopPropagation()}><div className="command-input"><Command size={17} /><input ref={commandInput} autoFocus aria-label="Session command" value={command} onChange={event => setCommand(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') executeCommand(); if (event.key === 'Escape') setCommandOpen(false); }} placeholder="Goblin -7, Mira +5, Orc poisoned, roll 2d6+3…" /><kbd>Enter</kbd></div><div className="command-results">{commandSuggestions.map(item => <button key={item.command} onClick={() => executeCommand(item.command)}><strong>{item.label}</strong><small>{item.command}</small></button>)}</div><footer>Commands also support “Mira concentration Bless” and any custom condition.</footer></div></div>}
     <CompendiumDrawer open={drawerOpen} focus={drawerFocus} onClose={() => setDrawerOpen(false)} />

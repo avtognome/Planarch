@@ -160,6 +160,7 @@ export function saveHomebrew(campaign: string, record: CompendiumRecord): { home
   writeSavedValue(wikiKey, wikiPages);
 
   if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('archeron-homebrew-changed', { detail: { campaign, record } }));
     window.dispatchEvent(new CustomEvent('planarch-homebrew-changed', { detail: { campaign, record } }));
   }
 
@@ -188,6 +189,7 @@ export function deleteHomebrew(campaign: string, recordId: string): CompendiumRe
   }
 
   if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('archeron-homebrew-changed', { detail: { campaign } }));
     window.dispatchEvent(new CustomEvent('planarch-homebrew-changed', { detail: { campaign } }));
   }
 

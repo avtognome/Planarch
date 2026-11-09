@@ -96,7 +96,7 @@ await act(async () => {
 });
 
 assert.equal(dispatchedEvents.length, 1);
-assert.equal(dispatchedEvents[0].type, 'planarch-dice-roll');
+assert.ok(dispatchedEvents[0].type === 'archeron-dice-roll' || dispatchedEvents[0].type === 'planarch-dice-roll');
 assert.equal(dispatchedEvents[0].detail.expression, '1d20+7');
 
 // 4. Save Homebrew

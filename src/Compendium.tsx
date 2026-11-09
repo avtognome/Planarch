@@ -27,7 +27,7 @@ export function ability(value:FieldValue){
 function InteractiveActionText({text}:{text:string}){
  const triggerRoll=(expr:string,label:string)=>{
   if(typeof window!=='undefined'){
-   window.dispatchEvent(new CustomEvent('planarch-dice-roll',{detail:{expression:expr,label}}));
+   window.dispatchEvent(new CustomEvent('archeron-dice-roll',{detail:{expression:expr,label}}));
   }
  };
  const regex=/(([+-]\d+)\s+to\s+hit)|(\b\d{1,2}d\d{1,3}(?:\s*[+-]\s*\d+)?\b)/gi;
@@ -172,8 +172,12 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
 
  useEffect(()=>{
    const onHomebrewChange=()=>setHomebrew(readHomebrew(campaign));
+   window.addEventListener('archeron-homebrew-changed',onHomebrewChange);
    window.addEventListener('planarch-homebrew-changed',onHomebrewChange);
-   return()=>window.removeEventListener('planarch-homebrew-changed',onHomebrewChange);
+   return()=>{
+     window.removeEventListener('archeron-homebrew-changed',onHomebrewChange);
+     window.removeEventListener('planarch-homebrew-changed',onHomebrewChange);
+   };
  },[campaign]);
 
  useEffect(()=>{
@@ -184,7 +188,7 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
  }, [query]);
 
  useEffect(()=>{mounted.current=true;readMeta().then(current=>{setMeta(current);setLoading(false);if(current?.index[0])setSelected(current.index[0].id)}).catch(e=>{setError(e.message);setLoading(false)});return()=>{mounted.current=false}},[]);
- useEffect(()=>{const refresh=()=>{readMeta().then(current=>{setMeta(current);if(current?.index[0])setSelected(current.index[0].id)}).catch(e=>setError(e.message))};window.addEventListener('planarch-compendium-changed',refresh);return()=>window.removeEventListener('planarch-compendium-changed',refresh)},[]);
+ useEffect(()=>{const refresh=()=>{readMeta().then(current=>{setMeta(current);if(current?.index[0])setSelected(current.index[0].id)}).catch(e=>setError(e.message))};window.addEventListener('archeron-compendium-changed',refresh);window.addEventListener('planarch-compendium-changed',refresh);return()=>{window.removeEventListener('archeron-compendium-changed',refresh);window.removeEventListener('planarch-compendium-changed',refresh)}},[]);
  useEffect(()=>{if(focus&&meta){setSelected(focus);setKind('All');setEdition('All');setQuery('');onFocusHandled?.()}},[focus,meta]);
  useEffect(()=>{
    setRecord(null);

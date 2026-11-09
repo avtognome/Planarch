@@ -1,12 +1,21 @@
-/* Planarch's modern macOS dark slate skin. */
+/* Archeron's modern macOS dark slate skin. */
 :root {
-  --planarch-charcoal: #17191a;
-  --planarch-deep-charcoal: #101214;
-  --planarch-ivory: #f1e8d8;
-  --planarch-antique-gold: #be9454;
-  --planarch-gold-highlight: #e2bc7c;
-  --planarch-aged-gold: #826039;
-  --planarch-warm-ink: #302c27;
+  --archeron-charcoal: #17191a;
+  --archeron-deep-charcoal: #101214;
+  --archeron-ivory: #f1e8d8;
+  --archeron-antique-gold: #be9454;
+  --archeron-gold-highlight: #e2bc7c;
+  --archeron-aged-gold: #826039;
+  --archeron-warm-ink: #302c27;
+
+  /* Backward compatibility aliases */
+  --planarch-charcoal: var(--archeron-charcoal);
+  --planarch-deep-charcoal: var(--archeron-deep-charcoal);
+  --planarch-ivory: var(--archeron-ivory);
+  --planarch-antique-gold: var(--archeron-antique-gold);
+  --planarch-gold-highlight: var(--archeron-gold-highlight);
+  --planarch-aged-gold: var(--archeron-aged-gold);
+  --planarch-warm-ink: var(--archeron-warm-ink);
 }
 
 body{background:var(--bg,#0d0c0a)}
@@ -15,7 +24,7 @@ body{background:var(--bg,#0d0c0a)}
 .theme-light{--bg:#fcfbf7;--panel:#ffffff;--panel-alt:#f5f5f4;--panel-elevated:#fafaf9;--line:#e7e5e4;--line-strong:#d6d3d1;--text:#1c1917;--text-muted:#57534e;--muted:#57534e;--accent:#d97706;--accent-hover:#b45309;--accent-subtle:#fffbeb;--accent-border:#fde68a;--stat-ac-bg:#fffbeb;--stat-ac-color:#b45309;--stat-ac-border:#fde68a;--stat-pp-bg:#faf5ff;--stat-pp-color:#9333ea;--stat-pp-border:#e9d5ff;--stat-hp-bg:#f0fdf4;--stat-hp-color:#16a34a;--stat-hp-border:#bbf7d0;--status-green:var(--secondary,var(--accent));--status-yellow:var(--accent);--status-red:var(--muted);--brand-mark-color:var(--accent);--button-primary-bg:var(--accent);--button-primary-text:var(--bg);--input-bg:var(--panel);--input-border:var(--line);--input-text:var(--text);--tab-selected-bg:var(--panel-elevated,var(--panel));--sidebar-bg:var(--panel);--topbar-bg:var(--panel);color:var(--text);background:var(--bg)}
 .theme-dark{--bg:#0d0c0a;--panel:#171614;--panel-alt:#201e1b;--panel-elevated:#24211e;--line:#262422;--line-strong:#332f2b;--text:#f5f5f4;--text-muted:#a8a29e;--muted:#a8a29e;--accent:#f59e0b;--accent-hover:#d97706;--accent-subtle:rgba(245,158,11,0.12);--accent-border:rgba(245,158,11,0.3);--stat-ac-bg:rgba(245,158,11,0.12);--stat-ac-color:#f59e0b;--stat-ac-border:rgba(245,158,11,0.3);--stat-pp-bg:rgba(147,51,234,0.12);--stat-pp-color:#c084fc;--stat-pp-border:rgba(147,51,234,0.3);--stat-hp-bg:rgba(22,163,74,0.12);--stat-hp-color:#4ade80;--stat-hp-border:rgba(22,163,74,0.3);--status-green:var(--secondary,var(--accent));--status-yellow:var(--accent);--status-red:var(--muted);--brand-mark-color:var(--accent);--button-primary-bg:var(--accent);--button-primary-text:var(--bg);--input-bg:var(--panel);--input-border:var(--line);--input-text:var(--text);--tab-selected-bg:var(--panel-elevated,var(--panel));--sidebar-bg:var(--panel);--topbar-bg:var(--panel);color:var(--text);background:var(--bg)}
 
-/* Planarch 8-Palette System */
+/* Archeron 8-Palette System */
 .theme-totality{--bg:#121318;--panel:#1e1f25;--panel-alt:#292a2f;--panel-elevated:#24252c;--line:#34265e;--line-strong:#4e3a8c;--text:#e3e1e9;--text-muted:#d0c6ab;--muted:#d0c6ab;--accent:#ffd700;--accent-hover:#e6c200;--accent-subtle:rgba(255,215,0,0.12);--accent-border:rgba(255,215,0,0.3);--secondary:#00e3fd;--stat-ac-bg:rgba(255,215,0,0.12);--stat-ac-color:#ffd700;--stat-ac-border:rgba(255,215,0,0.3);--stat-pp-bg:rgba(0,227,253,0.12);--stat-pp-color:#00e3fd;--stat-pp-border:rgba(0,227,253,0.3);--stat-hp-bg:rgba(34,197,94,0.12);--stat-hp-color:#4ade80;--stat-hp-border:rgba(34,197,94,0.3);--status-green:var(--secondary,var(--accent));--status-yellow:var(--accent);--status-red:var(--muted);--brand-mark-color:var(--accent);--button-primary-bg:var(--accent);--button-primary-text:var(--bg);--input-bg:var(--panel);--input-border:var(--line);--input-text:var(--text);--tab-selected-bg:var(--panel-elevated,var(--panel));--sidebar-bg:var(--panel);--topbar-bg:var(--panel);color:var(--text);background:var(--bg)}
 .theme-futuristic{--bg:#090b12;--panel:#121722;--panel-alt:#1b2233;--panel-elevated:#222b40;--line:#2a3447;--line-strong:#3d4c67;--text:#f8fafc;--text-muted:#94a3b8;--muted:#94a3b8;--accent:#3b82f6;--accent-hover:#2563eb;--accent-subtle:rgba(59,130,246,0.12);--accent-border:rgba(59,130,246,0.3);--stat-ac-bg:rgba(59,130,246,0.12);--stat-ac-color:#60a5fa;--stat-ac-border:rgba(59,130,246,0.3);--stat-pp-bg:rgba(147,51,234,0.12);--stat-pp-color:#c084fc;--stat-pp-border:rgba(147,51,234,0.3);--stat-hp-bg:rgba(22,163,74,0.12);--stat-hp-color:#4ade80;--stat-hp-border:rgba(22,163,74,0.3);--status-green:var(--secondary,var(--accent));--status-yellow:var(--accent);--status-red:var(--muted);--brand-mark-color:var(--accent);--button-primary-bg:var(--accent);--button-primary-text:var(--bg);--input-bg:var(--panel);--input-border:var(--line);--input-text:var(--text);--tab-selected-bg:var(--panel-elevated,var(--panel));--sidebar-bg:var(--panel);--topbar-bg:var(--panel);color:var(--text);background:var(--bg)}
 .theme-spacex{--bg:#000000;--panel:#000000;--panel-alt:#111116;--panel-elevated:#1a1a22;--line:rgba(240,240,250,0.35);--line-strong:rgba(240,240,250,0.55);--text:#f0f0fa;--text-muted:rgba(240,240,250,0.7);--muted:rgba(240,240,250,0.7);--accent:#f0f0fa;--accent-hover:#ffffff;--accent-subtle:rgba(240,240,250,0.15);--accent-border:rgba(240,240,250,0.4);--stat-ac-bg:rgba(240,240,250,0.12);--stat-ac-color:#f0f0fa;--stat-ac-border:rgba(240,240,250,0.35);--stat-pp-bg:rgba(240,240,250,0.08);--stat-pp-color:#d1d1e0;--stat-pp-border:rgba(240,240,250,0.25);--stat-hp-bg:rgba(34,197,94,0.12);--stat-hp-color:#4ade80;--stat-hp-border:rgba(34,197,94,0.3);--status-green:var(--secondary,var(--accent));--status-yellow:var(--accent);--status-red:var(--muted);--brand-mark-color:var(--accent);--button-primary-bg:var(--accent);--button-primary-text:var(--bg);--input-bg:var(--panel);--input-border:var(--line);--input-text:var(--text);--tab-selected-bg:var(--panel-elevated,var(--panel));--sidebar-bg:var(--panel);--topbar-bg:var(--panel);color:var(--text);background:var(--bg)}

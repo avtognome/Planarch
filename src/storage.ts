@@ -5,11 +5,22 @@ export function subscribeSaved(fn:(change:SavedChange)=>void){listeners.add(fn);
 export function writeSavedJSON(key:string,json:string,remote=false){if(localStorage.getItem(key)===json)return;localStorage.setItem(key,json);for(const fn of listeners)fn({key,json,remote})}
 export function writeSavedValue(key:string,value:unknown,remote=false){writeSavedJSON(key,JSON.stringify(value),remote)}
 export function workspaceKeys(){return Object.keys(localStorage).filter(k=>k.startsWith('wf-'))}
+export function readFallbackStorage(key:string,storage:Storage=localStorage):string|null{
+ const primary=storage.getItem(key);
+ if(primary!==null)return primary;
+ if(key.startsWith('archeron-')){
+  const planarchVal=storage.getItem(key.replace(/^archeron-/,'planarch-'));
+  if(planarchVal!==null)return planarchVal;
+  const wayfinderVal=storage.getItem(key.replace(/^archeron-/,'wayfinder-'));
+  if(wayfinderVal!==null)return wayfinderVal;
+ }
+ return null;
+}
 export function useSaved<T>(key:string,initial:T):readonly [T,Dispatch<SetStateAction<T>>]{
- const read=()=>{try{return JSON.parse(localStorage.getItem(key)||'null')??initial}catch{return initial}};
+ const read=()=>{try{const raw=key.startsWith('archeron-')?readFallbackStorage(key):localStorage.getItem(key);return JSON.parse(raw||'null')??initial}catch{return initial}};
  const [state,setState]=useState<{key:string,value:T}>(()=>({key,value:read()}));
  const value=state.key===key?state.value:read();
- useEffect(()=>{if(state.key!==key){setState({key,value:read()});return}try{writeSavedValue(key,state.value)}catch{window.dispatchEvent(new CustomEvent('planarch-save-error'))}},[key,state]);
+ useEffect(()=>{if(state.key!==key){setState({key,value:read()});return}try{writeSavedValue(key,state.value)}catch{window.dispatchEvent(new CustomEvent('archeron-save-error'));window.dispatchEvent(new CustomEvent('planarch-save-error'))}},[key,state]);
  useEffect(()=>subscribeSaved(change=>{if(change.key===key){try{setState({key,value:JSON.parse(change.json)})}catch{}}}),[key]);
  useEffect(()=>{const fn=(event:StorageEvent)=>{if(event.key===key&&event.newValue!==null){try{setState({key,value:JSON.parse(event.newValue)});for(const listener of listeners)listener({key,json:event.newValue,remote:true})}catch{}}};window.addEventListener('storage',fn);return()=>window.removeEventListener('storage',fn)},[key]);
  const setValue:Dispatch<SetStateAction<T>>=(update)=>setState(prev=>{const current=prev.key===key?prev.value:read();return {key,value:typeof update==='function'?(update as (v:T)=>T)(current):update}});

@@ -1,3 +1,4 @@
+globalThis.document = globalThis.document || { documentElement: { scrollLeft: 0, scrollTop: 0 }, body: { scrollLeft: 0, scrollTop: 0 } };
 import assert from 'node:assert/strict';
 
 export function buildFreesoundSearchUrl(query, apiKey, page = 1) {

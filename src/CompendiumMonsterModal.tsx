@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, X, Plus, BookOpen, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { type CompendiumRecord, type EntryIndex, monsterToCombatant, plain, readRecord } from './compendiumData';
+import { getCloudCompendiumRecord } from './supabaseCloud';
 import { uid, type Combatant } from './models';
 
 export interface CompendiumMonsterModalProps {
@@ -133,9 +134,11 @@ export function CompendiumMonsterModal({
 
     const fetcher = loadRecord
       ? loadRecord(activeId)
-      : generation
-        ? readRecord(generation, activeId)
-        : Promise.resolve(null);
+      : (async () => {
+          let r = generation ? await readRecord(generation, activeId).catch(() => null) : null;
+          if (!r) r = await getCloudCompendiumRecord(activeId).catch(() => null);
+          return r;
+        })();
 
     fetcher.then(res => {
       if (!cancelled) {
@@ -161,7 +164,10 @@ export function CompendiumMonsterModal({
       if (loadRecord) {
         fullRecord = await loadRecord(m.id);
       } else if (generation) {
-        fullRecord = await readRecord(generation, m.id);
+        fullRecord = await readRecord(generation, m.id).catch(() => null);
+      }
+      if (!fullRecord) {
+        fullRecord = await getCloudCompendiumRecord(m.id).catch(() => null);
       }
     }
 

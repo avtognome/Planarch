@@ -2,7 +2,7 @@ import {createClient,type SupabaseClient,type User} from '@supabase/supabase-js'
 import {SyncEngine,SyncConflict,type SyncState,type RemoteValue,type SyncAdapter} from './syncEngine';
 import {cleanBundledCampaignTemplates} from './campaigns';
 import {workspaceKeys,subscribeSaved,writeSavedJSON,writeSavedValue} from './storage';
-import {readMeta,readLibraryRecords,restoreLibrary} from './compendiumData';
+import {readMeta,readLibraryRecords,restoreLibrary,clearVerifiedLibrary,indexRecord,type LibraryMeta,type CompendiumRecord,type EntryIndex} from './compendiumData';
 import {readAudio,saveAudio} from './cloudFiles';
 import {PART_BYTES,packCloudBlob,unpackCloudBlob,type BlobManifest} from './cloudBlob';
 export type CloudState={configured:boolean,user:User|null,status:string,message:string,pending:number,conflicts:RemoteValue[],transfer:string};
@@ -26,8 +26,8 @@ export async function bootSupabase(){const saved=localStorage.getItem('archeron-
 export async function loginSupabase(email:string,password:string,create=false){if(!client)throw Error('Connect your Supabase project first');if(create){const {data,error}=await client.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin}});if(error)throw new Error(error.message);return {needsConfirmation:!data.session}}const {error}=await client.auth.signInWithPassword({email,password});if(error)throw new Error(error.message);return {needsConfirmation:false}}
 export async function resetSupabasePassword(email:string){if(!client)throw Error('Configure Supabase first');if(!email.trim())throw Error('Enter your account email');const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});if(error)throw error}
 export async function updateSupabasePassword(password:string){if(!client||!state.user)throw Error('Open the recovery email and sign in first');const {error}=await client.auth.updateUser({password});if(error)throw new Error(error.message);update({message:'Password updated.'})}
-export async function logoutSupabase(){engine?.stop();engine=undefined;unAsset?.();unAsset=undefined;assetToken++;if(client){const {error}=await client.auth.signOut();if(error)throw error}update({user:null,status:'signed-out',transfer:''})}
-export async function disconnectSupabase(clear=true){clientEpoch++;engine?.stop();engine=undefined;unAuth?.();unAuth=undefined;unOnline?.();unOnline=undefined;unAsset?.();unAsset=undefined;assetToken++;if(client){if(clear)await client.auth.signOut();await client.removeAllChannels();client.auth.stopAutoRefresh()}client=undefined;if(clear){localStorage.removeItem('archeron-supabase-config');localStorage.removeItem('planarch-supabase-config');localStorage.removeItem('wayfinder-supabase-config');localStorage.removeItem('archeron-supabase-owner');localStorage.removeItem('planarch-supabase-owner');localStorage.removeItem('wayfinder-supabase-owner');}update({configured:false,user:null,status:'disconnected',message:'Local data is retained.',transfer:'',conflicts:[],pending:0})}
+export async function logoutSupabase(){engine?.stop();engine=undefined;unAsset?.();unAsset=undefined;assetToken++;cloudRecordsCache=null;cloudRecordsCachePath=null;if(client){const {error}=await client.auth.signOut();if(error)throw error}update({user:null,status:'signed-out',transfer:''})}
+export async function disconnectSupabase(clear=true){clientEpoch++;engine?.stop();engine=undefined;unAuth?.();unAuth=undefined;unOnline?.();unOnline=undefined;unAsset?.();unAsset=undefined;assetToken++;cloudRecordsCache=null;cloudRecordsCachePath=null;if(client){if(clear)await client.auth.signOut();await client.removeAllChannels();client.auth.stopAutoRefresh()}client=undefined;if(clear){localStorage.removeItem('archeron-supabase-config');localStorage.removeItem('planarch-supabase-config');localStorage.removeItem('wayfinder-supabase-config');localStorage.removeItem('archeron-supabase-owner');localStorage.removeItem('planarch-supabase-owner');localStorage.removeItem('wayfinder-supabase-owner');}update({configured:false,user:null,status:'disconnected',message:'Local data is retained.',transfer:'',conflicts:[],pending:0})}
 export function prepareSupabaseAssetPointers(){for(const key of ['wf-cloud-audio','wf-cloud-compendium']){try{const existing=JSON.parse(localStorage.getItem(key)||'null');if(existing&&existing.backend!=='supabase')localStorage.removeItem(key)}catch{localStorage.removeItem(key)}}}
 export async function startCloudSync(preferLocal=false){lastPreference=preferLocal;const user=state.user;if(!user||!client)throw Error('Sign in to Supabase first');engine?.stop();unAsset?.();prepareSupabaseAssetPointers();const savedConfig=localStorage.getItem('archeron-supabase-config')||localStorage.getItem('planarch-supabase-config')||localStorage.getItem('wayfinder-supabase-config')!,identity=`${JSON.parse(savedConfig).url}|${user.id}`,metaKey=`archeron-supabase-sync:${identity}`;const previousOwner=localStorage.getItem('archeron-supabase-owner')||localStorage.getItem('planarch-supabase-owner')||localStorage.getItem('wayfinder-supabase-owner');if(previousOwner&&previousOwner!==identity){for(const key of ['wf-cloud-audio','wf-cloud-compendium'])localStorage.removeItem(key)}engine=new SyncEngine(adapterFor(user.id),{keys:workspaceKeys,read:k=>localStorage.getItem(k),apply:(key,json)=>writeSavedJSON(key,json,true),subscribe:fn=>subscribeSaved(change=>{if(!change.remote)fn(change.key,change.json)}),loadMeta:()=>{try{return JSON.parse(localStorage.getItem(metaKey)||localStorage.getItem(`planarch-supabase-sync:${identity}`)||localStorage.getItem(`wayfinder-supabase-sync:${identity}`)||'null')||{versions:{},pending:[]}}catch{return {versions:{},pending:[]}}},saveMeta:meta=>localStorage.setItem(metaKey,JSON.stringify(meta))},(next:SyncState)=>update(next));
  const candidate=engine;await candidate.start(preferLocal);if(engine!==candidate||state.user?.id!==user.id)return;cleanBundledCampaignTemplates(true);await candidate.flush();if(previousOwner!==identity&&!preferLocal){if(localStorage.getItem('wf-cloud-audio')){localStorage.removeItem('archeron-audio-dirty');localStorage.removeItem('planarch-audio-dirty');}if(localStorage.getItem('wf-cloud-compendium')){localStorage.removeItem('archeron-compendium-dirty');localStorage.removeItem('planarch-compendium-dirty');}}localStorage.setItem('archeron-supabase-owner',identity);const process=()=>{void reconcileAssets().catch(e=>update({status:'error',message:e.message,transfer:''}))};const onAudio=()=>{if(!restoring){localStorage.setItem('archeron-audio-dirty','true');localStorage.setItem('planarch-audio-dirty','true');process()}};const onCompendium=()=>{if(!restoring)process()};const onOnline=()=>{void engine?.flush();process()};window.addEventListener('archeron-audio-changed',onAudio);window.addEventListener('planarch-audio-changed',onAudio);window.addEventListener('archeron-compendium-changed',onCompendium);window.addEventListener('planarch-compendium-changed',onCompendium);window.addEventListener('online',onOnline);const off=subscribeSaved(change=>{if(change.remote&&['wf-cloud-audio','wf-cloud-compendium'].includes(change.key))process()});unAsset=()=>{window.removeEventListener('archeron-audio-changed',onAudio);window.removeEventListener('planarch-audio-changed',onAudio);window.removeEventListener('archeron-compendium-changed',onCompendium);window.removeEventListener('planarch-compendium-changed',onCompendium);window.removeEventListener('online',onOnline);off()};await reconcileAssets();}
@@ -41,7 +41,76 @@ const isCompendiumDirty=()=>localStorage.getItem('archeron-compendium-dirty')===
 const clearCompendiumDirty=()=>{localStorage.removeItem('archeron-compendium-dirty');localStorage.removeItem('planarch-compendium-dirty');};
 const getCompendiumCurrent=()=>localStorage.getItem('archeron-compendium-current')||localStorage.getItem('planarch-compendium-current');
 const setCompendiumCurrent=(p:string)=>{localStorage.setItem('archeron-compendium-current',p);localStorage.setItem('planarch-compendium-current',p);};
-async function reconcileAssets(){if(assetBusy||!state.user||!engine?.ready)return;assetBusy=true;const token=assetToken,uid=state.user.id;let completed=false;try{const cloudAudio=JSON.parse(localStorage.getItem('wf-cloud-audio')||'null'),cloudBook=JSON.parse(localStorage.getItem('wf-cloud-compendium')||'null'),audio=await readAudio(),book=await readMeta();
+
+let cloudRecordsCache:Map<string,CompendiumRecord>|null=null;
+let cloudRecordsCachePath:string|null=null;
+
+export async function getCloudCompendiumMeta():Promise<LibraryMeta|null>{
+ const saved=localStorage.getItem('wf-cloud-compendium');
+ if(!saved)return null;
+ try{
+  const pointer=JSON.parse(saved);
+  if(!pointer||pointer.backend!=='supabase')return null;
+  if(Array.isArray(pointer.index)&&pointer.generation){
+   const counts:Record<string,number>={};
+   for(const entry of pointer.index)counts[entry.kind]=(counts[entry.kind]||0)+1;
+   return {generation:pointer.generation,name:pointer.name||'Cloud Compendium',count:pointer.count||pointer.index.length,counts,index:pointer.index};
+  }
+  if(pointer.path){
+   const blob=await fetchBlob(pointer.path);
+   const data=JSON.parse(await blob.text());
+   if(!Array.isArray(data.records))throw Error('Invalid cloud compendium payload');
+   const index:EntryIndex[]=data.records.map(indexRecord);
+   const counts:Record<string,number>={};
+   for(const r of data.records)counts[r.kind]=(counts[r.kind]||0)+1;
+   const generation=data.generation||pointer.generation||crypto.randomUUID();
+   const updated={...pointer,generation,name:data.name||pointer.name||'Cloud Compendium',count:data.records.length,index};
+   localStorage.setItem('wf-cloud-compendium',JSON.stringify(updated));
+   cloudRecordsCache=new Map(data.records.map((r:CompendiumRecord)=>[r.id,r]));
+   cloudRecordsCachePath=pointer.path;
+   return {generation,name:updated.name,count:updated.count,counts,index};
+  }
+ }catch{return null}
+ return null;
+}
+
+export async function getCloudCompendiumRecord(id:string):Promise<CompendiumRecord|null>{
+ const saved=localStorage.getItem('wf-cloud-compendium');
+ if(!saved)return null;
+ try{
+  const pointer=JSON.parse(saved);
+  if(!pointer?.path||pointer.backend!=='supabase')return null;
+  if(cloudRecordsCache&&cloudRecordsCachePath===pointer.path){
+   return cloudRecordsCache.get(id)||null;
+  }
+  const blob=await fetchBlob(pointer.path);
+  const data=JSON.parse(await blob.text());
+  if(!Array.isArray(data.records))return null;
+  cloudRecordsCache=new Map(data.records.map((r:CompendiumRecord)=>[r.id,r]));
+  cloudRecordsCachePath=pointer.path;
+  return cloudRecordsCache.get(id)||null;
+ }catch{return null}
+}
+
+export async function getCloudCompendiumRecords():Promise<CompendiumRecord[]>{
+ const saved=localStorage.getItem('wf-cloud-compendium');
+ if(!saved)return [];
+ try{
+  const pointer=JSON.parse(saved);
+  if(!pointer?.path||pointer.backend!=='supabase')return [];
+  if(cloudRecordsCache&&cloudRecordsCachePath===pointer.path){
+   return [...cloudRecordsCache.values()];
+  }
+  const blob=await fetchBlob(pointer.path);
+  const data=JSON.parse(await blob.text());
+  if(!Array.isArray(data.records))return [];
+  cloudRecordsCache=new Map(data.records.map((r:CompendiumRecord)=>[r.id,r]));
+  cloudRecordsCachePath=pointer.path;
+  return [...cloudRecordsCache.values()];
+ }catch{return []}
+}
+
+async function reconcileAssets(){if(assetBusy||!state.user||!engine?.ready)return;assetBusy=true;const token=assetToken,uid=state.user.id,epoch=clientEpoch;let completed=false;try{const cloudAudio=JSON.parse(localStorage.getItem('wf-cloud-audio')||'null'),cloudBook=JSON.parse(localStorage.getItem('wf-cloud-compendium')||'null'),audio=await readAudio(),book=await readMeta();
  if(audio&&(isAudioDirty()||!cloudAudio)){const path=await uploadBlob(`users/${uid}/audio/${crypto.randomUUID()}`,audio.file,'Uploading audio');if(token!==assetToken)return;writeSavedValue('wf-cloud-audio',{path,name:audio.name,type:audio.file.type,backend:'supabase'});setAudioCurrent(path);if((await readAudio())?.id===audio.id)clearAudioDirty()}else if(cloudAudio&&cloudAudio.path!==getAudioCurrent()){update({transfer:'Restoring audio…'});const blob=await fetchBlob(cloudAudio.path);if(token!==assetToken)return;if(isAudioDirty()){completed=true;return}restoring=true;await saveAudio(blob,cloudAudio.name,true);restoring=false;setAudioCurrent(cloudAudio.path)}
- if(book&&(isCompendiumDirty()||!cloudBook)){const records=await readLibraryRecords(book.generation);if(records.length!==book.count)throw Error('Sourcebook changed while preparing upload. Retry cloud sync.');const blob=new Blob([JSON.stringify({name:book.name,records})],{type:'application/json'}),path=await uploadBlob(`users/${uid}/compendium/${crypto.randomUUID()}.json`,blob,'Uploading compendium');if(token!==assetToken)return;writeSavedValue('wf-cloud-compendium',{path,name:book.name,count:records.length,backend:'supabase'});setCompendiumCurrent(path);if((await readMeta())?.generation===book.generation)clearCompendiumDirty()}else if(cloudBook&&cloudBook.path!==getCompendiumCurrent()){update({transfer:'Restoring compendium…'});const data=JSON.parse(await(await fetchBlob(cloudBook.path)).text());if(token!==assetToken)return;if(isCompendiumDirty()){completed=true;return}restoring=true;await restoreLibrary(data.records,data.name);restoring=false;setCompendiumCurrent(cloudBook.path)}
+ if(book&&(isCompendiumDirty()||!cloudBook)){const records=await readLibraryRecords(book.generation);if(records.length!==book.count)throw Error('Sourcebook changed while preparing upload. Retry cloud sync.');const uploadGen=book.generation;const blob=new Blob([JSON.stringify({generation:uploadGen,name:book.name,count:records.length,records})],{type:'application/json'}),path=await uploadBlob(`users/${uid}/compendium/${crypto.randomUUID()}.json`,blob,'Uploading compendium');if(token!==assetToken||clientEpoch!==epoch)return;update({transfer:'Verifying compendium upload…'});const readBackBlob=await fetchBlob(path);if(token!==assetToken||clientEpoch!==epoch)return;const readBackData=JSON.parse(await readBackBlob.text());if(!readBackData||readBackData.generation!==uploadGen||readBackData.count!==records.length||!Array.isArray(readBackData.records)||readBackData.records.length!==records.length)throw Error('Remote compendium verification failed (count/generation mismatch). Local copy preserved.');const originalIds=new Set(records.map(r=>r.id));if(readBackData.records.some((r:any)=>!r||!originalIds.has(r.id)))throw Error('Remote compendium verification failed (record ID mismatch). Local copy preserved.');writeSavedValue('wf-cloud-compendium',{generation:uploadGen,name:book.name,count:records.length,index:book.index,path,backend:'supabase'});if(engine)await engine.flush();if(token!==assetToken||clientEpoch!==epoch||state.user?.id!==uid)return;if(engine?.conflicts.has('wf-cloud-compendium'))throw Error('Pointer conflict on cloud compendium. Local copy preserved.');if(engine?.pending.has('wf-cloud-compendium'))throw Error('Cloud compendium pointer upload pending acknowledgement. Local copy preserved.');const activeLocal=await readMeta();if(activeLocal?.generation!==uploadGen)return;await clearVerifiedLibrary(uploadGen);clearCompendiumDirty();setCompendiumCurrent(path);cloudRecordsCache=new Map(records.map(r=>[r.id,r]));cloudRecordsCachePath=path;}else if(cloudBook&&cloudBook.path!==getCompendiumCurrent()){if(isCompendiumDirty()){completed=true;return;}if(!cloudBook.index&&cloudBook.path){await getCloudCompendiumMeta().catch(()=>{});}setCompendiumCurrent(cloudBook.path);}
  completed=true;}finally{assetBusy=false;restoring=false;update({transfer:''});if(state.user&&engine?.ready&&(token!==assetToken||(completed&&(isAudioDirty()||isCompendiumDirty()))))setTimeout(()=>{void reconcileAssets().catch(e=>update({status:'error',message:e.message}))},500)}}

@@ -10,6 +10,7 @@ export function indexRecord(r:CompendiumRecord):EntryIndex{const f=r.fields;cons
 export function monsterToCombatant(record:CompendiumRecord,id:string):Combatant{if(record.kind!=='monster')throw Error('Only monsters can be added as combatants');const hp=Number(plain(record.fields.hp).match(/^\s*(\d+)/)?.[1]||0);const dex=Number(plain(record.fields.dex).match(/^\s*(\d+)/)?.[1]||10),cr=plain(record.fields.cr).trim();return {id,name:record.name,role:'Monster',hp,maxHp:hp,initiative:10,modifier:Math.floor((dex-10)/2),conditions:'',concentration:'',cr,reference:{id:record.id,name:record.name}}}
 let database:Promise<IDBDatabase>|undefined;
 let legacyDatabase:Promise<IDBDatabase>|undefined;
+let inFlightMigration:Promise<void>|null=null;
 const recordCache = new Map<string, CompendiumRecord>();
 
 function openCompendiumDb(name:string):Promise<IDBDatabase>{
@@ -86,7 +87,7 @@ export async function readMeta():Promise<LibraryMeta|null>{
     req.onerror=()=>reject(req.error);
    });
    if(legacyMeta){
-    void migrateCompendium(legacyDb,db,legacyMeta);
+    inFlightMigration=migrateCompendium(legacyDb,db,legacyMeta).finally(()=>{inFlightMigration=null});
     return legacyMeta;
    }
   }
@@ -153,6 +154,50 @@ export function clearCompendiumDirty():void{
  localStorage.removeItem('archeron-compendium-dirty');
  localStorage.removeItem('planarch-compendium-dirty');
 }
+export async function clearVerifiedLibrary(generation:string):Promise<void>{
+ if(inFlightMigration){
+  try{await inFlightMigration}catch{}
+ }
+ const db=await openLibrary();
+ const currentMeta=await new Promise<LibraryMeta|null>((resolve,reject)=>{
+  const req=db.transaction('meta').objectStore('meta').get('active');
+  req.onsuccess=()=>resolve(req.result??null);
+  req.onerror=()=>reject(req.error);
+ });
+ if(currentMeta?.generation===generation){
+  await new Promise<void>((resolve,reject)=>{
+   const tx=db.transaction('meta','readwrite');
+   tx.objectStore('meta').delete('active');
+   tx.oncomplete=()=>resolve();
+   tx.onerror=()=>reject(tx.error);
+  });
+ }
+ try{
+  const legacyDb=await openLegacyLibrary();
+  if(legacyDb.objectStoreNames.contains('meta')){
+   const legacyMeta=await new Promise<LibraryMeta|null>((resolve,reject)=>{
+    const req=legacyDb.transaction('meta').objectStore('meta').get('active');
+    req.onsuccess=()=>resolve(req.result??null);
+    req.onerror=()=>reject(req.error);
+   });
+   if(legacyMeta?.generation===generation){
+    await new Promise<void>((resolve,reject)=>{
+     const tx=legacyDb.transaction('meta','readwrite');
+     tx.objectStore('meta').delete('active');
+     tx.oncomplete=()=>resolve();
+     tx.onerror=()=>reject(tx.error);
+    });
+   }
+  }
+ }catch{}
+ await deleteGeneration(generation);
+ recordCache.clear();
+ if(typeof window!=='undefined'){
+  window.dispatchEvent(new CustomEvent('archeron-compendium-changed',{detail:{cleared:true}}));
+  window.dispatchEvent(new CustomEvent('planarch-compendium-changed',{detail:{cleared:true}}));
+ }
+}
+
 export async function deleteGeneration(generation:string){
  const db=await openLibrary();
  await new Promise<void>((resolve,reject)=>{

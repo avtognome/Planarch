@@ -2,7 +2,8 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import {BookOpen,Search,Upload,Download,Plus,ChevronLeft,ChevronRight,Check,Swords,RotateCcw,X,Sparkles} from 'lucide-react';
 import {useSaved} from './storage';
 import {uid,seedEncounters,type Encounter} from './models';
-import {kinds,readMeta,readRecord,writeBatch,activateLibrary,deleteGeneration,importIncluded,indexRecord,monsterToCombatant,plain,type LibraryMeta,type CompendiumRecord,type EntryIndex,type FieldValue} from './compendiumData';
+import {kinds,readMeta,readRecord,writeBatch,activateLibrary,deleteGeneration,importIncluded,indexRecord,monsterToCombatant,plain,isCompendiumDirty,type LibraryMeta,type CompendiumRecord,type EntryIndex,type FieldValue} from './compendiumData';
+import {getCloudState,subscribeCloud,getCloudCompendiumMeta,getCloudCompendiumRecord,type CloudState} from './supabaseCloud';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from './select';
 import HomebrewModal from './HomebrewModal';
 import {readHomebrew,deleteHomebrew} from './homebrewData';
@@ -164,7 +165,12 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
  const [homebrew,setHomebrew]=useState<CompendiumRecord[]>(()=>readHomebrew(campaign));
  const [homebrewModalOpen,setHomebrewModalOpen]=useState(false);
  const [editingHomebrew,setEditingHomebrew]=useState<CompendiumRecord|null>(null);
+ const [cloudState,setCloudState]=useState<CloudState>(()=>getCloudState());
  const worker=useRef<Worker|null>(null),mounted=useRef(true);
+
+ useEffect(()=>{
+   return subscribeCloud(()=>setCloudState(getCloudState()));
+ },[]);
 
  useEffect(()=>{
    setHomebrew(readHomebrew(campaign));
@@ -187,8 +193,47 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
    return () => clearTimeout(timer);
  }, [query]);
 
- useEffect(()=>{mounted.current=true;readMeta().then(current=>{setMeta(current);setLoading(false);if(current?.index[0])setSelected(current.index[0].id)}).catch(e=>{setError(e.message);setLoading(false)});return()=>{mounted.current=false}},[]);
- useEffect(()=>{const refresh=()=>{readMeta().then(current=>{setMeta(current);if(current?.index[0])setSelected(current.index[0].id)}).catch(e=>setError(e.message))};window.addEventListener('archeron-compendium-changed',refresh);window.addEventListener('planarch-compendium-changed',refresh);return()=>{window.removeEventListener('archeron-compendium-changed',refresh);window.removeEventListener('planarch-compendium-changed',refresh)}},[]);
+ useEffect(()=>{
+   mounted.current=true;
+   const load=async()=>{
+     try{
+       const current=await readMeta();
+       if(current){
+         if(mounted.current){setMeta(current);setLoading(false);if(current.index[0]&&!selected)setSelected(current.index[0].id);}
+         return;
+       }
+       const cloudMeta=await getCloudCompendiumMeta();
+       if(mounted.current){setMeta(cloudMeta);setLoading(false);if(cloudMeta?.index[0]&&!selected)setSelected(cloudMeta.index[0].id);}
+     }catch(e:any){
+       if(mounted.current){setError(e.message||'Could not load compendium');setLoading(false);}
+     }
+   };
+   load();
+   return()=>{mounted.current=false};
+ },[]);
+
+ useEffect(()=>{
+   const refresh=async()=>{
+     try{
+       const current=await readMeta();
+       if(current){
+         if(mounted.current){setMeta(current);if(current.index[0]&&!selected)setSelected(current.index[0].id);}
+         return;
+       }
+       const cloudMeta=await getCloudCompendiumMeta();
+       if(mounted.current){setMeta(cloudMeta);if(cloudMeta?.index[0]&&!selected)setSelected(cloudMeta.index[0].id);}
+     }catch(e:any){
+       if(mounted.current)setError(e.message||'Could not refresh compendium');
+     }
+   };
+   window.addEventListener('archeron-compendium-changed',refresh);
+   window.addEventListener('planarch-compendium-changed',refresh);
+   return()=>{
+     window.removeEventListener('archeron-compendium-changed',refresh);
+     window.removeEventListener('planarch-compendium-changed',refresh);
+   };
+ },[selected]);
+
  useEffect(()=>{if(focus&&meta){setSelected(focus);setKind('All');setEdition('All');setQuery('');onFocusHandled?.()}},[focus,meta]);
  useEffect(()=>{
    setRecord(null);
@@ -197,7 +242,13 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
    if(hb){setRecord(hb);return;}
    if(!meta)return;
    let cancelled=false;
-   readRecord(meta.generation,selected).then(result=>{if(!cancelled)setRecord(result)}).catch(e=>setError(e.message));
+   readRecord(meta.generation,selected).then(result=>{
+     if(cancelled)return;
+     if(result){setRecord(result);return;}
+     getCloudCompendiumRecord(selected).then(cr=>{if(!cancelled)setRecord(cr)}).catch(()=>{});
+   }).catch(()=>{
+     getCloudCompendiumRecord(selected).then(cr=>{if(!cancelled)setRecord(cr)}).catch(()=>{});
+   });
    return()=>{cancelled=true};
  },[meta,selected,homebrew]);
  useEffect(()=>setPage(0),[kind,edition,debouncedQuery,monsterCR,monsterType,spellLevel,spellClass,itemRarity,itemType,sort]);
@@ -282,13 +333,22 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
  }, [meta, homebrew, kind, edition, query, monsterCR, monsterType, spellLevel, spellClass, itemRarity, itemType, sort]);
  const included=async()=>{setBusy(true);setError('');try{const imported=await importIncluded((current,total)=>{if(mounted.current)setProgress([current,total])});if(mounted.current){setMeta(imported);setSelected(imported.index[0].id);notify(`${imported.count.toLocaleString()} compendium entries ready`)}}catch(e){if(mounted.current)setError(e instanceof Error?e.message:'Sourcebook could not be loaded')}finally{if(mounted.current)setBusy(false)}};
  const importXML=async(file:File)=>{
+  const cloud=getCloudState();
+  if(!cloud.user){
+   setError('Sign in to Supabase first before importing a compendium.');
+   return;
+  }
+  if(cloud.status!=='synced'&&cloud.status!=='syncing'){
+   setError('Cloud sync must be active before importing a compendium.');
+   return;
+  }
   if(file.size>100*1024*1024){setError('Choose a compendium smaller than 100 MB.');return}
   setBusy(true);setError('');setProgress([0,0]);
-  const generation=uid(),old=await readMeta();let failed=false,queue=Promise.resolve(),total=0,index:EntryIndex[]=[],counts:Record<string,number>={};
+  const generation=uid();let failed=false,queue=Promise.resolve(),total=0,index:EntryIndex[]=[],counts:Record<string,number>={};
   const instance=new Worker(new URL('./compendium.worker.ts',import.meta.url),{type:'module'});worker.current=instance;
   const fail=async(message:string)=>{if(failed)return;failed=true;instance.terminate();await deleteGeneration(generation).catch(()=>{});if(mounted.current){setError(message);setBusy(false)}};
   instance.onerror=()=>{queue=queue.then(()=>fail('XML parsing failed; your previous sourcebook is unchanged.'))};
-  instance.onmessage=event=>{const data=event.data;if(data.type==='parsed'){total=data.total;if(mounted.current)setProgress([0,total])}if(data.type==='batch'){queue=queue.then(async()=>{if(failed)return;await writeBatch(generation,data.records);for(const entry of data.records as CompendiumRecord[]){index.push(indexRecord(entry));counts[entry.kind]=(counts[entry.kind]||0)+1}if(mounted.current)setProgress([index.length,total])}).catch(e=>fail(e.message))}if(data.type==='error')queue=queue.then(()=>fail(data.message));if(data.type==='done'){queue.then(async()=>{if(failed)return;if(index.length!==data.total)throw Error('Compendium import is incomplete.');const next={generation,name:file.name,count:index.length,counts,index};await activateLibrary(next);if(old)await deleteGeneration(old.generation).catch(()=>{});instance.terminate();if(mounted.current){setMeta(next);setSelected(index[0].id);setBusy(false);notify(`${index.length.toLocaleString()} entries imported`)}}).catch(e=>fail(e.message))}};
+  instance.onmessage=event=>{const data=event.data;if(data.type==='parsed'){total=data.total;if(mounted.current)setProgress([0,total])}if(data.type==='batch'){queue=queue.then(async()=>{if(failed)return;await writeBatch(generation,data.records);for(const entry of data.records as CompendiumRecord[]){index.push(indexRecord(entry));counts[entry.kind]=(counts[entry.kind]||0)+1}if(mounted.current)setProgress([index.length,total])}).catch(e=>fail(e.message))}if(data.type==='error')queue=queue.then(()=>fail(data.message));if(data.type==='done'){queue.then(async()=>{if(failed)return;if(index.length!==data.total)throw Error('Compendium import is incomplete.');const next={generation,name:file.name,count:index.length,counts,index};await activateLibrary(next);instance.terminate();if(mounted.current){setMeta(next);setSelected(index[0].id);setBusy(false);notify(`${index.length.toLocaleString()} entries imported`)}}).catch(e=>fail(e.message))}};
   instance.postMessage(file);
  };
  const addMonster=()=>{if(!record||record.kind!=='monster')return;const monster=monsterToCombatant(record,uid()),chosen=encounters.find(entry=>entry.id===encounterId);if(chosen){setEncounters(encounters.map(entry=>entry.id===chosen.id?{...entry,members:[...entry.members,monster]}:entry));notify(`${record.name} added to ${chosen.name}`)}else{const fresh:Encounter={id:uid(),name:record.name+' encounter',description:'Prepared from the compendium. Each monster links to its full stat block.',environment:plain(record.fields.environment),difficulty:'Custom',partyLevel:3,partySize:7,status:'Prepared',members:[monster]};setEncounters([...encounters,fresh]);setEncounterId(fresh.id);notify(`${fresh.name} created`)}};
@@ -475,8 +535,8 @@ export default function Compendium({campaign,focus,onFocusHandled,notify}:{campa
    </div>}
   </div>
   {error&&<p className="form-error">{error}</p>}
-  {loading?<div className="tool-empty"><BookOpen size={30}/><p>Opening your local compendium…</p></div>:busy?<div className="compendium-import"><BookOpen size={30}/><h2>Preparing your sourcebook</h2><p>{progress[1]?`${progress[0].toLocaleString()} / ${progress[1].toLocaleString()} entries stored locally`:'Parsing XML in the background…'}</p><progress max={progress[1]||1} value={progress[0]}/><small>Your existing library stays available until the new import is complete.</small></div>:(!meta && !homebrew.length)?<div className="compendium-import"><BookOpen size={40}/><span className="eyebrow">YOUR SOURCEBOOK IS READY TO LOAD</span><h2>Complete Compendium · 5e + 5.5e</h2><p>26,393 entries from your supplied XML. Monsters, spells, items, classes, races, feats and backgrounds.</p><button className="primary" onClick={included}><Download size={16}/>Load included compendium</button><small>Imported once into this browser. You can also choose a different XML file above.</small></div>:<>
-   <div className="compendium-source"><span><Check size={12}/>{meta ? `Stored locally · ${meta.name}` : `Campaign Homebrew · ${campaign}`}</span><small>{matching.length.toLocaleString()} matching entries</small></div>
+  {loading?<div className="tool-empty"><BookOpen size={30}/><p>Loading compendium…</p></div>:busy?<div className="compendium-import"><BookOpen size={30}/><h2>Preparing your sourcebook</h2><p>{progress[1]?`${progress[0].toLocaleString()} / ${progress[1].toLocaleString()} entries stored locally`:'Parsing XML in the background…'}</p><progress max={progress[1]||1} value={progress[0]}/><small>Your existing library stays available until the new import is complete.</small></div>:(!meta && !homebrew.length)?(!cloudState.user?<div className="compendium-import"><BookOpen size={40}/><span className="eyebrow">SUPABASE SIGN-IN REQUIRED</span><h2>Cloud Compendium</h2><p>Connect and sign in to Supabase in Settings to access your cloud compendium or import an XML sourcebook.</p></div>:cloudState.status==='offline'||(typeof navigator!=='undefined'&&!navigator.onLine)?<div className="compendium-import"><BookOpen size={40}/><span className="eyebrow">OFFLINE</span><h2>Compendium Offline</h2><p>Connect to the internet to load your cloud compendium. Your campaign homebrew remains available offline.</p></div>:cloudState.status==='connecting'?<div className="compendium-import"><BookOpen size={40}/><span className="eyebrow">CONNECTING</span><h2>Connecting to Cloud</h2><p>Waiting for cloud connection to sync your compendium.</p></div>:<div className="compendium-import"><BookOpen size={40}/><span className="eyebrow">NO SOURCEBOOK LOADED</span><h2>Cloud Compendium</h2><p>Import an XML compendium file above to sync it to your Supabase cloud library.</p></div>):<>
+   <div className="compendium-source"><span><Check size={12}/>{isCompendiumDirty()?`Syncing to cloud · ${meta?.name||'Local library'}`:meta?`Cloud compendium · ${meta.name}`:`Campaign Homebrew · ${campaign}`}</span><small>{matching.length.toLocaleString()} matching entries</small></div>
    <div className="compendium-layout"><aside className="record-list"><div className="record-list-title">REFERENCE INDEX<span>{matching.length.toLocaleString()}</span></div>{matching.slice(page*40,(page+1)*40).map(entry=><button key={entry.id} className={`record-row ${selected===entry.id?'selected':''}`} onClick={()=>setSelected(entry.id)}><div><strong>{entry.name}</strong><small>{entry.summary}</small><span className="record-meta">{labels[entry.kind]} · {entry.edition==='Unspecified'?'Original label preserved':entry.edition}</span></div></button>)}{!matching.length&&<div className="tool-empty"><p>No entries match your filters.</p></div>}<div className="index-pagination"><button className="icon-button" aria-label="Previous compendium page" disabled={!page} onClick={()=>setPage(page-1)}><ChevronLeft size={18}/></button><small>{matching.length?`${page+1} / ${Math.ceil(matching.length/40)}`:'0 results'}</small><button className="icon-button" aria-label="Next compendium page" disabled={(page+1)*40>=matching.length} onClick={()=>setPage(page+1)}><ChevronRight size={18}/></button></div></aside>
     <section className={`record-editor reference-detail dnd-reference reference-${record?.kind||''} ${record?.kind==='monster'?'monster-reference':''}`}>{record?<><div className="editor-title"><span className="eyebrow">{labels[record.kind].toUpperCase()} · {record.edition.toUpperCase()}</span><BookOpen size={19}/></div><h2>{record.name}</h2>{record.edition==='Homebrew'&&<div className="inline" style={{gap:'8px',marginBottom:'12px'}}><button type="button" className="secondary" aria-label="Edit homebrew" onClick={()=>{setEditingHomebrew(record);setHomebrewModalOpen(true);}}>Edit Homebrew</button><button type="button" className="secondary danger-text" aria-label="Delete homebrew" onClick={()=>{deleteHomebrew(campaign,record.id);notify(`"${record.name}" deleted from Homebrew`);setSelected('');}}>Delete</button></div>}{record.kind==='monster'?<><MonsterStatBlock record={record}/><div className="add-from-compendium"><Swords size={18}/><select aria-label="Target encounter" value={encounterId} onChange={e=>setEncounterId(e.target.value)}><option value="">Create new encounter</option>{encounters.filter(entry=>entry.status==='Prepared').map(entry=><option key={entry.id} value={entry.id}>{entry.name}</option>)}</select><button className="primary" onClick={addMonster}><Plus size={14}/>Add monster</button></div></>:<ReferenceStatBlock record={record}/>}</>:<div className="tool-empty"><p>{selected?'Loading entry…':'Select an entry to read its full details.'}</p></div>}</section>
    </div>

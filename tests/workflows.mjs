@@ -41,6 +41,9 @@ const change=async(node,value)=>act(()=>node.props.onChange({target:{value}}));
 const saved=key=>JSON.parse(store.get(key)||'null');
 assert.ok(root().findByProps({'aria-label':'campaign'}));assert.equal(saved('wf-campaigns').length,0);assert.deepEqual(saved('wf-encounters:Sagara'),[]);assert.deepEqual(saved('wf-characters:Sagara'),[]);assert.deepEqual(saved('wf-wiki:Sagara'),[]);
 await change(field('New campaign name'),'Sagara');await click('Create and activate');assert.deepEqual(saved('wf-campaigns'),['Sagara']);assert.equal(saved('wf-campaign'),'Sagara');assert.deepEqual(saved('wf-battle:Sagara'),[]);
+assert.equal(root().findAll(el=>el.props?.className?.includes?.('breadcrumb')).length,0);
+assert.equal(root().findAll(el=>text(el).includes('Ready to plan')).length,0);
+assert.equal(root().findAll(el=>el.props?.className==='campaign-status').length,0);
 assert.ok(root().findAllByType('div')[0].props.className.includes('theme-light'));await act(()=>field('Settings & backup').props.onClick());const darkBtn=root().findAllByType('button').find(b=>b.props['data-palette']==='mission-control');await act(()=>darkBtn.props.onClick());assert.equal(saved('wf-theme'),'mission-control');assert.ok(root().findAllByType('div')[0].props.className.includes('theme-dark'));const lightBtn=root().findAllByType('button').find(b=>b.props['data-palette']==='premium');await act(()=>lightBtn.props.onClick());assert.equal(saved('wf-theme'),'premium');await act(()=>field('Close dialog').props.onClick());
 console.log('PASS clean launch: no bundled campaign records; first campaign is created and activated');
 await click('Atmosphere Studio');await click('Add provider link');
@@ -50,6 +53,8 @@ await click('Add to scene library');assert.equal(saved('wf-custom').length,1);as
 await act(()=>field('Load Storm soundtrack to YouTube deck B').props.onClick());assert.equal(saved('wf-youtube-deck-b'),'youtube:M7lc1UVf-VE');
 await change(field('YouTube deck A volume'),35);await change(field('YouTube deck B volume'),65);await change(field('YouTube crossfader'),40);await change(field('YouTube mixer master volume'),70);assert.equal(saved('wf-youtube-volume-a'),35);assert.equal(saved('wf-youtube-volume-b'),65);assert.equal(saved('wf-youtube-crossfade'),40);assert.equal(saved('wf-youtube-master'),70);assert.ok(field('Play both YouTube decks'));assert.ok(field('Pause both YouTube decks'));
 await click('Characters & NPCs');assert.ok(root().findByProps({'aria-label':'YouTube two-channel mixer'}));
+assert.equal(root().find(el=>el.props?.className==='campaign-hero-eyebrow').props.children,'Sagara');
+assert.equal(root().find(el=>el.props?.className?.includes?.('campaign-hero-header')).findAll(el=>el.props?.className?.includes?.('badge subtle')).length,0);
 await click('Atmosphere Studio');await click('Add provider link');await change(root().findByProps({placeholder:'YouTube video / playlist or Spotify link'}),'https://www.youtube.com/watch?v=M7lc1UVf-VE');await click('Add to scene library');assert.equal(saved('wf-custom').length,1);
 await click('Add provider link');await change(root().findByProps({placeholder:'Rainy tavern · evening'}),'Spotify ambience');await change(root().findByProps({placeholder:'YouTube video / playlist or Spotify link'}),'https://open.spotify.com/playlist/0Lr4kGOYn9l83EjuK6cZFQ');assert.equal(root().findAllByType('label').some(n=>text(n).includes('Keep the Spotify embed')),false);assert.ok(button('Find YouTube matches'));await act(()=>field('Close dialog').props.onClick());assert.equal(saved('wf-custom').length,1);
 console.log('PASS atmosphere: dual YouTube decks, persisted mix controls, link deduplication and artwork-free Spotify matching');
@@ -64,6 +69,7 @@ await change(participants[0].findByProps({'aria-label':'Participant name'}),'Ske
 let current=root().findAllByProps({className:'participant-editor'});await change(current[0].findAllByType('input')[3],18);
 current=root().findAllByProps({className:'participant-editor'});await change(current[1].findByProps({'aria-label':'Participant name'}),'Mira');await change(current[1].findAllByType('input')[3],12);
 await click('Run encounter');assert.equal(saved('wf-battle:Sagara')[0].name,'Skeleton');assert.equal(saved('wf-turn:Sagara'),0);assert.equal(saved('wf-round:Sagara'),1);
+assert.ok(root().findAll(el=>el.props?.className==='campaign-status'&&text(el).includes('Encounter in progress')).length>0);
 await act(()=>field('Manage conditions for Skeleton').props.onClick?.() ?? field('Manage conditions for Skeleton').parent.props.onClick?.());
 const skeletonCondButtons = root().findAll(el => el.type === 'button' && el.children?.includes('Prone'));
 await act(()=>skeletonCondButtons[0].props.onClick());assert.equal(saved('wf-battle:Sagara')[0].conditions,'Prone');await change(field('Exhaustion level for Skeleton'),3);
@@ -91,7 +97,10 @@ const sample=parser.parseCompendium('<compendium><monster><name>Test Beast (Lega
 const balance=await import(pathToFileURL(path.join(out,'encounterBalance.js')).href);assert.equal(balance.crToXP('1/2'),100);assert.deepEqual(balance.encounterBudgets('2024',5,4),{Low:2000,Moderate:3000,High:4400});const generated2014=balance.randomizeMonsterRecords(sample,{ruleset:'2014',difficulty:'Easy',partyLevel:2,partySize:4,environment:'Forest',rng:()=>0});assert.equal(generated2014[0].name,'Test Beast (Legacy)');assert.throws(()=>balance.randomizeMonsterRecords(sample,{ruleset:'2024',difficulty:'Low',partyLevel:2,partySize:4,environment:'Arctic',rng:()=>0}),/No rated monsters/);const rated=balance.evaluateEncounter({ruleset:'2014',difficulty:'Easy',partyLevel:2,partySize:4,members:[{...data.monsterToCombatant(sample[0],'rated'),xp:200}]});assert.equal(rated.rating,'Easy');
 console.log('PASS encounter balance: official 2014/2024 budgets, CR XP, environment filters and random generation');
 await data.writeBatch('test-generation',sample);const counts=Object.fromEntries(sample.map(entry=>[entry.kind,(sample.filter(candidate=>candidate.kind===entry.kind).length)]));const sampleMeta={generation:'test-generation',name:'sample.xml',count:sample.length,counts,index:sample.map(data.indexRecord)};await data.activateLibrary(sampleMeta);assert.equal((await data.readRecord('test-generation',sample[0].id)).name,'Test Beast (Legacy)');
-await click('Compendium');assert.ok(root().findAllByType('button').some(n=>text(n).includes('Test Beast')));const selectBeast=root().findAllByType('button').find(n=>text(n).includes('Test Beast'));await act(()=>selectBeast.props.onClick());const statBlock=field('Test Beast (Legacy) monster stat block');assert.equal(statBlock.findAllByType('details').length,0);assert.ok(text(statBlock).includes('DEX13 (+1)'));assert.ok(text(statBlock).includes('Actions'));await click('Add monster');assert.ok(saved('wf-encounters:Sagara').some(e=>e.members.some(m=>m.reference?.name==='Test Beast (Legacy)'&&m.hp===59)));
+await click('Compendium');
+assert.equal(root().find(el=>el.props?.className==='campaign-hero-eyebrow').props.children,'Sagara');
+assert.equal(root().find(el=>el.props?.className?.includes?.('campaign-hero-header')).findAll(el=>el.props?.className?.includes?.('badge subtle')).length,0);
+assert.ok(root().findAllByType('button').some(n=>text(n).includes('Test Beast')));const selectBeast=root().findAllByType('button').find(n=>text(n).includes('Test Beast'));await act(()=>selectBeast.props.onClick());const statBlock=field('Test Beast (Legacy) monster stat block');assert.equal(statBlock.findAllByType('details').length,0);assert.ok(text(statBlock).includes('DEX13 (+1)'));assert.ok(text(statBlock).includes('Actions'));await click('Add monster');assert.ok(saved('wf-encounters:Sagara').some(e=>e.members.some(m=>m.reference?.name==='Test Beast (Legacy)'&&m.hp===59)));
 for(const [name,expected] of [['Test Spell [5.5e]','Casting Time'],['Test Blade','Damage'],['Test Class','Class Progression'],['Test Ancestry','Ancestry Traits'],['Test Feat','Prerequisite'],['Test Background','Background Features']]){const select=root().findAllByType('button').find(node=>node.findAllByType('strong').some(label=>text(label)===name));await act(()=>select.props.onClick());await act(async()=>{await new Promise(resolve=>setTimeout(resolve,50))});const reference=field(`${name} D&D reference`);assert.equal(reference.findAllByType('details').length,0);assert.ok(text(reference).includes(expected),`${name} should show ${expected}`)}
 console.log('PASS XML schema and continuous D&D references for monsters, spells, items, classes, ancestries, feats and backgrounds');
 assert.equal(data.importIncluded,undefined);await assert.rejects(()=>data.restoreLibrary([{kind:'invalid'}],'bad.xml'));assert.equal((await data.readMeta()).generation,'test-generation');
@@ -126,6 +135,8 @@ assert.equal(saved('wf-campaign'),'Icewind Dale');
 await change(field('Active campaign'),'Sagara');
 assert.equal(saved('wf-campaign'),'Sagara');
 assert.ok(root().findAllByType('option').some(o=>text(o)==='Sagara Prime'));
+await click('Encounters');
+assert.equal(root().find(el=>el.props?.className==='campaign-hero-eyebrow').props.children,'Sagara Prime');
 await act(()=>render.unmount());
 await act(async()=>{render=TestRenderer.create(React.createElement(App))});
 assert.ok(root().findAllByType('option').some(o=>text(o)==='Sagara Prime'));

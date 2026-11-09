@@ -53,7 +53,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .layer-track-num{font-size:var(--type-label);font-weight:600;letter-spacing:0.04em;opacity:0.8}
 .layer-rename-input{font-size:var(--type-label);padding:2px 6px!important;height:24px;width:130px!important;border-radius:4px;background:var(--panel);border:1px solid var(--accent)!important}
 .primary-icon{color:var(--accent)!important}
-.theme-light small,.theme-light .breadcrumb,.theme-light .page-heading p,.theme-light .workspace-toolbar>span{color:var(--muted)}
+.theme-light small,.theme-light .page-heading p,.theme-light .workspace-toolbar>span{color:var(--muted)}
 .theme-light h1,.theme-light h2,.theme-light h3,.theme-light .page-heading h1,.theme-light .scene-info h3{color:var(--text)}
 .theme-light .sidebar{background:color-mix(in srgb,var(--panel) 88%,transparent);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);border-color:var(--line);box-shadow:4px 0 24px rgba(0,0,0,0.04)}
 .theme-light .brand{color:var(--text)}.theme-light .brand-mark,.theme-light .widget-head svg,.theme-light .source-panel svg{color:var(--accent)}
@@ -66,7 +66,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .theme-light .sidebar-bottom>button,.theme-light .profile>svg{color:var(--muted)}
 .theme-light .avatar,.theme-light .combat-avatar{background:var(--panel-alt);border-color:var(--line);color:var(--accent)}
 .theme-light .topbar{background:color-mix(in srgb,var(--panel) 88%,transparent);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-color:var(--line)}
-.theme-light .breadcrumb strong{color:var(--text)}.theme-light .search-button{color:var(--muted)}.theme-light .search-button kbd{border-color:var(--line-strong);background:var(--panel-alt);border-radius:4px}
+.theme-light .search-button{color:var(--muted)}.theme-light .search-button kbd{border-color:var(--line-strong);background:var(--panel-alt);border-radius:4px}
 .theme-toggle,.settings-toggle{border:1px solid var(--line)!important;color:var(--accent)!important;background:color-mix(in srgb,var(--panel) 88%,var(--accent))!important;border-radius:8px!important;padding:8px;min-width:36px;min-height:36px;display:grid;place-items:center;position:relative}
 @media(pointer:coarse){
   .theme-toggle,.settings-toggle{min-width:44px;min-height:44px}

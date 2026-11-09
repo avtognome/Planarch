@@ -8,11 +8,32 @@ import React from 'react';
 import 'fake-indexeddb/auto';
 import TestRenderer,{act} from 'react-test-renderer';
 const out=path.resolve('.sites-runtime/test-modules');fs.mkdirSync(out,{recursive:true});
-for(const filename of fs.readdirSync('src').filter(n=>/\.tsx?$/.test(n)&&n!=='main.tsx')){
- let code=ts.transpileModule(fs.readFileSync('src/'+filename,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext,jsx:ts.JsxEmit.ReactJSX}}).outputText;
- code=code.replace(/import ['"]\.\/[^'"]+\.css['"];?/g,'').replace(/from ['"]\.\/([^'"]+)['"]/g,(_,n)=>`from './${n}.js'`);
- fs.writeFileSync(path.join(out,filename.replace(/\.tsx?$/,'.js')),code);
+function transpileDir(dir, targetDir) {
+  fs.mkdirSync(targetDir, { recursive: true });
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      transpileDir(path.join(dir, entry.name), path.join(targetDir, entry.name));
+    } else if (/\.tsx?$/.test(entry.name) && entry.name !== 'main.tsx') {
+      let code = ts.transpileModule(fs.readFileSync(path.join(dir, entry.name), 'utf8'), {
+        compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX }
+      }).outputText;
+      code = code.replace(/import ['"]\.\/[^'"]+\.css['"];?/g, '')
+                 .replace(/from ['"]@\/components\/ui\/([^'"]+)['"]/g, (_, n) => {
+                   let rel = path.relative(targetDir, path.join(out, 'components', 'ui', n.replace(/\.js$/, '') + '.js')).replace(/\\/g, '/');
+                   if (!rel.startsWith('.')) rel = './' + rel;
+                   return `from '${rel}'`;
+                 })
+                 .replace(/from ['"]@\/lib\/([^'"]+)['"]/g, (_, n) => {
+                   let rel = path.relative(targetDir, path.join(out, 'lib', n.replace(/\.js$/, '') + '.js')).replace(/\\/g, '/');
+                   if (!rel.startsWith('.')) rel = './' + rel;
+                   return `from '${rel}'`;
+                 })
+                 .replace(/from ['"]\.\/([^'"]+?)(?:\.js)?['"]/g, (_, n) => `from './${n}.js'`);
+      fs.writeFileSync(path.join(targetDir, entry.name.replace(/\.tsx?$/, '.js')), code);
+    }
+  }
 }
+transpileDir('src', out);
 const store=new Map();globalThis.localStorage={getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k),key:i=>[...store.keys()][i],get length(){return store.size}};
 globalThis.window={addEventListener(){},removeEventListener(){},dispatchEvent(){}};globalThis.IS_REACT_ACT_ENVIRONMENT=true;
 const {parseProviderSource}=await import(pathToFileURL(path.join(out,'sources.js')).href);

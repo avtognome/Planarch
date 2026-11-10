@@ -395,4 +395,12 @@ await act(async () => {
 assert.equal(importedSpells.length, 1);
 assert.equal(importedSpells[0].name, 'Mage Hand');
 
+const cssSource = fs.readFileSync('src/theme.css', 'utf8');
+assert.ok(
+  cssSource.includes('.char-sheet input.char-name-input') &&
+  cssSource.includes('.char-sheet input.char-class-badge-input') &&
+  cssSource.includes('.char-sheet input.char-speed-inline-input'),
+  'theme.css must scope inline Character inputs with .char-sheet input.* to override global width:100% and padding:12px'
+);
+
 console.log('ALL Character Sheet UI tests passed successfully!');

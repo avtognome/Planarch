@@ -506,6 +506,7 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
                       <input
                         className="char-name-input"
                         aria-label="Character name"
+                        size={Math.max(6, (character.name || 'Character').length)}
                         value={character.name || ''}
                         onChange={e => onUpdate({ name: e.target.value })}
                         placeholder="Character Name"
@@ -530,7 +531,7 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
                         type="button"
                         variant="secondary"
                         size="sm"
-                        className="char-action-pill"
+                        className="secondary small char-action-pill"
                         onClick={() => setLoreOpen(!loreOpen)}
                       >
                         Edit
@@ -539,7 +540,7 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
                         type="button"
                         variant="secondary"
                         size="sm"
-                        className="char-action-pill"
+                        className="secondary small char-action-pill"
                         aria-label="Increase level"
                         onClick={() => changeLevel(1)}
                         disabled={level >= 20}
@@ -554,6 +555,7 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
                       <input
                         className="char-class-badge-input"
                         aria-label="Character class"
+                        size={Math.max(5, (character.className || character.role || 'Class').length)}
                         value={character.className || character.role || ''}
                         onChange={e =>
                           onUpdate({ className: e.target.value, role: e.target.value })
@@ -1213,7 +1215,7 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
               type="button"
               variant="secondary"
               size="sm"
-              className="char-action-pill"
+              className="secondary small char-action-pill"
               onClick={() => {
                 if (!sections.resources) toggleSection('resources');
                 addResource();
@@ -1377,6 +1379,7 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
                       type="button"
                       variant="secondary"
                       size="sm"
+                      className="secondary small"
                       onClick={addFeat}
                     >
                       <Plus size={12} /> Add Feat
@@ -2119,7 +2122,7 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className="char-action-pill"
+                    className="secondary small char-action-pill"
                     onClick={() => setNoteSortDesc(!noteSortDesc)}
                   >
                     {noteSortDesc ? '↓' : '↑'}
@@ -2136,7 +2139,7 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
                     type="button"
                     variant="default"
                     size="sm"
-                    className="char-new-note-btn"
+                    className="primary small char-new-note-btn"
                     aria-label="Add character note"
                     onClick={addNoteEntry}
                   >

@@ -832,11 +832,37 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 /* Character Sheet UI: dense reference layout */
 /* ponytail: single-breakpoint grid collapse. Upgrade to container queries when tab container width varies. */
 .char-sheet {
+  container-type: inline-size;
+  container-name: char-sheet;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   color: var(--text);
   font-family: inherit;
+  min-width: 0;
+}
+
+.char-sheet-main {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+}
+
+.char-sheet-primary,
+.char-sheet-secondary,
+.char-sheet-longform {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+@container char-sheet (min-width: 680px) {
+  .char-sheet-main {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
 }
 
 .char-sheet-header {
@@ -1368,22 +1394,16 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
   font-style: italic;
 }
 
-/* 2. Ability Scores & Saving Throws: 6 across on desktop */
+/* 2. Ability Scores & Saving Throws */
 .char-abilities-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 
-@media (max-width: 680px) {
+@container char-sheet (max-width: 420px) {
   .char-abilities-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 380px) {
-  .char-abilities-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1449,14 +1469,8 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 /* 3. Skills & Senses */
 .char-passives-banner {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 6px;
-}
-
-@media (max-width: 520px) {
-  .char-passives-banner {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 .char-passive-box {
@@ -1468,6 +1482,7 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
   display: flex;
   flex-direction: column;
   gap: 1px;
+  min-width: 0;
 }
 
 .char-passive-val {
@@ -1486,20 +1501,8 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 
 .char-skills-list {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
   gap: 4px;
-}
-
-@media (max-width: 860px) {
-  .char-skills-list {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 520px) {
-  .char-skills-list {
-    grid-template-columns: 1fr;
-  }
 }
 
 .char-skill-row {

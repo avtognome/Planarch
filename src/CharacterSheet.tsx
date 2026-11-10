@@ -34,6 +34,11 @@ import {
   SKILL_DEFINITIONS,
 } from './characterRules';
 import { DND_CONDITIONS } from './conditions';
+import { Card } from './components/ui/card';
+import { Button } from './components/ui/button';
+import { Input } from './components/ui/input';
+import { Textarea } from './components/ui/textarea';
+import { Badge } from './components/ui/badge';
 
 export interface CharacterSheetProps {
   character: Character;
@@ -442,20 +447,22 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
         </div>
       </header>
 
-      {/* 1. COMBAT STATS */}
-      <section className="char-section">
-        <button
-          type="button"
-          className="char-section-toggle"
-          aria-expanded={sections.combat}
-          onClick={() => toggleSection('combat')}
-        >
-          <span className="char-section-title">
-            <Shield size={16} />
-            1. Combat Stats
-          </span>
-          {sections.combat ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </button>
+      <div className="char-sheet-main">
+        <div className="char-sheet-primary">
+          {/* 1. COMBAT STATS */}
+          <Card className="char-section">
+            <button
+              type="button"
+              className="char-section-toggle"
+              aria-expanded={sections.combat}
+              onClick={() => toggleSection('combat')}
+            >
+              <span className="char-section-title">
+                <Shield size={16} />
+                Combat Stats
+              </span>
+              {sections.combat ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </button>
 
         <AnimatePresence initial={false}>
           {sections.combat && (
@@ -472,7 +479,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                   <div className="char-hp-readout">
                     <div className="char-hp-block">
                       <span className="char-stat-label">CURRENT HP</span>
-                      <input
+                      <Input
                         type="number"
                         className="char-hp-input"
                         aria-label="Current HP"
@@ -483,7 +490,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                     <span className="char-hp-divider">/</span>
                     <div className="char-hp-block">
                       <span className="char-stat-label">MAX HP</span>
-                      <input
+                      <Input
                         type="number"
                         className="char-hp-input"
                         aria-label="Max HP"
@@ -493,7 +500,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                     </div>
                     <div className="char-hp-block char-temp-hp">
                       <span className="char-stat-label">TEMP HP</span>
-                      <input
+                      <Input
                         type="number"
                         className="char-hp-input"
                         aria-label="Temp HP"
@@ -505,7 +512,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
 
                   {/* Damage / Heal Quick Bar */}
                   <div className="char-hp-actions">
-                    <input
+                    <Input
                       type="number"
                       className="char-hp-delta-input"
                       aria-label="Damage or heal amount"
@@ -513,20 +520,24 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                       value={hpDelta}
                       onChange={e => setHpDelta(e.target.value)}
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="destructive"
+                      size="sm"
                       className="char-damage-btn"
                       onClick={applyDamage}
                     >
                       Damage
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="secondary"
+                      size="sm"
                       className="char-heal-btn"
                       onClick={applyHeal}
                     >
                       Heal
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -777,10 +788,10 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
             </motion.div>
           )}
         </AnimatePresence>
-      </section>
+      </Card>
 
       {/* 2. ABILITY SCORES & SAVING THROWS */}
-      <section className="char-section">
+      <Card className="char-section">
         <button
           type="button"
           className="char-section-toggle"
@@ -789,7 +800,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
         >
           <span className="char-section-title">
             <Zap size={16} />
-            2. Ability Scores & Saving Throws
+            Ability Scores & Saving Throws
           </span>
           {sections.abilities ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
@@ -843,10 +854,12 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
             </motion.div>
           )}
         </AnimatePresence>
-      </section>
+      </Card>
+    </div>
 
+    <div className="char-sheet-secondary">
       {/* 3. SKILLS & SENSES */}
-      <section className="char-section">
+      <Card className="char-section">
         <button
           type="button"
           className="char-section-toggle"
@@ -855,7 +868,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
         >
           <span className="char-section-title">
             <Eye size={16} />
-            3. Skills & Senses
+            Skills & Senses
           </span>
           {sections.skills ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
@@ -929,10 +942,10 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
             </motion.div>
           )}
         </AnimatePresence>
-      </section>
+      </Card>
 
       {/* 4. PROFICIENCIES & TRAINING */}
-      <section className="char-section">
+      <Card className="char-section">
         <button
           type="button"
           className="char-section-toggle"
@@ -941,7 +954,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
         >
           <span className="char-section-title">
             <BookOpen size={16} />
-            4. Proficiencies & Training
+            Proficiencies & Training
           </span>
           {sections.proficiencies ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
@@ -958,7 +971,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
               <div className="char-training-grid">
                 <div className="char-training-card">
                   <span className="char-stat-label">ARMOR & WEAPONS</span>
-                  <textarea
+                  <Textarea
                     rows={2}
                     className="char-training-input"
                     aria-label="Armor and weapon proficiencies"
@@ -969,7 +982,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                 </div>
                 <div className="char-training-card">
                   <span className="char-stat-label">TOOLS & KITS</span>
-                  <textarea
+                  <Textarea
                     rows={2}
                     className="char-training-input"
                     aria-label="Tool proficiencies"
@@ -990,7 +1003,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                 </div>
                 <div className="char-training-card">
                   <span className="char-stat-label">LANGUAGES</span>
-                  <textarea
+                  <Textarea
                     rows={2}
                     className="char-training-input"
                     aria-label="Languages"
@@ -1010,10 +1023,13 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
             </motion.div>
           )}
         </AnimatePresence>
-      </section>
+      </Card>
+    </div>
+  </div>
 
+  <div className="char-sheet-longform">
       {/* 5. FEATURES & TRACKED RESOURCES */}
-      <section className="char-section">
+      <Card className="char-section">
         <button
           type="button"
           className="char-section-toggle"
@@ -1022,7 +1038,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
         >
           <span className="char-section-title">
             <Sparkles size={16} />
-            5. Features & Tracked Resources
+            Features & Tracked Resources
           </span>
           {sections.resources ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
@@ -1125,7 +1141,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
               {/* Freeform feature notes */}
               <div className="char-features-notes">
                 <span className="char-stat-label">CLASS & SPECIES FEATURES</span>
-                <textarea
+                <Textarea
                   rows={4}
                   className="char-training-input"
                   aria-label="Feature notes"
@@ -1137,10 +1153,10 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
             </motion.div>
           )}
         </AnimatePresence>
-      </section>
+      </Card>
 
       {/* 6. ITEMS & INVENTORY */}
-      <section className="char-section">
+      <Card className="char-section">
         <button
           type="button"
           className="char-section-toggle"
@@ -1149,11 +1165,11 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
         >
           <span className="char-section-title">
             <Shield size={16} />
-            6. Items & Inventory
+            Items & Inventory
           </span>
-          <div className="char-attunement-counter">
+          <Badge variant="default" className="char-attunement-counter">
             Attunement: {attunedCount} / 3
-          </div>
+          </Badge>
           {sections.inventory ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
 
@@ -1202,14 +1218,14 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
 
               {/* Add item form */}
               <div className="char-add-item-form">
-                <input
+                <Input
                   className="char-add-input"
                   aria-label="Item name"
                   placeholder="Item name (e.g. Cloak of Protection, Health Potion)"
                   value={newItemName}
                   onChange={e => setNewItemName(e.target.value)}
                 />
-                <input
+                <Input
                   type="number"
                   min={1}
                   className="char-mini-num"
@@ -1218,7 +1234,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                   value={newItemQty}
                   onChange={e => setNewItemQty(Math.max(1, +e.target.value))}
                 />
-                <input
+                <Input
                   type="number"
                   min={0}
                   className="char-mini-num"
@@ -1236,21 +1252,23 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                   />
                   <span>Attuned</span>
                 </label>
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
                   className="secondary small"
                   onClick={addItem}
                 >
                   <Plus size={12} /> Add Item
-                </button>
+                </Button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </section>
+      </Card>
 
       {/* 7. SPELLBOOK & SPELL SLOTS */}
-      <section className="char-section">
+      <Card className="char-section">
         <button
           type="button"
           className="char-section-toggle"
@@ -1259,11 +1277,11 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
         >
           <span className="char-section-title">
             <Sparkles size={16} />
-            7. Spellbook & Spell Slots
+            Spellbook & Spell Slots
           </span>
-          <div className="char-prepared-counter">
+          <Badge variant="default" className="char-prepared-counter">
             Prepared: {preparedCount}
-          </div>
+          </Badge>
           {sections.spells ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
 
@@ -1286,7 +1304,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                       <div className="char-slot-counts">
                         <div className="char-slot-field">
                           <small>USED</small>
-                          <input
+                          <Input
                             type="number"
                             min={0}
                             className="char-mini-num"
@@ -1300,7 +1318,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                         <span className="char-slot-sep">/</span>
                         <div className="char-slot-field">
                           <small>MAX</small>
-                          <input
+                          <Input
                             type="number"
                             min={0}
                             className="char-mini-num"
@@ -1345,10 +1363,10 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                     </div>
                     <div className="char-spell-tags">
                       {spell.ritual && (
-                        <span className="char-spell-tag">Ritual</span>
+                        <Badge variant="outline" className="char-spell-tag">Ritual</Badge>
                       )}
                       {spell.concentration && (
-                        <span className="char-spell-tag">Conc</span>
+                        <Badge variant="outline" className="char-spell-tag">Conc</Badge>
                       )}
                     </div>
                     <button
@@ -1365,7 +1383,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
 
               {/* Add spell form */}
               <div className="char-add-spell-form">
-                <input
+                <Input
                   className="char-add-input"
                   aria-label="Spell name"
                   placeholder="Spell name (e.g. Shield, Fireball, Misty Step)"
@@ -1384,7 +1402,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                     </option>
                   ))}
                 </select>
-                <input
+                <Input
                   className="char-add-input char-school-input"
                   aria-label="Spell school"
                   placeholder="School (e.g. Evocation)"
@@ -1420,18 +1438,21 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                     <span>Prepared</span>
                   </label>
                 </div>
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
                   className="secondary small"
                   onClick={addSpell}
                 >
                   <Plus size={12} /> Add Spell
-                </button>
+                </Button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </section>
+      </Card>
+  </div>
     </div>
   );
 }

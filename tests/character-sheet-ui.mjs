@@ -13,19 +13,37 @@ console.log('Testing Character Sheet UI reverse engineered from Mythallar...');
 const out = path.resolve('.sites-runtime/test-modules');
 fs.mkdirSync(out, { recursive: true });
 
-for (const filename of ['models.ts', 'characterRules.ts', 'conditions.ts', 'CharacterSheet.tsx']) {
-  let code = ts.transpileModule(fs.readFileSync('src/' + filename, 'utf8'), {
-    compilerOptions: {
-      target: ts.ScriptTarget.ES2022,
-      module: ts.ModuleKind.ESNext,
-      jsx: ts.JsxEmit.ReactJSX,
-    },
-  }).outputText;
-  code = code
-    .replace(/import ['"]\.\/[^'"]+\.css['"];?/g, '')
-    .replace(/from ['"]\.\/([^'"]+)['"]/g, (_, n) => `from './${n}.js'`);
-  fs.writeFileSync(path.join(out, filename.replace(/\.tsx?$/, '.js')), code);
+function transpileDir(dir, targetDir) {
+  fs.mkdirSync(targetDir, { recursive: true });
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      transpileDir(path.join(dir, entry.name), path.join(targetDir, entry.name));
+    } else if (/\.tsx?$/.test(entry.name) && entry.name !== 'main.tsx') {
+      let code = ts.transpileModule(fs.readFileSync(path.join(dir, entry.name), 'utf8'), {
+        compilerOptions: {
+          target: ts.ScriptTarget.ES2022,
+          module: ts.ModuleKind.ESNext,
+          jsx: ts.JsxEmit.ReactJSX,
+        },
+      }).outputText;
+      code = code
+        .replace(/import ['"]\.\/[^'"]+\.css['"];?/g, '')
+        .replace(/from ['"]@\/components\/ui\/([^'"]+)['"]/g, (_, n) => {
+          let rel = path.relative(targetDir, path.join(out, 'components', 'ui', n.replace(/\.js$/, '') + '.js')).replace(/\\/g, '/');
+          if (!rel.startsWith('.')) rel = './' + rel;
+          return `from '${rel}'`;
+        })
+        .replace(/from ['"]@\/lib\/([^'"]+)['"]/g, (_, n) => {
+          let rel = path.relative(targetDir, path.join(out, 'lib', n.replace(/\.js$/, '') + '.js')).replace(/\\/g, '/');
+          if (!rel.startsWith('.')) rel = './' + rel;
+          return `from '${rel}'`;
+        })
+        .replace(/from ['"]\.\/([^'"]+?)(?:\.js)?['"]/g, (_, n) => `from './${n}.js'`);
+      fs.writeFileSync(path.join(targetDir, entry.name.replace(/\.tsx?$/, '.js')), code);
+    }
+  }
 }
+transpileDir('src', out);
 
 const { CharacterSheet } = await import(
   pathToFileURL(path.join(out, 'CharacterSheet.js')).href
@@ -123,10 +141,42 @@ await act(async () => {
 });
 assert.equal(character.level, 4);
 
-// 2. Collapsible Sections (7 sections exist)
-console.log('2. Checking 7 Collapsible Sections...');
-const sectionToggles = root.findAllByProps({ className: 'char-section-toggle' });
+// 2. Collapsible Sections (7 sections exist) & Two-column Composition
+console.log('2. Checking 7 Collapsible Sections & Two-column Composition...');
+const sectionToggles = root.findAll(el => el.type === 'button' && String(el.props?.className || '').includes('char-section-toggle'));
 assert.equal(sectionToggles.length, 7, 'Must have 7 collapsible section toggles');
+
+const mainGrid = root.find(el => String(el.props?.className || '').includes('char-sheet-main'));
+assert.ok(mainGrid, 'Must render .char-sheet-main wrapper for two-column primary/secondary sections');
+const primaryCol = mainGrid.find(el => String(el.props?.className || '').includes('char-sheet-primary'));
+const secondaryCol = mainGrid.find(el => String(el.props?.className || '').includes('char-sheet-secondary'));
+assert.ok(primaryCol && secondaryCol, 'Must separate primary (Combat + Abilities) and secondary (Skills + Proficiencies) columns');
+
+const mainToggles = mainGrid.findAll(el => el.type === 'button' && String(el.props?.className || '').includes('char-section-toggle'));
+assert.equal(mainToggles.length, 4, 'char-sheet-main must contain Combat, Abilities, Skills, Proficiencies in DOM order');
+
+const longform = root.find(el => String(el.props?.className || '').includes('char-sheet-longform'));
+assert.ok(longform, 'Must render .char-sheet-longform wrapper for full-width lists below');
+const longformToggles = longform.findAll(el => el.type === 'button' && String(el.props?.className || '').includes('char-section-toggle'));
+assert.equal(longformToggles.length, 3, 'char-sheet-longform must contain Resources, Inventory, Spells');
+
+const sheetSource = fs.readFileSync('src/CharacterSheet.tsx', 'utf8');
+assert.ok(
+  sheetSource.includes("from './components/ui/card'") &&
+  sheetSource.includes("from './components/ui/button'") &&
+  sheetSource.includes("from './components/ui/input'"),
+  'CharacterSheet.tsx must use shadcn UI components (Card, Button, Input)'
+);
+
+const themeCss = fs.readFileSync('src/theme.css', 'utf8');
+assert.ok(
+  /container-type:\s*inline-size/.test(themeCss) && /@container\b/.test(themeCss),
+  'theme.css must use container queries on .char-sheet so columns stack based on editor width'
+);
+assert.ok(
+  themeCss.includes('.char-sheet-main') && themeCss.includes('.char-sheet-longform'),
+  'theme.css must style .char-sheet-main and .char-sheet-longform'
+);
 
 // Test toggle collapse / expand
 await act(async () => {

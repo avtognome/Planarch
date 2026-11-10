@@ -1956,7 +1956,7 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 12px;
-  align-items: stretch;
+  align-items: start;
 }
 
 @container char-sheet (max-width: 560px) {
@@ -1969,7 +1969,10 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
-  min-height: 112px;
+  width: 112px;
+  height: 112px;
+  aspect-ratio: 1 / 1;
+  align-self: start;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2167,7 +2170,7 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 /* 2. Combat Stats 3-column Top Grid & Middle Strip */
 .char-combat-top-grid {
   display: grid;
-  grid-template-columns: 1.55fr 0.75fr 1fr;
+  grid-template-columns: 1.65fr 0.72fr 0.95fr;
   gap: 8px;
   align-items: stretch;
 }
@@ -2180,19 +2183,20 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 
 .char-hp-card {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 74px;
+  gap: 8px;
   align-items: stretch;
   background: var(--panel-alt);
   border: 1px solid var(--line);
-  padding: 10px;
+  padding: 8px 10px;
 }
 
 .char-hp-main-col {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .char-card-head-inline {
@@ -2213,24 +2217,32 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 
 .char-hp-boxes-row {
   display: grid;
-  grid-template-columns: 1.4fr 0.8fr;
-  gap: 8px;
+  grid-template-columns: 1.65fr 0.75fr;
+  gap: 6px;
 }
 
 .char-hp-subbox {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 6px 8px;
+  padding: 4px 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .char-hp-subbox.char-temp-hp {
   flex-direction: column;
   gap: 2px;
+}
+
+.char-hp-card .char-hp-input {
+  width: 48px;
+  min-width: 44px;
+  height: 28px;
+  padding: 2px;
+  font-size: var(--type-section);
 }
 
 .char-hp-bar-track {
@@ -2252,16 +2264,27 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 .char-hp-card .char-hp-actions {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
   gap: 4px;
   margin-top: 0;
-  min-width: 78px;
+  width: 74px;
+  min-width: 74px;
 }
 
 .char-hp-card .char-damage-btn,
-.char-hp-card .char-heal-btn,
+.char-hp-card .char-heal-btn {
+  width: 100%;
+  height: 24px;
+  min-height: 24px;
+  padding: 2px 6px;
+  font-size: var(--type-label);
+}
+
 .char-hp-card .char-hp-delta-input {
   width: 100%;
+  height: 24px;
+  padding: 2px 4px;
+  font-size: var(--type-label);
 }
 
 .char-ac-card {
@@ -2363,7 +2386,7 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 
 .char-combat-mid-strip {
   display: grid;
-  grid-template-columns: 1.35fr 0.85fr 1fr;
+  grid-template-columns: 1.65fr 0.7fr 0.95fr;
   background: var(--panel-alt);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -2384,6 +2407,48 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
   gap: 8px;
   flex-wrap: wrap;
   border-right: 1px solid var(--line);
+}
+
+.char-mid-segment.char-recovery-card {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.char-mid-segment.char-recovery-card .char-hit-dice-row {
+  flex-wrap: nowrap;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.char-mid-segment.char-recovery-card .char-stepper-pill {
+  padding: 2px 4px;
+  gap: 2px;
+}
+
+.char-mid-segment.char-recovery-card .char-mini-num {
+  width: 28px;
+  height: 22px;
+  padding: 1px 2px;
+}
+
+.char-mid-segment.char-recovery-card .char-die-type {
+  width: 34px;
+  height: 22px;
+  padding: 1px 2px;
+}
+
+.char-mid-segment.char-recovery-card .char-rest-actions {
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin-top: 0;
+}
+
+.char-mid-segment.char-recovery-card .char-rest-btn {
+  white-space: nowrap;
+  height: 24px;
+  min-height: 24px;
+  padding: 2px 8px;
+  flex: 0 0 auto;
 }
 
 .char-mid-segment:last-child {
@@ -2503,6 +2568,34 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
   color: var(--accent);
 }
 
+.char-ability-box .char-save-block {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.char-ability-box .char-save-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+
+.char-ability-box .char-save-check input[type="checkbox"] {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.char-ability-box .char-save-val {
+  white-space: nowrap;
+}
+
 /* 5. Skills & Senses 2-column Ability-Grouped Layout */
 .char-header-search {
   display: flex;
@@ -2524,15 +2617,57 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
   padding: 0;
 }
 
+.char-passive-box {
+  padding: 8px 10px;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+
+.char-passive-val {
+  font-size: var(--type-page);
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
 .char-darkvision-input {
   width: 56px;
+  height: 24px;
   margin: 0 auto;
+  padding: 0;
   text-align: center;
   font-weight: 600;
-  font-size: var(--type-body);
+  font-size: var(--type-page);
+  line-height: 1.2;
   background: transparent;
   border: 1px solid transparent;
   color: var(--text);
+}
+
+.char-prof-btn,
+.char-expertise-btn {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  font-size: var(--type-label);
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0 4px;
+  min-width: 18px;
+  height: 18px;
+  line-height: 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.char-prof-btn.active,
+.char-expertise-btn.active {
+  background: var(--accent);
+  color: var(--panel);
+  border-color: var(--accent);
 }
 
 .char-skills-columns {
@@ -2744,6 +2879,40 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.comp-spell-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.comp-spell-close-btn {
+  margin-left: auto;
+}
+
+.char-import-spells-btn,
+.comp-spell-import-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: var(--type-label);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.char-import-spells-btn:hover,
+.comp-spell-import-btn:hover {
+  background: var(--accent);
+  color: var(--panel);
 }
 
 .comp-spell-filters {

@@ -300,13 +300,15 @@ await act(async () => {
 });
 assert.ok(character.savingThrowProficiencies.includes('dex'));
 
-// 6. Skills & Senses
-console.log('6. Checking Skills toggling & passives...');
-const stealthCheck = root.findByProps({ 'aria-label': 'Stealth proficiency' });
-assert.equal(stealthCheck.props.checked, false);
+// 6. Skills & Senses (P and E buttons)
+console.log('6. Checking Skills P/E buttons & passives...');
+const stealthBtn = root.findByProps({ 'aria-label': 'Stealth proficiency' });
+assert.equal(stealthBtn.type, 'button', 'Skill proficiency toggle must be a P button');
+assert.equal(text(stealthBtn), 'P', 'Skill proficiency button label must be P');
+assert.ok(!String(stealthBtn.props.className || '').includes('active'));
 
 await act(async () => {
-  stealthCheck.props.onChange({ target: { checked: true } });
+  stealthBtn.props.onClick();
 });
 assert.ok(character.skillProficiencies.includes('stealth'));
 

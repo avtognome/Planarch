@@ -305,17 +305,21 @@ export function CompendiumSpellModal({
   };
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Import Spells from Compendium">
-      <div className="modal-card comp-spell-modal">
-        <div className="modal-header">
+    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label="Import Spells from Compendium">
+      <div className="modal modal-card comp-spell-modal" onClick={e => e.stopPropagation()}>
+        <div className="between comp-spell-header">
           <div className="inline" style={{ gap: '8px' }}>
-            <Sparkles size={16} />
+            <Sparkles size={16} style={{ color: 'var(--accent)' }} />
             <strong>Compendium Spells</strong>
-            <Badge variant="secondary">{filteredSpells.length} spells</Badge>
           </div>
-          <Button type="button" variant="ghost" size="sm" aria-label="Close spell compendium" onClick={onClose}>
-            <X size={15} />
-          </Button>
+          <button
+            type="button"
+            className="icon-button comp-spell-close-btn"
+            aria-label="Close spell compendium"
+            onClick={onClose}
+          >
+            <X size={16} />
+          </button>
         </div>
 
         <div className="comp-spell-filters">
@@ -444,7 +448,7 @@ export function CompendiumSpellModal({
                     type="button"
                     variant="default"
                     size="sm"
-                    className="comp-spell-import-btn"
+                    className="primary small comp-spell-import-btn"
                     onClick={() => {
                       const entry = spells.find(s => s.id === activeRecord.id) || {
                         id: activeRecord.id,
@@ -514,7 +518,7 @@ export function CompendiumSpellModal({
                         type="button"
                         variant="default"
                         size="sm"
-                        className="comp-spell-import-btn"
+                        className="primary small comp-spell-import-btn"
                         onClick={() => handleImportOne(entry)}
                       >
                         <Plus size={13} /> Import Spell

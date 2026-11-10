@@ -1561,17 +1561,21 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
                                 className={`char-skill-row ${isProf || isExp ? 'proficient' : ''}`}
                               >
                                 <div className="char-skill-checks">
-                                  <input
-                                    type="checkbox"
+                                  <button
+                                    type="button"
+                                    className={`char-prof-btn ${isProf ? 'active' : ''}`}
                                     aria-label={`${skill.name} proficiency`}
-                                    checked={isProf}
-                                    onChange={() => toggleSkillProf(skill.id)}
+                                    aria-pressed={isProf}
+                                    onClick={() => toggleSkillProf(skill.id)}
                                     title="Proficient"
-                                  />
+                                  >
+                                    P
+                                  </button>
                                   <button
                                     type="button"
                                     className={`char-expertise-btn ${isExp ? 'active' : ''}`}
                                     aria-label={`${skill.name} expertise`}
+                                    aria-pressed={isExp}
                                     onClick={() => toggleSkillExpertise(skill.id)}
                                     title="Expertise"
                                   >
@@ -1793,13 +1797,13 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
             </Badge>
             <Button
               type="button"
-              variant="secondary"
+              variant="default"
               size="sm"
-              className="char-action-pill"
+              className="primary small char-action-pill char-import-spells-btn"
               aria-label="Import spells from Compendium"
               onClick={() => setCompendiumSpellsOpen(true)}
             >
-              <BookOpen size={12} /> + Import Spells
+              <BookOpen size={12} /> Import Spells
             </Button>
           </div>
         </div>

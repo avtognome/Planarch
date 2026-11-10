@@ -994,17 +994,21 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 
 .char-rest-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
+  margin-top: 2px;
 }
 
 .char-rest-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  font-size:var(--type-label);
+  font-size: var(--type-label);
   padding: 4px 8px;
   border-radius: 6px;
   min-height: 28px;
+  flex: 1;
 }
 
 /* Sections */
@@ -1127,6 +1131,7 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
   font-size: var(--type-page);
   font-weight: 600;
   width: 58px;
+  height: 30px;
   text-align: center;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -1155,8 +1160,9 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 
 .char-hp-delta-input {
   width: 72px;
+  height: 28px;
   text-align: center;
-  font-size:var(--type-label);
+  font-size: var(--type-label);
   padding: 3px 6px;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -1218,6 +1224,11 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
   gap: 6px;
 }
 
+.char-recovery-card {
+  justify-content: space-between;
+  gap: 6px;
+}
+
 .char-hit-dice-row {
   display: flex;
   align-items: center;
@@ -1227,9 +1238,10 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 
 .char-mini-num,
 .char-die-type {
-  width: 40px;
+  width: 44px;
+  height: 28px;
   text-align: center;
-  font-size:var(--type-label);
+  font-size: var(--type-label);
   padding: 2px 4px;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -1374,14 +1386,17 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 
 .char-inline-add {
   display: flex;
-  gap: 4px;
+  align-items: center;
+  gap: 6px;
   margin-top: 4px;
 }
 
 .char-add-input {
   flex: 1;
-  font-size:var(--type-label);
-  padding: 3px 6px;
+  min-width: 140px;
+  height: 30px;
+  font-size: var(--type-label);
+  padding: 3px 8px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 4px;

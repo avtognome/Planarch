@@ -189,11 +189,25 @@ await act(async () => {
 });
 assert.equal(sectionToggles[0].props['aria-expanded'], true);
 
-// 3. Combat Stats: HP Damage and Heal
-console.log('3. Checking HP damage and heal actions...');
-const hpDeltaInput = root.findByProps({ 'aria-label': 'Damage or heal amount' });
-const damageBtn = root.findAllByProps({ className: 'char-damage-btn' })[0];
-const healBtn = root.findAllByProps({ className: 'char-heal-btn' })[0];
+// 3. Combat Stats: HP Damage/Heal, Recovery Rests, and Conditions Grouping
+console.log('3. Checking HP damage/heal, Combat recovery rests, and Conditions grouping...');
+const headerEl = root.find(el => el.type === 'header' && String(el.props?.className || '').includes('char-sheet-header'));
+assert.equal(
+  headerEl.findAll(el => el.type === 'button' && (text(el).includes('Short rest') || text(el).includes('Long rest'))).length,
+  0,
+  'Rest buttons must be moved out of header into Combat recovery group'
+);
+
+const recoveryCard = primaryCol.find(el => String(el.props?.className || '').includes('char-recovery-card'));
+assert.ok(recoveryCard, 'Combat section must include .char-recovery-card grouping Hit Dice and Short/Long Rest actions');
+const shortRestBtn = recoveryCard.findAll(el => el.type === 'button').find(b => text(b).includes('Short rest'));
+const longRestBtn = recoveryCard.findAll(el => el.type === 'button').find(b => text(b).includes('Long rest'));
+assert.ok(shortRestBtn && longRestBtn, 'Short rest and Long rest buttons must live inside .char-recovery-card');
+
+const hpCard = primaryCol.find(el => String(el.props?.className || '').includes('char-hp-card'));
+const hpDeltaInput = hpCard.findByProps({ 'aria-label': 'Damage or heal amount' });
+const damageBtn = hpCard.findAll(el => el.type === 'button' && String(el.props?.className || '').includes('char-damage-btn'))[0];
+const healBtn = hpCard.findAll(el => el.type === 'button' && String(el.props?.className || '').includes('char-heal-btn'))[0];
 
 // Temp HP was 5, HP was 20. Take 8 damage -> tempHp becomes 0, HP becomes 17.
 await act(async () => {
@@ -213,6 +227,37 @@ await act(async () => {
   healBtn.props.onClick();
 });
 assert.equal(character.hp, 19);
+
+// Conditions group inside Combat
+const condGroup = primaryCol.find(el => String(el.props?.className || '').includes('char-conditions-group'));
+assert.ok(condGroup, 'Conditions chips and Add Condition control must share .char-conditions-group');
+const addCondToggle = condGroup.findAll(el => el.type === 'button').find(b => text(b).includes('Add Condition'));
+await act(async () => {
+  addCondToggle.props.onClick();
+});
+const proneOpt = condGroup.findAll(el => el.type === 'button').find(b => text(b) === 'Prone');
+await act(async () => {
+  proneOpt.props.onClick();
+});
+assert.ok(character.conditions.includes('Prone'));
+const removeProneBtn = condGroup.findByProps({ 'aria-label': 'Remove condition Prone' });
+await act(async () => {
+  removeProneBtn.props.onClick();
+});
+assert.ok(!character.conditions.includes('Prone'));
+
+// Resource increment/decrement and Short Rest recovery
+const resCard = longform.find(el => String(el.props?.className || '').includes('char-resource-card'));
+const decResBtn = resCard.findByProps({ 'aria-label': 'Decrease Action Surge' });
+await act(async () => {
+  decResBtn.props.onClick();
+});
+assert.equal(character.resources[0].current, 0);
+
+await act(async () => {
+  shortRestBtn.props.onClick();
+});
+assert.equal(character.resources[0].current, 1, 'Short rest must recover short-rest resources');
 
 // 4. Death Saves
 console.log('4. Checking death saves toggling...');

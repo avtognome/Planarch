@@ -424,25 +424,6 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
               <span className="char-pb-label">PROF</span>
               <span className="char-pb-val">+{profBonus}</span>
             </div>
-
-            <div className="char-rest-actions">
-              <button
-                type="button"
-                className="secondary small char-rest-btn"
-                onClick={() => handleRest('short')}
-              >
-                <RotateCcw size={12} />
-                Short rest
-              </button>
-              <button
-                type="button"
-                className="secondary small char-rest-btn"
-                onClick={() => handleRest('long')}
-              >
-                <RotateCcw size={12} />
-                Long rest
-              </button>
-            </div>
           </div>
         </div>
       </header>
@@ -578,12 +559,12 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                   </div>
                 </div>
 
-                {/* Hit Dice & Death Saves & Inspiration */}
+                {/* Hit Dice & Rest Recovery & Death Saves & Inspiration */}
                 <div className="char-combat-secondary">
-                  <div className="char-stat-card">
-                    <span className="char-stat-label">HIT DICE</span>
+                  <div className="char-stat-card char-recovery-card">
+                    <span className="char-stat-label">HIT DICE & RECOVERY</span>
                     <div className="char-hit-dice-row">
-                      <input
+                      <Input
                         type="number"
                         className="char-mini-num"
                         aria-label="Hit dice current"
@@ -599,7 +580,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                         }
                       />
                       <span>/</span>
-                      <input
+                      <Input
                         type="number"
                         className="char-mini-num"
                         aria-label="Hit dice max"
@@ -614,7 +595,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                           })
                         }
                       />
-                      <input
+                      <Input
                         className="char-die-type"
                         aria-label="Hit die type"
                         value={character.hitDice?.die || 'd8'}
@@ -628,6 +609,28 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                           })
                         }
                       />
+                    </div>
+                    <div className="char-rest-actions">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="secondary small char-rest-btn"
+                        onClick={() => handleRest('short')}
+                      >
+                        <RotateCcw size={12} />
+                        Short rest
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="secondary small char-rest-btn"
+                        onClick={() => handleRest('long')}
+                      >
+                        <RotateCcw size={12} />
+                        Long rest
+                      </Button>
                     </div>
                   </div>
 
@@ -703,16 +706,18 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                 {/* Conditions & Defenses */}
                 <div className="char-combat-tertiary">
                   {/* Conditions */}
-                  <div className="char-stat-card">
+                  <div className="char-stat-card char-conditions-group">
                     <div className="char-card-header">
                       <span className="char-stat-label">CONDITIONS</span>
-                      <button
+                      <Button
                         type="button"
+                        variant="secondary"
+                        size="sm"
                         className="secondary small"
                         onClick={() => setShowConditionPicker(!showConditionPicker)}
                       >
                         <Plus size={12} /> Add Condition
-                      </button>
+                      </Button>
                     </div>
                     {showConditionPicker && (
                       <div className="char-condition-picker">
@@ -733,7 +738,7 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                         <span className="char-empty-hint">None</span>
                       ) : (
                         conditions.map(c => (
-                          <span key={c} className="char-chip">
+                          <Badge key={c} variant="destructive" className="char-chip">
                             {c}
                             <button
                               type="button"
@@ -742,18 +747,18 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                             >
                               <X size={10} />
                             </button>
-                          </span>
+                          </Badge>
                         ))
                       )}
                     </div>
                   </div>
 
                   {/* Defenses / Resistances */}
-                  <div className="char-stat-card">
+                  <div className="char-stat-card char-defenses-group">
                     <span className="char-stat-label">DEFENSES & RESISTANCES</span>
                     <div className="char-chips-wrap">
                       {defenses.map(d => (
-                        <span key={d} className="char-chip">
+                        <Badge key={d} variant="secondary" className="char-chip">
                           {d}
                           <button
                             type="button"
@@ -762,11 +767,11 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                           >
                             <X size={10} />
                           </button>
-                        </span>
+                        </Badge>
                       ))}
                     </div>
                     <div className="char-inline-add">
-                      <input
+                      <Input
                         className="char-add-input"
                         aria-label="New defense or resistance"
                         placeholder="e.g. Fire resistance, Poison immunity"
@@ -774,13 +779,15 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                         onChange={e => setNewDefense(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && addDefense()}
                       />
-                      <button
+                      <Button
                         type="button"
+                        variant="secondary"
+                        size="sm"
                         className="secondary small"
                         onClick={addDefense}
                       >
                         <Plus size={12} /> Add
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -1103,14 +1110,14 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
 
               {/* Add resource form */}
               <div className="char-add-resource-form">
-                <input
+                <Input
                   className="char-add-input"
                   aria-label="Resource name"
                   placeholder="e.g. Ki Points, Superiority Dice, Wild Shape"
                   value={newResName}
                   onChange={e => setNewResName(e.target.value)}
                 />
-                <input
+                <Input
                   type="number"
                   min={1}
                   className="char-mini-num"
@@ -1129,13 +1136,15 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                   <option value="short">Short rest</option>
                   <option value="none">Manual only</option>
                 </select>
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
                   className="secondary small"
                   onClick={addResource}
                 >
                   <Plus size={12} /> Add Resource
-                </button>
+                </Button>
               </div>
 
               {/* Freeform feature notes */}

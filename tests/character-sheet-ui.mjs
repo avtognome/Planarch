@@ -334,9 +334,54 @@ await act(async () => {
   spellNameInput.props.onChange({ target: { value: 'Shield' } });
   spellLevelSelect.props.onChange({ target: { value: 1 } });
 });
+const spellModUrl = pathToFileURL(path.join(out, 'CompendiumSpellModal.js')).href + `?t=${Date.now()}`;
+const { CompendiumSpellModal, compendiumRecordToCharacterSpell } = await import(spellModUrl);
+
 await act(async () => {
   addSpellBtn.props.onClick();
 });
 assert.ok(character.spells.some(s => s.name === 'Shield' && s.level === 1));
+
+// 9. Compendium Spell Modal (spells only, sorted by level/name, filtered by class)
+console.log('9. Checking CompendiumSpellModal filtering & sorting...');
+const sampleRecords = [
+  { id: 'm1', kind: 'monster', name: 'Goblin', edition: '2024', fields: { type: 'Humanoid', cr: '1/4' } },
+  { id: 's1', kind: 'spell', name: 'Fireball', edition: '2024', fields: { level: '3', school: 'Evocation', classes: 'Wizard, Sorcerer', duration: 'Instantaneous', time: '1 action' } },
+  { id: 's2', kind: 'spell', name: 'Cure Wounds', edition: '2024', fields: { level: '1', school: 'Abjuration', classes: 'Cleric, Bard, Druid', duration: 'Instantaneous', time: '1 action' } },
+  { id: 's3', kind: 'spell', name: 'Mage Hand', edition: '2024', fields: { level: '0', school: 'Conjuration', classes: 'Wizard, Bard, Sorcerer, Warlock', duration: '1 minute', time: '1 action' } },
+  { id: 's4', kind: 'spell', name: 'Bless', edition: '2024', fields: { level: '1', school: 'Enchantment', classes: 'Cleric, Paladin', duration: 'Concentration, up to 1 minute', ritual: 'YES', time: '1 action' } },
+];
+
+const convertedBless = compendiumRecordToCharacterSpell(sampleRecords[4]);
+assert.equal(convertedBless.name, 'Bless');
+assert.equal(convertedBless.level, 1);
+assert.equal(convertedBless.concentration, true);
+assert.equal(convertedBless.ritual, true);
+
+let importedSpells = [];
+let modalRenderer;
+await act(async () => {
+  modalRenderer = TestRenderer.create(
+    React.createElement(CompendiumSpellModal, {
+      defaultClass: 'Wizard',
+      records: sampleRecords,
+      onImport: spells => { importedSpells = spells; },
+      onClose: () => {},
+    })
+  );
+});
+const modalRoot = modalRenderer.root;
+// Default class is Wizard -> only Mage Hand (lvl 0) and Fireball (lvl 3) should appear, sorted by level
+const spellRows = modalRoot.findAll(el => el.type === 'button' && String(el.props?.className || '').includes('comp-spell-row'));
+assert.equal(spellRows.length, 2, 'Should filter out monsters and non-Wizard spells when defaultClass is Wizard');
+assert.ok(text(spellRows[0]).includes('Mage Hand'), 'Level 0 spell must sort before Level 3 spell');
+assert.ok(text(spellRows[1]).includes('Fireball'), 'Level 3 spell must sort after Level 0 spell');
+
+const importBtn = modalRoot.findAll(el => el.type === 'button' && String(el.props?.className || '').includes('comp-spell-import-btn'))[0];
+await act(async () => {
+  importBtn.props.onClick();
+});
+assert.equal(importedSpells.length, 1);
+assert.equal(importedSpells[0].name, 'Mage Hand');
 
 console.log('ALL Character Sheet UI tests passed successfully!');

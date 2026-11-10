@@ -71,6 +71,22 @@ export type SpellSlotEntry = {
 
 export type SpellSlots = Record<number, SpellSlotEntry>;
 
+export type CharacterCurrency = {
+  cp: number;
+  sp: number;
+  ep: number;
+  gp: number;
+  pp: number;
+};
+
+export type CharacterNoteEntry = {
+  id: string;
+  title: string;
+  body: string;
+  date: string;
+  pinned?: boolean;
+};
+
 export type Character = {
   id: string;
   name: string;
@@ -90,6 +106,7 @@ export type Character = {
   maxHp?: number;
   tempHp?: number;
   speed?: number;
+  extraSpeeds?: string;
   level?: number;
   className?: string;
   subclass?: string;
@@ -97,6 +114,7 @@ export type Character = {
   background?: string;
   alignment?: string;
   inspiration?: boolean;
+  inspirationCount?: number;
   exhaustion?: number;
   conditions?: string[];
   defenses?: string[];
@@ -107,13 +125,21 @@ export type Character = {
   hitDice?: HitDice;
   deathSaves?: DeathSaves;
   resources?: TrackedResource[];
+  feats?: string[];
   inventory?: InventoryItem[];
+  currency?: CharacterCurrency;
   spells?: CharacterSpell[];
   spellSlots?: SpellSlots;
+  spellcastingAbility?: AbilityName;
+  acNote?: string;
+  darkvision?: number;
   languages?: string[];
   proficiencies?: string;
+  armorProficiencies?: string;
+  weaponProficiencies?: string;
   tools?: string[];
   training?: { tools?: string[] };
+  characterNotes?: CharacterNoteEntry[];
 };
 export type WikiImage={id:string,name:string,data:string,caption:string};
 export type WikiPage={id:string,title:string,category:string,body:string,tags:string,updated:string,thumbnail?:string,images?:WikiImage[]};

@@ -141,24 +141,15 @@ await act(async () => {
 });
 assert.equal(character.level, 4);
 
-// 2. Collapsible Sections (7 sections exist) & Two-column Composition
-console.log('2. Checking 7 Collapsible Sections & Two-column Composition...');
+// 2. Collapsible Sections (9 sections matching screenshot layout + Spellbook)
+console.log('2. Checking 9 Collapsible Sections & Character Lore...');
 const sectionToggles = root.findAll(el => el.type === 'button' && String(el.props?.className || '').includes('char-section-toggle'));
-assert.equal(sectionToggles.length, 7, 'Must have 7 collapsible section toggles');
+assert.equal(sectionToggles.length, 9, 'Must have 9 collapsible section toggles (Character, Combat, Resources, Abilities, Skills, Inventory, Spells, Proficiencies, Notes)');
 
-const mainGrid = root.find(el => String(el.props?.className || '').includes('char-sheet-main'));
-assert.ok(mainGrid, 'Must render .char-sheet-main wrapper for two-column primary/secondary sections');
-const primaryCol = mainGrid.find(el => String(el.props?.className || '').includes('char-sheet-primary'));
-const secondaryCol = mainGrid.find(el => String(el.props?.className || '').includes('char-sheet-secondary'));
-assert.ok(primaryCol && secondaryCol, 'Must separate primary (Combat + Abilities) and secondary (Skills + Proficiencies) columns');
-
-const mainToggles = mainGrid.findAll(el => el.type === 'button' && String(el.props?.className || '').includes('char-section-toggle'));
-assert.equal(mainToggles.length, 4, 'char-sheet-main must contain Combat, Abilities, Skills, Proficiencies in DOM order');
-
-const longform = root.find(el => String(el.props?.className || '').includes('char-sheet-longform'));
-assert.ok(longform, 'Must render .char-sheet-longform wrapper for full-width lists below');
-const longformToggles = longform.findAll(el => el.type === 'button' && String(el.props?.className || '').includes('char-section-toggle'));
-assert.equal(longformToggles.length, 3, 'char-sheet-longform must contain Resources, Inventory, Spells');
+const portraitBox = root.find(el => String(el.props?.className || '').includes('char-portrait-box'));
+assert.ok(portraitBox, 'Character section must include .char-portrait-box');
+const loreToggle = root.find(el => el.type === 'button' && String(el.props?.className || '').includes('char-lore-toggle'));
+assert.ok(loreToggle, 'Character section must include collapsible Character Lore sub-panel');
 
 const sheetSource = fs.readFileSync('src/CharacterSheet.tsx', 'utf8');
 assert.ok(
@@ -168,43 +159,33 @@ assert.ok(
   'CharacterSheet.tsx must use shadcn UI components (Card, Button, Input)'
 );
 
-const themeCss = fs.readFileSync('src/theme.css', 'utf8');
-assert.ok(
-  /container-type:\s*inline-size/.test(themeCss) && /@container\b/.test(themeCss),
-  'theme.css must use container queries on .char-sheet so columns stack based on editor width'
-);
-assert.ok(
-  themeCss.includes('.char-sheet-main') && themeCss.includes('.char-sheet-longform'),
-  'theme.css must style .char-sheet-main and .char-sheet-longform'
-);
-
 // Test toggle collapse / expand
 await act(async () => {
-  sectionToggles[0].props.onClick(); // toggle combat
+  sectionToggles[1].props.onClick(); // toggle combat
 });
-assert.equal(sectionToggles[0].props['aria-expanded'], false);
+assert.equal(sectionToggles[1].props['aria-expanded'], false);
 
 await act(async () => {
-  sectionToggles[0].props.onClick(); // toggle combat back open
+  sectionToggles[1].props.onClick(); // toggle combat back open
 });
-assert.equal(sectionToggles[0].props['aria-expanded'], true);
+assert.equal(sectionToggles[1].props['aria-expanded'], true);
 
-// 3. Combat Stats: HP Damage/Heal, Recovery Rests, and Conditions Grouping
-console.log('3. Checking HP damage/heal, Combat recovery rests, and Conditions grouping...');
-const headerEl = root.find(el => el.type === 'header' && String(el.props?.className || '').includes('char-sheet-header'));
-assert.equal(
-  headerEl.findAll(el => el.type === 'button' && (text(el).includes('Short rest') || text(el).includes('Long rest'))).length,
-  0,
-  'Rest buttons must be moved out of header into Combat recovery group'
-);
+// 3. Combat Stats: 3-column Top Grid, HP Bar, Spellcasting, Mid Strip, and Conditions Grouping
+console.log('3. Checking Combat Stats 3-column top grid, HP bar, Spellcasting, Recovery, and Conditions...');
+const combatTopGrid = root.find(el => String(el.props?.className || '').includes('char-combat-top-grid'));
+assert.ok(combatTopGrid, 'Combat Stats must render .char-combat-top-grid (HP | AC | Spellcasting+Initiative)');
+const hpBar = root.find(el => String(el.props?.className || '').includes('char-hp-bar-track'));
+assert.ok(hpBar, 'HP card must include .char-hp-bar-track progress bar');
+const spellcastingCard = root.find(el => String(el.props?.className || '').includes('char-spellcasting-card'));
+assert.ok(spellcastingCard && text(spellcastingCard).includes('Spell Attack') && text(spellcastingCard).includes('Spell DC'), 'Combat Stats must include Spellcasting Attack & DC card');
 
-const recoveryCard = primaryCol.find(el => String(el.props?.className || '').includes('char-recovery-card'));
-assert.ok(recoveryCard, 'Combat section must include .char-recovery-card grouping Hit Dice and Short/Long Rest actions');
+const recoveryCard = root.find(el => String(el.props?.className || '').includes('char-recovery-card'));
+assert.ok(recoveryCard, 'Combat section must include .char-recovery-card grouping Hit Dice and Rest actions');
 const shortRestBtn = recoveryCard.findAll(el => el.type === 'button').find(b => text(b).includes('Short rest'));
 const longRestBtn = recoveryCard.findAll(el => el.type === 'button').find(b => text(b).includes('Long rest'));
 assert.ok(shortRestBtn && longRestBtn, 'Short rest and Long rest buttons must live inside .char-recovery-card');
 
-const hpCard = primaryCol.find(el => String(el.props?.className || '').includes('char-hp-card'));
+const hpCard = root.find(el => String(el.props?.className || '').includes('char-hp-card'));
 const hpDeltaInput = hpCard.findByProps({ 'aria-label': 'Damage or heal amount' });
 const damageBtn = hpCard.findAll(el => el.type === 'button' && String(el.props?.className || '').includes('char-damage-btn'))[0];
 const healBtn = hpCard.findAll(el => el.type === 'button' && String(el.props?.className || '').includes('char-heal-btn'))[0];
@@ -228,10 +209,16 @@ await act(async () => {
 });
 assert.equal(character.hp, 19);
 
-// Conditions group inside Combat
-const condGroup = primaryCol.find(el => String(el.props?.className || '').includes('char-conditions-group'));
-assert.ok(condGroup, 'Conditions chips and Add Condition control must share .char-conditions-group');
-const addCondToggle = condGroup.findAll(el => el.type === 'button').find(b => text(b).includes('Add Condition'));
+// Conditions group inside Combat (with Exhaustion stepper inside Conditions)
+const condGroup = root.find(el => String(el.props?.className || '').includes('char-conditions-group'));
+assert.ok(condGroup, 'Conditions chips, Exhaustion stepper, and Add control must share .char-conditions-group');
+const incExhBtn = condGroup.findByProps({ 'aria-label': 'Increase exhaustion' });
+await act(async () => {
+  incExhBtn.props.onClick();
+});
+assert.equal(character.exhaustion, 1);
+
+const addCondToggle = condGroup.findByProps({ 'aria-label': 'Add condition' });
 await act(async () => {
   addCondToggle.props.onClick();
 });
@@ -247,7 +234,7 @@ await act(async () => {
 assert.ok(!character.conditions.includes('Prone'));
 
 // Resource increment/decrement and Short Rest recovery
-const resCard = longform.find(el => String(el.props?.className || '').includes('char-resource-card'));
+const resCard = root.find(el => String(el.props?.className || '').includes('char-resource-card'));
 const decResBtn = resCard.findByProps({ 'aria-label': 'Decrease Action Surge' });
 await act(async () => {
   decResBtn.props.onClick();
@@ -258,6 +245,28 @@ await act(async () => {
   shortRestBtn.props.onClick();
 });
 assert.equal(character.resources[0].current, 1, 'Short rest must recover short-rest resources');
+
+// Feats in Features & Tracked Resources
+const featsGroup = root.find(el => String(el.props?.className || '').includes('char-feats-group'));
+assert.ok(featsGroup, 'Features & Tracked Resources must include .char-feats-group');
+const skillsColumns = root.find(el => String(el.props?.className || '').includes('char-skills-columns'));
+assert.ok(skillsColumns, 'Skills & Senses must group skills by ability in two columns (.char-skills-columns)');
+const skillFilterInput = root.findByProps({ 'aria-label': 'Filter skills' });
+assert.ok(skillFilterInput, 'Skills & Senses header must include Filter skills input');
+const cpInput = root.findByProps({ 'aria-label': 'Copper pieces' });
+const gpInput = root.findByProps({ 'aria-label': 'Gold pieces' });
+assert.ok(cpInput && gpInput, 'Items & Inventory must include Currency inputs (CP, SP, EP, GP, PP)');
+await act(async () => {
+  gpInput.props.onChange({ target: { value: '15' } });
+});
+assert.equal(character.currency.gp, 15);
+const profGrid2x2 = root.find(el => String(el.props?.className || '').includes('char-prof-grid-2x2'));
+assert.ok(profGrid2x2, 'Proficiencies & Training must render 2x2 grid (.char-prof-grid-2x2)');
+const newNoteBtn = root.findByProps({ 'aria-label': 'Add character note' });
+await act(async () => {
+  newNoteBtn.props.onClick();
+});
+assert.ok(character.characterNotes.length >= 1, 'Notes section must allow adding character notes');
 
 // 4. Death Saves
 console.log('4. Checking death saves toggling...');

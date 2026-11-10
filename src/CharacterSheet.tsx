@@ -10,9 +10,15 @@ import {
   Sparkles,
   BookOpen,
   Eye,
-  Check,
   X,
   RotateCcw,
+  User,
+  Award,
+  Coins,
+  FileText,
+  Search,
+  ArrowUpCircle,
+  Pin,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -23,6 +29,8 @@ import {
   type InventoryItem,
   type CharacterSpell,
   type SpellSlots,
+  type CharacterCurrency,
+  type CharacterNoteEntry,
   uid,
 } from './models';
 import {
@@ -34,6 +42,7 @@ import {
   SKILL_DEFINITIONS,
 } from './characterRules';
 import { DND_CONDITIONS } from './conditions';
+import { CompendiumSpellModal } from './CompendiumSpellModal';
 import { Card } from './components/ui/card';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
@@ -44,6 +53,7 @@ export interface CharacterSheetProps {
   character: Character;
   onUpdate: (patch: Partial<Character>) => void;
   notify?: (message: string) => void;
+  campaign?: string;
 }
 
 const ABILITIES: Array<{ key: AbilityName; label: string }> = [
@@ -55,17 +65,38 @@ const ABILITIES: Array<{ key: AbilityName; label: string }> = [
   { key: 'cha', label: 'CHA' },
 ];
 
-export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetProps) {
-  // Collapsible sections state (all default open)
+function inferSpellcastingAbility(className?: string): AbilityName {
+  const c = (className || '').toLowerCase();
+  if (c.includes('cleric') || c.includes('druid') || c.includes('ranger') || c.includes('monk')) return 'wis';
+  if (c.includes('bard') || c.includes('paladin') || c.includes('sorcerer') || c.includes('warlock')) return 'cha';
+  return 'int';
+}
+
+export function CharacterSheet({ character, onUpdate, notify, campaign }: CharacterSheetProps) {
+  // Collapsible sections state (9 sections matching screenshot layout + Spellbook)
   const [sections, setSections] = useState({
+    character: true,
     combat: true,
+    resources: true,
     abilities: true,
     skills: true,
-    proficiencies: true,
-    resources: true,
     inventory: true,
     spells: true,
+    proficiencies: true,
+    notes: true,
   });
+  const [loreOpen, setLoreOpen] = useState(false);
+  const [compendiumSpellsOpen, setCompendiumSpellsOpen] = useState(false);
+  const [showAcNote, setShowAcNote] = useState(Boolean(character.acNote));
+  const [showExtraSpeed, setShowExtraSpeed] = useState(Boolean(character.extraSpeeds));
+  const [showDefenseInput, setShowDefenseInput] = useState(true);
+  const [showFeatInput, setShowFeatInput] = useState(false);
+  const [newFeat, setNewFeat] = useState('');
+  const [skillFilter, setSkillFilter] = useState('');
+  const [invSearch, setInvSearch] = useState('');
+  const [noteSearch, setNoteSearch] = useState('');
+  const [noteSortBy, setNoteSortBy] = useState<'date' | 'title'>('date');
+  const [noteSortDesc, setNoteSortDesc] = useState(true);
 
   const toggleSection = (key: keyof typeof sections) => {
     setSections(prev => ({ ...prev, [key]: !prev[key] }));
@@ -352,98 +383,324 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
 
   const preparedCount = spells.filter(s => s.level > 0 && s.prepared).length;
 
+  const importCompendiumSpells = (incoming: CharacterSpell[]) => {
+    const existingNames = new Set(spells.map(s => s.name.toLowerCase()));
+    const fresh = incoming.filter(s => !existingNames.has(s.name.toLowerCase()));
+    if (fresh.length > 0) {
+      onUpdate({ spells: [...spells, ...fresh] });
+      notify?.(`Imported ${fresh.map(s => s.name).join(', ')}`);
+    } else {
+      notify?.('Spell already in spellbook');
+    }
+  };
+
+  // Spellcasting stats (Attack & DC)
+  const spellAbil: AbilityName =
+    character.spellcastingAbility || inferSpellcastingAbility(character.className || character.role);
+  const spellAbilMod = getModifier(stats[spellAbil] ?? 10);
+  const spellAttackBonus = profBonus + spellAbilMod;
+  const spellSaveDc = 8 + profBonus + spellAbilMod;
+  const cycleSpellAbility = () => {
+    const order: AbilityName[] = ['int', 'wis', 'cha'];
+    const idx = order.indexOf(spellAbil);
+    const next = order[(idx + 1) % order.length];
+    onUpdate({ spellcastingAbility: next });
+  };
+
+  // Feats
+  const feats: string[] = character.feats || [];
+  const addFeat = () => {
+    if (newFeat.trim() && !feats.includes(newFeat.trim())) {
+      onUpdate({ feats: [...feats, newFeat.trim()] });
+      setNewFeat('');
+      setShowFeatInput(false);
+    }
+  };
+  const removeFeat = (feat: string) => {
+    onUpdate({ feats: feats.filter(f => f !== feat) });
+  };
+
+  // Currency
+  const currency: CharacterCurrency = character.currency || { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 };
+  const updateCurrency = (coin: keyof CharacterCurrency, val: number) => {
+    onUpdate({
+      currency: {
+        ...currency,
+        [coin]: Math.max(0, val),
+      },
+    });
+  };
+  const totalGp = Number(
+    (currency.cp / 100 + currency.sp / 10 + currency.ep / 2 + currency.gp + currency.pp * 10).toFixed(2)
+  );
+
+  // Notes section
+  const characterNotes: CharacterNoteEntry[] = character.characterNotes || [];
+  const addNoteEntry = () => {
+    const entry: CharacterNoteEntry = {
+      id: uid(),
+      title: 'General',
+      body: '',
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      pinned: false,
+    };
+    onUpdate({ characterNotes: [entry, ...characterNotes] });
+  };
+  const updateNoteEntry = (id: string, patch: Partial<CharacterNoteEntry>) => {
+    onUpdate({
+      characterNotes: characterNotes.map(n => (n.id === id ? { ...n, ...patch } : n)),
+    });
+  };
+  const removeNoteEntry = (id: string) => {
+    onUpdate({ characterNotes: characterNotes.filter(n => n.id !== id) });
+  };
+
+  const hpPercent = Math.max(0, Math.min(100, Math.round((currentHp / Math.max(1, maxHp)) * 100)));
+  const inspirationVal = character.inspirationCount ?? (character.inspiration ? 1 : 0);
+  const changeInspiration = (delta: number) => {
+    const next = clamp(inspirationVal + delta, 0, 10);
+    onUpdate({ inspirationCount: next, inspiration: next > 0 });
+  };
+
   return (
     <div className="char-sheet" role="region" aria-label="Interactive character sheet">
-      {/* HEADER */}
-      <header className="char-sheet-header">
-        <div className="char-header-top">
-          <div className="char-name-block">
-            <input
-              className="char-name-input"
-              aria-label="Character name"
-              value={character.name || ''}
-              onChange={e => onUpdate({ name: e.target.value })}
-              placeholder="Character Name"
-            />
-            <div className="char-details-row">
-              <input
-                className="char-detail-input"
-                aria-label="Character class"
-                value={character.className || character.role || ''}
-                onChange={e =>
-                  onUpdate({ className: e.target.value, role: e.target.value })
-                }
-                placeholder="Class & Subclass"
-              />
-              <span className="char-detail-sep">/</span>
-              <input
-                className="char-detail-input"
-                aria-label="Character species"
-                value={character.species || ''}
-                onChange={e => onUpdate({ species: e.target.value })}
-                placeholder="Species"
-              />
-              <span className="char-detail-sep">/</span>
-              <input
-                className="char-detail-input"
-                aria-label="Character background"
-                value={character.background || ''}
-                onChange={e => onUpdate({ background: e.target.value })}
-                placeholder="Background"
-              />
-            </div>
-          </div>
+      {/* 1. CHARACTER & CHARACTER LORE */}
+      <Card className="char-section">
+        <button
+          type="button"
+          className="char-section-toggle"
+          aria-expanded={sections.character}
+          onClick={() => toggleSection('character')}
+        >
+          <span className="char-section-title">
+            <User size={15} className="char-section-icon" />
+            Character
+            {sections.character ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </span>
+        </button>
 
-          <div className="char-header-controls">
-            <div className="char-level-badge">
-              <span className="char-level-label">LEVEL</span>
-              <div className="char-level-spinner">
-                <button
-                  type="button"
-                  className="char-level-btn"
-                  aria-label="Decrease level"
-                  onClick={() => changeLevel(-1)}
-                  disabled={level <= 1}
-                >
-                  -
-                </button>
-                <span className="char-level-num">{level}</span>
-                <button
-                  type="button"
-                  className="char-level-btn"
-                  aria-label="Increase level"
-                  onClick={() => changeLevel(1)}
-                  disabled={level >= 20}
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            <div className="char-pb-badge">
-              <span className="char-pb-label">PROF</span>
-              <span className="char-pb-val">+{profBonus}</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="char-sheet-main">
-        <div className="char-sheet-primary">
-          {/* 1. COMBAT STATS */}
-          <Card className="char-section">
-            <button
-              type="button"
-              className="char-section-toggle"
-              aria-expanded={sections.combat}
-              onClick={() => toggleSection('combat')}
+        <AnimatePresence initial={false}>
+          {sections.character && (
+            <motion.div
+              className="char-section-content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.18 }}
             >
-              <span className="char-section-title">
-                <Shield size={16} />
-                Combat Stats
-              </span>
-              {sections.combat ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            </button>
+              <div className="char-identity-card">
+                <div className="char-portrait-box">
+                  {character.portrait ? (
+                    <img src={character.portrait} alt={character.name} className="char-portrait-img" />
+                  ) : (
+                    <div className="char-portrait-placeholder">
+                      <User size={28} />
+                      <span>Add Portrait</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="char-identity-body">
+                  <div className="char-identity-top">
+                    <div className="char-title-line">
+                      <input
+                        className="char-name-input"
+                        aria-label="Character name"
+                        value={character.name || ''}
+                        onChange={e => onUpdate({ name: e.target.value })}
+                        placeholder="Character Name"
+                      />
+                      <span className="char-level-inline">
+                        Character Level <strong>{level}</strong>
+                      </span>
+                    </div>
+
+                    <div className="char-header-controls">
+                      <button
+                        type="button"
+                        className="char-level-btn"
+                        aria-label="Decrease level"
+                        onClick={() => changeLevel(-1)}
+                        disabled={level <= 1}
+                        title="Decrease level"
+                      >
+                        -
+                      </button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="char-action-pill"
+                        onClick={() => setLoreOpen(!loreOpen)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="char-action-pill"
+                        aria-label="Increase level"
+                        onClick={() => changeLevel(1)}
+                        disabled={level >= 20}
+                      >
+                        <ArrowUpCircle size={13} /> Level Up
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="char-class-pill-row">
+                    <div className="char-class-badge">
+                      <input
+                        className="char-class-badge-input"
+                        aria-label="Character class"
+                        value={character.className || character.role || ''}
+                        onChange={e =>
+                          onUpdate({ className: e.target.value, role: e.target.value })
+                        }
+                        placeholder="Class"
+                      />
+                      <span className="char-class-lvl-tag">Lvl {level}</span>
+                    </div>
+                  </div>
+
+                  <div className="char-identity-fields-grid">
+                    <div className="char-field-group">
+                      <label className="char-field-label">Race / Species</label>
+                      <Input
+                        className="char-dark-field"
+                        aria-label="Character species"
+                        value={character.species || ''}
+                        onChange={e => onUpdate({ species: e.target.value })}
+                        placeholder="None"
+                      />
+                    </div>
+                    <div className="char-field-group">
+                      <label className="char-field-label">Subclass / Tradition</label>
+                      <Input
+                        className="char-dark-field"
+                        aria-label="Character subclass"
+                        value={character.subclass || ''}
+                        onChange={e => onUpdate({ subclass: e.target.value })}
+                        placeholder="None"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="char-speed-footer">
+                    <div className="char-speed-left">
+                      <span className="char-speed-label">Walking Speed</span>
+                      <input
+                        type="number"
+                        className="char-speed-inline-input"
+                        aria-label="Speed"
+                        value={speed}
+                        onChange={e => onUpdate({ speed: Math.max(0, +e.target.value) })}
+                      />
+                      <strong className="char-speed-unit">ft</strong>
+                      {showExtraSpeed && (
+                        <Input
+                          className="char-extra-speed-input"
+                          aria-label="Additional movement speeds"
+                          value={character.extraSpeeds || ''}
+                          onChange={e => onUpdate({ extraSpeeds: e.target.value })}
+                          placeholder="Fly 30 ft, Swim 30 ft..."
+                        />
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="char-text-action"
+                      onClick={() => setShowExtraSpeed(!showExtraSpeed)}
+                    >
+                      + Add Speed
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Collapsible Character Lore sub-panel */}
+              <div className="char-lore-card">
+                <button
+                  type="button"
+                  className="char-lore-toggle"
+                  aria-expanded={loreOpen}
+                  onClick={() => setLoreOpen(!loreOpen)}
+                >
+                  <span className="char-section-title">
+                    <Sparkles size={14} className="char-section-icon" />
+                    Character Lore
+                    {loreOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  </span>
+                </button>
+                {loreOpen && (
+                  <div className="char-lore-body">
+                    <div className="char-identity-fields-grid">
+                      <div className="char-field-group">
+                        <label className="char-field-label">Background</label>
+                        <Input
+                          className="char-dark-field"
+                          aria-label="Character background"
+                          value={character.background || ''}
+                          onChange={e => onUpdate({ background: e.target.value })}
+                          placeholder="None"
+                        />
+                      </div>
+                      <div className="char-field-group">
+                        <label className="char-field-label">Alignment</label>
+                        <Input
+                          className="char-dark-field"
+                          aria-label="Character alignment"
+                          value={character.alignment || ''}
+                          onChange={e => onUpdate({ alignment: e.target.value })}
+                          placeholder="Neutral"
+                        />
+                      </div>
+                    </div>
+                    <div className="char-identity-fields-grid">
+                      <div className="char-field-group">
+                        <label className="char-field-label">Personality & Motivation</label>
+                        <Input
+                          className="char-dark-field"
+                          aria-label="Character personality"
+                          value={character.personality || ''}
+                          onChange={e => onUpdate({ personality: e.target.value })}
+                          placeholder="Traits, ideals, bonds..."
+                        />
+                      </div>
+                      <div className="char-field-group">
+                        <label className="char-field-label">Relationships</label>
+                        <Input
+                          className="char-dark-field"
+                          aria-label="Character relationships"
+                          value={character.relationships || ''}
+                          onChange={e => onUpdate({ relationships: e.target.value })}
+                          placeholder="Allies, rivals, patrons..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
+
+      {/* 2. COMBAT STATS */}
+      <Card className="char-section">
+        <button
+          type="button"
+          className="char-section-toggle"
+          aria-expanded={sections.combat}
+          onClick={() => toggleSection('combat')}
+        >
+          <span className="char-section-title">
+            <Shield size={15} className="char-section-icon" />
+            Combat Stats
+            {sections.combat ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </span>
+        </button>
 
         <AnimatePresence initial={false}>
           {sections.combat && (
@@ -454,53 +711,60 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.18 }}
             >
-              <div className="char-combat-grid">
-                {/* HP Tracker Box */}
+              {/* Top 3-column combat row: Hit Points | AC | Spellcasting + Initiative */}
+              <div className="char-combat-top-grid">
+                {/* Col 1: Hit Points Card */}
                 <div className="char-stat-card char-hp-card">
-                  <div className="char-hp-readout">
-                    <div className="char-hp-block">
-                      <span className="char-stat-label">CURRENT HP</span>
-                      <Input
-                        type="number"
-                        className="char-hp-input"
-                        aria-label="Current HP"
-                        value={currentHp}
-                        onChange={e => onUpdate({ hp: Math.max(0, +e.target.value) })}
-                      />
+                  <div className="char-hp-main-col">
+                    <div className="char-card-head-inline">
+                      <Heart size={13} className="char-hp-icon" />
+                      <span className="char-hp-title">Hit Points</span>
                     </div>
-                    <span className="char-hp-divider">/</span>
-                    <div className="char-hp-block">
-                      <span className="char-stat-label">MAX HP</span>
-                      <Input
-                        type="number"
-                        className="char-hp-input"
-                        aria-label="Max HP"
-                        value={maxHp}
-                        onChange={e => onUpdate({ maxHp: Math.max(1, +e.target.value) })}
-                      />
+
+                    <div className="char-hp-boxes-row">
+                      <div className="char-hp-subbox char-hp-curmax-box">
+                        <div className="char-hp-block">
+                          <span className="char-stat-label">Current</span>
+                          <Input
+                            type="number"
+                            className="char-hp-input"
+                            aria-label="Current HP"
+                            value={currentHp}
+                            onChange={e => onUpdate({ hp: Math.max(0, +e.target.value) })}
+                          />
+                        </div>
+                        <span className="char-hp-divider">/</span>
+                        <div className="char-hp-block">
+                          <span className="char-stat-label">Max</span>
+                          <Input
+                            type="number"
+                            className="char-hp-input char-hp-max-input"
+                            aria-label="Max HP"
+                            value={maxHp}
+                            onChange={e => onUpdate({ maxHp: Math.max(1, +e.target.value) })}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="char-hp-subbox char-temp-hp">
+                        <span className="char-stat-label">Temp</span>
+                        <Input
+                          type="number"
+                          className="char-hp-input"
+                          aria-label="Temp HP"
+                          value={tempHp}
+                          onChange={e => onUpdate({ tempHp: Math.max(0, +e.target.value) })}
+                        />
+                      </div>
                     </div>
-                    <div className="char-hp-block char-temp-hp">
-                      <span className="char-stat-label">TEMP HP</span>
-                      <Input
-                        type="number"
-                        className="char-hp-input"
-                        aria-label="Temp HP"
-                        value={tempHp}
-                        onChange={e => onUpdate({ tempHp: Math.max(0, +e.target.value) })}
-                      />
+
+                    <div className="char-hp-bar-track" aria-label="HP progress">
+                      <div className="char-hp-bar-fill" style={{ width: `${hpPercent}%` }} />
                     </div>
                   </div>
 
-                  {/* Damage / Heal Quick Bar */}
+                  {/* Right vertical Damage / Delta / Heal stack */}
                   <div className="char-hp-actions">
-                    <Input
-                      type="number"
-                      className="char-hp-delta-input"
-                      aria-label="Damage or heal amount"
-                      placeholder="Amount"
-                      value={hpDelta}
-                      onChange={e => setHpDelta(e.target.value)}
-                    />
                     <Button
                       type="button"
                       variant="destructive"
@@ -510,6 +774,14 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                     >
                       Damage
                     </Button>
+                    <Input
+                      type="number"
+                      className="char-hp-delta-input"
+                      aria-label="Damage or heal amount"
+                      placeholder="0"
+                      value={hpDelta}
+                      onChange={e => setHpDelta(e.target.value)}
+                    />
                     <Button
                       type="button"
                       variant="secondary"
@@ -522,48 +794,111 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                   </div>
                 </div>
 
-                {/* Core combat numbers: AC, Init, Speed */}
-                <div className="char-core-trio">
-                  <div className="char-stat-card">
-                    <span className="char-stat-label">ARMOR CLASS</span>
+                {/* Col 2: AC Card */}
+                <div className="char-stat-card char-ac-card">
+                  <div className="char-card-header">
+                    <span className="char-stat-label">
+                      <Shield size={12} style={{ display: 'inline', marginRight: 4 }} />
+                      AC
+                    </span>
+                    <button
+                      type="button"
+                      className="char-text-action"
+                      onClick={() => setShowAcNote(!showAcNote)}
+                    >
+                      + Note
+                    </button>
+                  </div>
+                  <div className="char-ac-body">
                     <input
                       type="number"
-                      className="char-num-hero"
+                      className="char-num-hero char-ac-hero"
                       aria-label="Armor Class"
                       value={ac}
                       onChange={e => onUpdate({ ac: Math.max(0, +e.target.value) })}
                     />
+                    <span className="char-ac-subtitle">Armor Class</span>
+                    {showAcNote && (
+                      <Input
+                        className="char-dark-field"
+                        aria-label="AC note"
+                        value={character.acNote || ''}
+                        onChange={e => onUpdate({ acNote: e.target.value })}
+                        placeholder="Mage Armor, Shield +2..."
+                      />
+                    )}
                   </div>
-                  <div className="char-stat-card">
-                    <span className="char-stat-label">INITIATIVE</span>
+                </div>
+
+                {/* Col 3: Spellcasting + Initiative Stack */}
+                <div className="char-combat-right-stack">
+                  <div className="char-stat-card char-spellcasting-card">
+                    <div className="char-card-header">
+                      <span className="char-stat-label">
+                        <Sparkles size={12} style={{ display: 'inline', marginRight: 4 }} />
+                        Spellcasting
+                      </span>
+                      <button
+                        type="button"
+                        className="char-abil-pill-btn"
+                        aria-label="Cycle spellcasting ability"
+                        onClick={cycleSpellAbility}
+                      >
+                        {spellAbil.toUpperCase()}
+                      </button>
+                    </div>
+                    <div className="char-spellcasting-split">
+                      <div className="char-spellcasting-col">
+                        <strong className="char-spellcasting-val">
+                          {spellAttackBonus >= 0 ? `+${spellAttackBonus}` : spellAttackBonus}
+                        </strong>
+                        <span className="char-spellcasting-sub">Spell Attack</span>
+                      </div>
+                      <div className="char-spellcasting-divider" />
+                      <div className="char-spellcasting-col">
+                        <strong className="char-spellcasting-val">{spellSaveDc}</strong>
+                        <span className="char-spellcasting-sub">Spell DC</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="char-stat-card char-initiative-bar">
+                    <span className="char-stat-label">
+                      <Zap size={12} style={{ display: 'inline', marginRight: 4 }} />
+                      Initiative
+                    </span>
                     <input
                       type="number"
-                      className="char-num-hero"
+                      className="char-init-inline-input"
                       aria-label="Initiative modifier"
                       value={initiative}
                       onChange={e => onUpdate({ initiative: +e.target.value })}
                     />
                   </div>
-                  <div className="char-stat-card">
-                    <span className="char-stat-label">SPEED</span>
-                    <div className="char-speed-val">
-                      <input
-                        type="number"
-                        className="char-num-hero"
-                        aria-label="Speed"
-                        value={speed}
-                        onChange={e => onUpdate({ speed: Math.max(0, +e.target.value) })}
-                      />
-                      <small>ft</small>
-                    </div>
-                  </div>
                 </div>
+              </div>
 
-                {/* Hit Dice & Rest Recovery & Death Saves & Inspiration */}
-                <div className="char-combat-secondary">
-                  <div className="char-stat-card char-recovery-card">
-                    <span className="char-stat-label">HIT DICE & RECOVERY</span>
-                    <div className="char-hit-dice-row">
+              {/* Middle 3-segment strip: Hit Dice & Recovery | Inspiration | Death Saves */}
+              <div className="char-combat-mid-strip">
+                <div className="char-mid-segment char-recovery-card">
+                  <div className="char-hit-dice-row">
+                    <span className="char-stat-label">Hit Dice</span>
+                    <div className="char-stepper-pill">
+                      <button
+                        type="button"
+                        aria-label="Decrease hit dice"
+                        onClick={() =>
+                          onUpdate({
+                            hitDice: {
+                              current: Math.max(0, (character.hitDice?.current ?? level) - 1),
+                              max: character.hitDice?.max ?? level,
+                              die: character.hitDice?.die || 'd8',
+                            },
+                          })
+                        }
+                      >
+                        -
+                      </button>
                       <Input
                         type="number"
                         className="char-mini-num"
@@ -609,80 +944,154 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                           })
                         }
                       />
-                    </div>
-                    <div className="char-rest-actions">
-                      <Button
+                      <button
                         type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="secondary small char-rest-btn"
-                        onClick={() => handleRest('short')}
+                        aria-label="Increase hit dice"
+                        onClick={() =>
+                          onUpdate({
+                            hitDice: {
+                              current: Math.min(
+                                character.hitDice?.max ?? level,
+                                (character.hitDice?.current ?? level) + 1
+                              ),
+                              max: character.hitDice?.max ?? level,
+                              die: character.hitDice?.die || 'd8',
+                            },
+                          })
+                        }
                       >
-                        <RotateCcw size={12} />
-                        Short rest
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="secondary small char-rest-btn"
-                        onClick={() => handleRest('long')}
-                      >
-                        <RotateCcw size={12} />
-                        Long rest
-                      </Button>
+                        +
+                      </button>
                     </div>
                   </div>
+                  <div className="char-rest-actions">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="secondary small char-rest-btn"
+                      onClick={() => handleRest('short')}
+                    >
+                      <RotateCcw size={11} />
+                      Short rest
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="secondary small char-rest-btn"
+                      onClick={() => handleRest('long')}
+                    >
+                      <RotateCcw size={11} />
+                      Long rest
+                    </Button>
+                  </div>
+                </div>
 
-                  {/* Death Saves */}
-                  <div className="char-stat-card">
-                    <span className="char-stat-label">DEATH SAVES</span>
-                    <div className="char-death-saves">
-                      <div className="char-save-row">
-                        <span className="char-save-tag">SUCC</span>
-                        <div className="char-pips">
-                          {[0, 1, 2].map(i => (
-                            <button
-                              key={`succ-${i}`}
-                              type="button"
-                              className={`char-pip succ ${i < deathSaves.successes ? 'active' : ''}`}
-                              aria-label={`Death save success ${i + 1}`}
-                              onClick={() => toggleDeathSave('successes', i)}
-                            />
-                          ))}
-                        </div>
+                <div className="char-mid-segment char-inspiration-seg">
+                  <span className="char-stat-label">
+                    <Sparkles size={12} style={{ display: 'inline', marginRight: 4 }} />
+                    Inspiration
+                  </span>
+                  <div className="char-stepper-pill">
+                    <button
+                      type="button"
+                      aria-label="Decrease inspiration"
+                      onClick={() => changeInspiration(-1)}
+                    >
+                      -
+                    </button>
+                    <span className="char-stepper-val">{inspirationVal}</span>
+                    <button
+                      type="button"
+                      aria-label="Increase inspiration"
+                      onClick={() => changeInspiration(1)}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div className="char-mid-segment char-death-saves-seg">
+                  <span className="char-stat-label">Death Saves</span>
+                  <div className="char-death-saves-inline">
+                    <div className="char-save-row">
+                      <span className="char-save-tag succ-text">Succ</span>
+                      <div className="char-pips">
+                        {[0, 1, 2].map(i => (
+                          <button
+                            key={`succ-${i}`}
+                            type="button"
+                            className={`char-pip succ ${i < deathSaves.successes ? 'active' : ''}`}
+                            aria-label={`Death save success ${i + 1}`}
+                            onClick={() => toggleDeathSave('successes', i)}
+                          />
+                        ))}
                       </div>
-                      <div className="char-save-row">
-                        <span className="char-save-tag">FAIL</span>
-                        <div className="char-pips">
-                          {[0, 1, 2].map(i => (
-                            <button
-                              key={`fail-${i}`}
-                              type="button"
-                              className={`char-pip fail ${i < deathSaves.failures ? 'active' : ''}`}
-                              aria-label={`Death save failure ${i + 1}`}
-                              onClick={() => toggleDeathSave('failures', i)}
-                            />
-                          ))}
-                        </div>
+                    </div>
+                    <div className="char-save-row">
+                      <span className="char-save-tag fail-text">Fail</span>
+                      <div className="char-pips">
+                        {[0, 1, 2].map(i => (
+                          <button
+                            key={`fail-${i}`}
+                            type="button"
+                            className={`char-pip fail ${i < deathSaves.failures ? 'active' : ''}`}
+                            aria-label={`Death save failure ${i + 1}`}
+                            onClick={() => toggleDeathSave('failures', i)}
+                          />
+                        ))}
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  {/* Inspiration & Exhaustion */}
-                  <div className="char-stat-card char-insp-exh">
-                    <label className="char-checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={!!character.inspiration}
-                        onChange={e => onUpdate({ inspiration: e.target.checked })}
-                      />
-                      <Sparkles size={14} />
-                      <span>Heroic Inspiration</span>
-                    </label>
-
-                    <div className="char-exhaustion-row">
-                      <span className="char-stat-label">EXHAUSTION</span>
+              {/* Conditions row with Exhaustion stepper */}
+              <div className="char-subrow-block char-conditions-group">
+                <div className="char-card-header">
+                  <span className="char-stat-label">
+                    <Zap size={12} style={{ display: 'inline', marginRight: 4 }} />
+                    Conditions:
+                  </span>
+                  <button
+                    type="button"
+                    className="char-text-action"
+                    aria-label="Add condition"
+                    onClick={() => setShowConditionPicker(!showConditionPicker)}
+                  >
+                    + Add
+                  </button>
+                </div>
+                {showConditionPicker && (
+                  <div className="char-condition-picker">
+                    {DND_CONDITIONS.map(c => (
+                      <button
+                        key={c}
+                        type="button"
+                        className="char-condition-opt"
+                        onClick={() => addCondition(c)}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="char-chips-wrap">
+                  <div className="char-exhaustion-pill">
+                    <span>Exhaustion</span>
+                    <div className="char-stepper-pill">
+                      <button
+                        type="button"
+                        aria-label="Decrease exhaustion"
+                        onClick={() =>
+                          onUpdate({
+                            exhaustion: clamp((character.exhaustion ?? 0) - 1, 0, 6),
+                          })
+                        }
+                      >
+                        -
+                      </button>
                       <input
                         type="number"
                         min={0}
@@ -696,359 +1105,124 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                           })
                         }
                       />
-                      <small className="char-exh-hint">
-                        -{(character.exhaustion ?? 0) * 2} to d20 rolls
-                      </small>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Conditions & Defenses */}
-                <div className="char-combat-tertiary">
-                  {/* Conditions */}
-                  <div className="char-stat-card char-conditions-group">
-                    <div className="char-card-header">
-                      <span className="char-stat-label">CONDITIONS</span>
-                      <Button
+                      <button
                         type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="secondary small"
-                        onClick={() => setShowConditionPicker(!showConditionPicker)}
+                        aria-label="Increase exhaustion"
+                        onClick={() =>
+                          onUpdate({
+                            exhaustion: clamp((character.exhaustion ?? 0) + 1, 0, 6),
+                          })
+                        }
                       >
-                        <Plus size={12} /> Add Condition
-                      </Button>
-                    </div>
-                    {showConditionPicker && (
-                      <div className="char-condition-picker">
-                        {DND_CONDITIONS.map(c => (
-                          <button
-                            key={c}
-                            type="button"
-                            className="char-condition-opt"
-                            onClick={() => addCondition(c)}
-                          >
-                            {c}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    <div className="char-chips-wrap">
-                      {conditions.length === 0 ? (
-                        <span className="char-empty-hint">None</span>
-                      ) : (
-                        conditions.map(c => (
-                          <Badge key={c} variant="destructive" className="char-chip">
-                            {c}
-                            <button
-                              type="button"
-                              aria-label={`Remove condition ${c}`}
-                              onClick={() => removeCondition(c)}
-                            >
-                              <X size={10} />
-                            </button>
-                          </Badge>
-                        ))
-                      )}
+                        +
+                      </button>
                     </div>
                   </div>
-
-                  {/* Defenses / Resistances */}
-                  <div className="char-stat-card char-defenses-group">
-                    <span className="char-stat-label">DEFENSES & RESISTANCES</span>
-                    <div className="char-chips-wrap">
-                      {defenses.map(d => (
-                        <Badge key={d} variant="secondary" className="char-chip">
-                          {d}
-                          <button
-                            type="button"
-                            aria-label={`Remove defense ${d}`}
-                            onClick={() => removeDefense(d)}
-                          >
-                            <X size={10} />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="char-inline-add">
-                      <Input
-                        className="char-add-input"
-                        aria-label="New defense or resistance"
-                        placeholder="e.g. Fire resistance, Poison immunity"
-                        value={newDefense}
-                        onChange={e => setNewDefense(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && addDefense()}
-                      />
-                      <Button
+                  {conditions.map(c => (
+                    <Badge key={c} variant="destructive" className="char-chip">
+                      {c}
+                      <button
                         type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="secondary small"
-                        onClick={addDefense}
+                        aria-label={`Remove condition ${c}`}
+                        onClick={() => removeCondition(c)}
                       >
-                        <Plus size={12} /> Add
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </Card>
-
-      {/* 2. ABILITY SCORES & SAVING THROWS */}
-      <Card className="char-section">
-        <button
-          type="button"
-          className="char-section-toggle"
-          aria-expanded={sections.abilities}
-          onClick={() => toggleSection('abilities')}
-        >
-          <span className="char-section-title">
-            <Zap size={16} />
-            Ability Scores & Saving Throws
-          </span>
-          {sections.abilities ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </button>
-
-        <AnimatePresence initial={false}>
-          {sections.abilities && (
-            <motion.div
-              className="char-section-content"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.18 }}
-            >
-              <div className="char-abilities-grid">
-                {ABILITIES.map(({ key, label }) => {
-                  const score = stats[key] ?? 10;
-                  const mod = getModifier(score);
-                  const isProf = saveProfs.has(key);
-                  const saveVal = mod + (isProf ? profBonus : 0);
-                  const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
-                  const saveStr = saveVal >= 0 ? `+${saveVal}` : `${saveVal}`;
-
-                  return (
-                    <div key={key} className="char-ability-box">
-                      <span className="char-ability-label">{label}</span>
-                      <div className="char-mod-hero">{modStr}</div>
-                      <div className="char-score-row">
-                        <input
-                          type="number"
-                          className="char-score-input"
-                          aria-label={`${label} score`}
-                          value={score}
-                          onChange={e => setStatScore(key, +e.target.value)}
-                        />
-                      </div>
-                      <div className="char-save-block">
-                        <label className="char-save-check">
-                          <input
-                            type="checkbox"
-                            aria-label={`${label} save proficiency`}
-                            checked={isProf}
-                            onChange={() => toggleSaveProf(key)}
-                          />
-                          <span className="char-save-val">Save {saveStr}</span>
-                        </label>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </Card>
-    </div>
-
-    <div className="char-sheet-secondary">
-      {/* 3. SKILLS & SENSES */}
-      <Card className="char-section">
-        <button
-          type="button"
-          className="char-section-toggle"
-          aria-expanded={sections.skills}
-          onClick={() => toggleSection('skills')}
-        >
-          <span className="char-section-title">
-            <Eye size={16} />
-            Skills & Senses
-          </span>
-          {sections.skills ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </button>
-
-        <AnimatePresence initial={false}>
-          {sections.skills && (
-            <motion.div
-              className="char-section-content"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.18 }}
-            >
-              <div className="char-passives-banner">
-                <div className="char-passive-box">
-                  <span className="char-passive-val">{passivePerception}</span>
-                  <span className="char-passive-label">Passive Perception</span>
-                </div>
-                <div className="char-passive-box">
-                  <span className="char-passive-val">{passiveInvestigation}</span>
-                  <span className="char-passive-label">Passive Investigation</span>
-                </div>
-                <div className="char-passive-box">
-                  <span className="char-passive-val">{passiveInsight}</span>
-                  <span className="char-passive-label">Passive Insight</span>
-                </div>
-                <div className="char-passive-box">
-                  <span className="char-passive-val">60 ft</span>
-                  <span className="char-passive-label">Darkvision</span>
+                        <X size={10} />
+                      </button>
+                    </Badge>
+                  ))}
                 </div>
               </div>
 
-              <div className="char-skills-list">
-                {SKILL_DEFINITIONS.map(skill => {
-                  const isProf = skillProfs.has(skill.id);
-                  const isExp = skillExpertise.has(skill.id);
-                  const abMod = getModifier(stats[skill.ability] ?? 10);
-                  const bonus =
-                    abMod + (isExp ? profBonus * 2 : isProf ? profBonus : 0);
-                  const bonusStr = bonus >= 0 ? `+${bonus}` : `${bonus}`;
-
-                  return (
-                    <div key={skill.id} className="char-skill-row">
-                      <div className="char-skill-checks">
-                        <input
-                          type="checkbox"
-                          aria-label={`${skill.name} proficiency`}
-                          checked={isProf}
-                          onChange={() => toggleSkillProf(skill.id)}
-                          title="Proficient"
-                        />
+              {/* Resistance & Immunities row */}
+              <div className="char-subrow-block char-defenses-group">
+                <div className="char-card-header">
+                  <span className="char-stat-label">
+                    <Shield size={12} style={{ display: 'inline', marginRight: 4 }} />
+                    Resistance & Immunities:
+                  </span>
+                  <button
+                    type="button"
+                    className="char-text-action"
+                    onClick={() => setShowDefenseInput(!showDefenseInput)}
+                  >
+                    + Add
+                  </button>
+                </div>
+                <div className="char-chips-wrap">
+                  {defenses.length === 0 ? (
+                    <span className="char-empty-hint">None recorded</span>
+                  ) : (
+                    defenses.map(d => (
+                      <Badge key={d} variant="secondary" className="char-chip">
+                        {d}
                         <button
                           type="button"
-                          className={`char-expertise-btn ${isExp ? 'active' : ''}`}
-                          aria-label={`${skill.name} expertise`}
-                          onClick={() => toggleSkillExpertise(skill.id)}
-                          title="Expertise"
+                          aria-label={`Remove defense ${d}`}
+                          onClick={() => removeDefense(d)}
                         >
-                          E
+                          <X size={10} />
                         </button>
-                      </div>
-                      <span className="char-skill-ability">
-                        {skill.ability.toUpperCase()}
-                      </span>
-                      <span className="char-skill-name">{skill.name}</span>
-                      <span className="char-skill-bonus">{bonusStr}</span>
-                    </div>
-                  );
-                })}
+                      </Badge>
+                    ))
+                  )}
+                </div>
+                {showDefenseInput && (
+                  <div className="char-inline-add">
+                    <Input
+                      className="char-add-input"
+                      aria-label="New defense or resistance"
+                      placeholder="e.g. Fire resistance, Poison immunity"
+                      value={newDefense}
+                      onChange={e => setNewDefense(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addDefense()}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="secondary small"
+                      onClick={addDefense}
+                    >
+                      <Plus size={12} /> Add
+                    </Button>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </Card>
 
-      {/* 4. PROFICIENCIES & TRAINING */}
+      {/* 3. FEATURES & TRACKED RESOURCES */}
       <Card className="char-section">
-        <button
-          type="button"
-          className="char-section-toggle"
-          aria-expanded={sections.proficiencies}
-          onClick={() => toggleSection('proficiencies')}
-        >
-          <span className="char-section-title">
-            <BookOpen size={16} />
-            Proficiencies & Training
-          </span>
-          {sections.proficiencies ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </button>
-
-        <AnimatePresence initial={false}>
-          {sections.proficiencies && (
-            <motion.div
-              className="char-section-content"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.18 }}
+        <div className="char-section-header-bar">
+          <button
+            type="button"
+            className="char-section-toggle"
+            aria-expanded={sections.resources}
+            onClick={() => toggleSection('resources')}
+          >
+            <span className="char-section-title">
+              <Sparkles size={15} className="char-section-icon" />
+              Features & Tracked Resources
+              {sections.resources ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+          </button>
+          <div className="char-section-header-actions">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="char-action-pill"
+              onClick={() => {
+                if (!sections.resources) toggleSection('resources');
+                addResource();
+              }}
             >
-              <div className="char-training-grid">
-                <div className="char-training-card">
-                  <span className="char-stat-label">ARMOR & WEAPONS</span>
-                  <Textarea
-                    rows={2}
-                    className="char-training-input"
-                    aria-label="Armor and weapon proficiencies"
-                    value={character.proficiencies || ''}
-                    onChange={e => onUpdate({ proficiencies: e.target.value })}
-                    placeholder="Light armor, medium armor, shields, simple weapons, martial weapons..."
-                  />
-                </div>
-                <div className="char-training-card">
-                  <span className="char-stat-label">TOOLS & KITS</span>
-                  <Textarea
-                    rows={2}
-                    className="char-training-input"
-                    aria-label="Tool proficiencies"
-                    value={character.training?.tools?.join(', ') || ''}
-                    onChange={e =>
-                      onUpdate({
-                        training: {
-                          ...character.training,
-                          tools: e.target.value
-                            .split(',')
-                            .map(s => s.trim())
-                            .filter(Boolean),
-                        },
-                      })
-                    }
-                    placeholder="Thieves' tools, Herbalism kit, Alchemist's supplies..."
-                  />
-                </div>
-                <div className="char-training-card">
-                  <span className="char-stat-label">LANGUAGES</span>
-                  <Textarea
-                    rows={2}
-                    className="char-training-input"
-                    aria-label="Languages"
-                    value={(character.languages || []).join(', ')}
-                    onChange={e =>
-                      onUpdate({
-                        languages: e.target.value
-                          .split(',')
-                          .map(s => s.trim())
-                          .filter(Boolean),
-                      })
-                    }
-                    placeholder="Common, Elvish, Dwarvish..."
-                  />
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </Card>
-    </div>
-  </div>
-
-  <div className="char-sheet-longform">
-      {/* 5. FEATURES & TRACKED RESOURCES */}
-      <Card className="char-section">
-        <button
-          type="button"
-          className="char-section-toggle"
-          aria-expanded={sections.resources}
-          onClick={() => toggleSection('resources')}
-        >
-          <span className="char-section-title">
-            <Sparkles size={16} />
-            Features & Tracked Resources
-          </span>
-          {sections.resources ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </button>
+              <Plus size={12} /> Add Resource
+            </Button>
+          </div>
+        </div>
 
         <AnimatePresence initial={false}>
           {sections.resources && (
@@ -1059,7 +1233,6 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.18 }}
             >
-              {/* Resources list */}
               <div className="char-resources-list">
                 {resources.map(res => (
                   <div key={res.id} className="char-resource-card">
@@ -1108,7 +1281,6 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                 ))}
               </div>
 
-              {/* Add resource form */}
               <div className="char-add-resource-form">
                 <Input
                   className="char-add-input"
@@ -1147,17 +1319,278 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
                 </Button>
               </div>
 
-              {/* Freeform feature notes */}
               <div className="char-features-notes">
-                <span className="char-stat-label">CLASS & SPECIES FEATURES</span>
+                <span className="char-field-label">Features & Freeform Notes:</span>
                 <Textarea
-                  rows={4}
-                  className="char-training-input"
+                  rows={3}
+                  className="char-dark-textarea"
                   aria-label="Feature notes"
                   value={character.notes || ''}
                   onChange={e => onUpdate({ notes: e.target.value })}
-                  placeholder="Action Surge, Sneak Attack, Dark One's Blessing…"
+                  placeholder="Type or paste features, special items, math notes (e.g. Blackstones: 49 + 162 + 28), death ward status, etc..."
                 />
+              </div>
+
+              <div className="char-subrow-block char-feats-group">
+                <div className="char-card-header">
+                  <span className="char-stat-label">
+                    <Award size={12} style={{ display: 'inline', marginRight: 4 }} />
+                    Feats:
+                  </span>
+                  <button
+                    type="button"
+                    className="char-text-action"
+                    onClick={() => setShowFeatInput(!showFeatInput)}
+                  >
+                    + Add
+                  </button>
+                </div>
+                <div className="char-chips-wrap">
+                  {feats.length === 0 ? (
+                    <span className="char-empty-hint">No feats recorded.</span>
+                  ) : (
+                    feats.map(f => (
+                      <Badge key={f} variant="secondary" className="char-chip">
+                        {f}
+                        <button
+                          type="button"
+                          aria-label={`Remove feat ${f}`}
+                          onClick={() => removeFeat(f)}
+                        >
+                          <X size={10} />
+                        </button>
+                      </Badge>
+                    ))
+                  )}
+                </div>
+                {showFeatInput && (
+                  <div className="char-inline-add">
+                    <Input
+                      className="char-add-input"
+                      aria-label="New feat"
+                      placeholder="e.g. War Caster, Alert, Lucky"
+                      value={newFeat}
+                      onChange={e => setNewFeat(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addFeat()}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={addFeat}
+                    >
+                      <Plus size={12} /> Add Feat
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
+
+      {/* 4. ABILITY SCORES & SAVING THROWS */}
+      <Card className="char-section">
+        <div className="char-section-header-bar">
+          <button
+            type="button"
+            className="char-section-toggle"
+            aria-expanded={sections.abilities}
+            onClick={() => toggleSection('abilities')}
+          >
+            <span className="char-section-title">
+              <Zap size={15} className="char-section-icon" />
+              Ability Scores & Saving Throws
+              {sections.abilities ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+          </button>
+          <div className="char-section-header-actions">
+            <span className="char-prof-pill">
+              Proficiency <strong>+{profBonus}</strong>
+            </span>
+          </div>
+        </div>
+
+        <AnimatePresence initial={false}>
+          {sections.abilities && (
+            <motion.div
+              className="char-section-content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              <div className="char-abilities-grid">
+                {ABILITIES.map(({ key, label }) => {
+                  const score = stats[key] ?? 10;
+                  const mod = getModifier(score);
+                  const isProf = saveProfs.has(key);
+                  const saveVal = mod + (isProf ? profBonus : 0);
+                  const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
+                  const saveStr = saveVal >= 0 ? `+${saveVal}` : `${saveVal}`;
+
+                  return (
+                    <div
+                      key={key}
+                      className={`char-ability-box ${isProf ? 'save-proficient' : ''}`}
+                    >
+                      {isProf && <span className="char-save-prof-dot" aria-hidden="true" />}
+                      <span className="char-ability-label">{label}</span>
+                      <div className="char-score-row">
+                        <input
+                          type="number"
+                          className="char-score-input"
+                          aria-label={`${label} score`}
+                          value={score}
+                          onChange={e => setStatScore(key, +e.target.value)}
+                        />
+                      </div>
+                      <div className="char-mod-hero">{modStr}</div>
+                      <div className="char-save-block">
+                        <label className="char-save-check">
+                          <input
+                            type="checkbox"
+                            aria-label={`${label} save proficiency`}
+                            checked={isProf}
+                            onChange={() => toggleSaveProf(key)}
+                          />
+                          <span className="char-save-val">Save {saveStr}</span>
+                        </label>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
+
+      {/* 5. SKILLS & SENSES */}
+      <Card className="char-section">
+        <div className="char-section-header-bar">
+          <button
+            type="button"
+            className="char-section-toggle"
+            aria-expanded={sections.skills}
+            onClick={() => toggleSection('skills')}
+          >
+            <span className="char-section-title">
+              <Eye size={15} className="char-section-icon" />
+              Skills & Senses
+              {sections.skills ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+          </button>
+          <div className="char-section-header-actions">
+            <div className="char-header-search">
+              <Search size={13} />
+              <Input
+                className="char-header-search-input"
+                aria-label="Filter skills"
+                placeholder="Filter skills..."
+                value={skillFilter}
+                onChange={e => setSkillFilter(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <AnimatePresence initial={false}>
+          {sections.skills && (
+            <motion.div
+              className="char-section-content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              <div className="char-passives-banner">
+                <div className="char-passive-box">
+                  <span className="char-passive-label">Passive Perception</span>
+                  <span className="char-passive-val">{passivePerception}</span>
+                </div>
+                <div className="char-passive-box">
+                  <span className="char-passive-label">Passive Investigation</span>
+                  <span className="char-passive-val">{passiveInvestigation}</span>
+                </div>
+                <div className="char-passive-box">
+                  <span className="char-passive-label">Passive Insight</span>
+                  <span className="char-passive-val">{passiveInsight}</span>
+                </div>
+                <div className="char-passive-box">
+                  <span className="char-passive-label">Darkvision (ft)</span>
+                  <input
+                    type="number"
+                    className="char-darkvision-input"
+                    aria-label="Darkvision feet"
+                    value={character.darkvision ?? 60}
+                    onChange={e => onUpdate({ darkvision: Math.max(0, +e.target.value) })}
+                  />
+                </div>
+              </div>
+
+              <div className="char-skills-columns">
+                {[
+                  ['str', 'dex', 'int'] as AbilityName[],
+                  ['wis', 'cha'] as AbilityName[],
+                ].map((groupCol, colIdx) => (
+                  <div key={colIdx} className="char-skills-col">
+                    {groupCol.map(abilKey => {
+                      const groupSkills = SKILL_DEFINITIONS.filter(
+                        s =>
+                          s.ability === abilKey &&
+                          (!skillFilter.trim() ||
+                            s.name.toLowerCase().includes(skillFilter.trim().toLowerCase()) ||
+                            s.ability.toLowerCase().includes(skillFilter.trim().toLowerCase()))
+                      );
+                      if (groupSkills.length === 0) return null;
+                      return (
+                        <div key={abilKey} className="char-skill-ability-group">
+                          <div className="char-skill-group-header">{abilKey.toUpperCase()}</div>
+                          {groupSkills.map(skill => {
+                            const isProf = skillProfs.has(skill.id);
+                            const isExp = skillExpertise.has(skill.id);
+                            const abMod = getModifier(stats[skill.ability] ?? 10);
+                            const bonus =
+                              abMod + (isExp ? profBonus * 2 : isProf ? profBonus : 0);
+                            const bonusStr = bonus >= 0 ? `+${bonus}` : `${bonus}`;
+
+                            return (
+                              <div
+                                key={skill.id}
+                                className={`char-skill-row ${isProf || isExp ? 'proficient' : ''}`}
+                              >
+                                <div className="char-skill-checks">
+                                  <input
+                                    type="checkbox"
+                                    aria-label={`${skill.name} proficiency`}
+                                    checked={isProf}
+                                    onChange={() => toggleSkillProf(skill.id)}
+                                    title="Proficient"
+                                  />
+                                  <button
+                                    type="button"
+                                    className={`char-expertise-btn ${isExp ? 'active' : ''}`}
+                                    aria-label={`${skill.name} expertise`}
+                                    onClick={() => toggleSkillExpertise(skill.id)}
+                                    title="Expertise"
+                                  >
+                                    E
+                                  </button>
+                                </div>
+                                <span className="char-skill-name">{skill.name}</span>
+                                <span className="char-skill-ability">
+                                  {skill.ability.toUpperCase()}
+                                </span>
+                                <span className="char-skill-bonus">{bonusStr}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </motion.div>
           )}
@@ -1166,21 +1599,25 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
 
       {/* 6. ITEMS & INVENTORY */}
       <Card className="char-section">
-        <button
-          type="button"
-          className="char-section-toggle"
-          aria-expanded={sections.inventory}
-          onClick={() => toggleSection('inventory')}
-        >
-          <span className="char-section-title">
-            <Shield size={16} />
-            Items & Inventory
-          </span>
-          <Badge variant="default" className="char-attunement-counter">
-            Attunement: {attunedCount} / 3
-          </Badge>
-          {sections.inventory ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </button>
+        <div className="char-section-header-bar">
+          <button
+            type="button"
+            className="char-section-toggle"
+            aria-expanded={sections.inventory}
+            onClick={() => toggleSection('inventory')}
+          >
+            <span className="char-section-title">
+              <Shield size={15} className="char-section-icon" />
+              Items & Inventory
+              {sections.inventory ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+          </button>
+          <div className="char-section-header-actions">
+            <Badge variant="default" className="char-attunement-counter">
+              Attune: {attunedCount} / 3
+            </Badge>
+          </div>
+        </div>
 
         <AnimatePresence initial={false}>
           {sections.inventory && (
@@ -1191,38 +1628,97 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.18 }}
             >
+              <div className="char-inv-search-bar">
+                <Search size={14} />
+                <Input
+                  className="char-dark-field"
+                  aria-label="Search inventory"
+                  placeholder="Search inventory..."
+                  value={invSearch}
+                  onChange={e => setInvSearch(e.target.value)}
+                />
+              </div>
+
+              {/* Currency 5-box bar */}
+              <div className="char-currency-block">
+                <div className="char-card-header">
+                  <span className="char-stat-label">
+                    <Coins size={12} style={{ display: 'inline', marginRight: 4 }} />
+                    Currency
+                  </span>
+                  <span className="char-currency-total">Total: {totalGp} gp</span>
+                </div>
+                <div className="char-currency-grid">
+                  {(
+                    [
+                      { key: 'cp', label: 'CP', aria: 'Copper pieces' },
+                      { key: 'sp', label: 'SP', aria: 'Silver pieces' },
+                      { key: 'ep', label: 'EP', aria: 'Electrum pieces' },
+                      { key: 'gp', label: 'GP', aria: 'Gold pieces' },
+                      { key: 'pp', label: 'PP', aria: 'Platinum pieces' },
+                    ] as const
+                  ).map(coin => (
+                    <div key={coin.key} className="char-currency-box">
+                      <span className="char-coin-label">{coin.label}</span>
+                      <input
+                        type="number"
+                        min={0}
+                        className="char-coin-input"
+                        aria-label={coin.aria}
+                        value={currency[coin.key]}
+                        onChange={e => updateCurrency(coin.key, +e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="char-inventory-list">
-                {inventory.map(item => (
-                  <div key={item.id} className="char-item-row">
-                    <div className="char-item-info">
-                      <strong>{item.name}</strong>
-                      <span className="char-item-meta">
-                        Qty: {item.qty} · {item.weight} lbs
-                      </span>
-                    </div>
-                    <div className="char-item-actions">
-                      <label className="char-attune-check">
-                        <input
-                          type="checkbox"
-                          aria-label={`Attune ${item.name}`}
-                          checked={item.attuned}
-                          onChange={e =>
-                            updateItem(item.id, { attuned: e.target.checked })
-                          }
-                        />
-                        <span>Attuned</span>
-                      </label>
-                      <button
-                        type="button"
-                        className="icon-button danger-text"
-                        aria-label={`Remove item ${item.name}`}
-                        onClick={() => removeItem(item.id)}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                {inventory.filter(
+                  item =>
+                    !invSearch.trim() ||
+                    item.name.toLowerCase().includes(invSearch.trim().toLowerCase())
+                ).length === 0 ? (
+                  <div className="char-empty-box">No items in inventory.</div>
+                ) : (
+                  inventory
+                    .filter(
+                      item =>
+                        !invSearch.trim() ||
+                        item.name.toLowerCase().includes(invSearch.trim().toLowerCase())
+                    )
+                    .map(item => (
+                      <div key={item.id} className="char-item-row">
+                        <div className="char-item-info">
+                          <strong>{item.name}</strong>
+                          <span className="char-item-meta">
+                            Qty: {item.qty} · {item.weight} lbs
+                          </span>
+                        </div>
+                        <div className="char-item-actions">
+                          <label className="char-attune-check">
+                            <input
+                              type="checkbox"
+                              aria-label={`Attune ${item.name}`}
+                              checked={item.attuned}
+                              onChange={e =>
+                                updateItem(item.id, { attuned: e.target.checked })
+                              }
+                            />
+                            <span>Attuned</span>
+                          </label>
+                          <button
+                            type="button"
+                            className="icon-button danger-text"
+                            aria-label={`Remove item ${item.name}`}
+                            onClick={() => removeItem(item.id)}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                )}
               </div>
 
               {/* Add item form */}
@@ -1278,21 +1774,35 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
 
       {/* 7. SPELLBOOK & SPELL SLOTS */}
       <Card className="char-section">
-        <button
-          type="button"
-          className="char-section-toggle"
-          aria-expanded={sections.spells}
-          onClick={() => toggleSection('spells')}
-        >
-          <span className="char-section-title">
-            <Sparkles size={16} />
-            Spellbook & Spell Slots
-          </span>
-          <Badge variant="default" className="char-prepared-counter">
-            Prepared: {preparedCount}
-          </Badge>
-          {sections.spells ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </button>
+        <div className="char-section-header-bar">
+          <button
+            type="button"
+            className="char-section-toggle"
+            aria-expanded={sections.spells}
+            onClick={() => toggleSection('spells')}
+          >
+            <span className="char-section-title">
+              <Sparkles size={15} className="char-section-icon" />
+              Spellbook & Spell Slots
+              {sections.spells ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+          </button>
+          <div className="char-section-header-actions">
+            <Badge variant="default" className="char-prepared-counter">
+              Prepared: {preparedCount}
+            </Badge>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="char-action-pill"
+              aria-label="Import spells from Compendium"
+              onClick={() => setCompendiumSpellsOpen(true)}
+            >
+              <BookOpen size={12} /> + Import Spells
+            </Button>
+          </div>
+        </div>
 
         <AnimatePresence initial={false}>
           {sections.spells && (
@@ -1461,7 +1971,247 @@ export function CharacterSheet({ character, onUpdate, notify }: CharacterSheetPr
           )}
         </AnimatePresence>
       </Card>
-  </div>
+
+      {/* 8. PROFICIENCIES & TRAINING (2x2 Grid: Armor, Weapons, Tools, Languages) */}
+      <Card className="char-section">
+        <button
+          type="button"
+          className="char-section-toggle"
+          aria-expanded={sections.proficiencies}
+          onClick={() => toggleSection('proficiencies')}
+        >
+          <span className="char-section-title">
+            <BookOpen size={15} className="char-section-icon" />
+            Proficiencies & Training
+            {sections.proficiencies ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </span>
+        </button>
+
+        <AnimatePresence initial={false}>
+          {sections.proficiencies && (
+            <motion.div
+              className="char-section-content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              <div className="char-prof-grid-2x2">
+                <div className="char-training-card">
+                  <span className="char-stat-label">Armor</span>
+                  <Input
+                    className="char-dark-field"
+                    aria-label="Armor proficiencies"
+                    value={character.armorProficiencies ?? character.proficiencies ?? ''}
+                    onChange={e =>
+                      onUpdate({
+                        armorProficiencies: e.target.value,
+                        proficiencies: e.target.value,
+                      })
+                    }
+                    placeholder="None"
+                  />
+                </div>
+                <div className="char-training-card">
+                  <span className="char-stat-label">Weapons</span>
+                  <Input
+                    className="char-dark-field"
+                    aria-label="Weapon proficiencies"
+                    value={character.weaponProficiencies ?? ''}
+                    onChange={e => onUpdate({ weaponProficiencies: e.target.value })}
+                    placeholder="None"
+                  />
+                </div>
+                <div className="char-training-card">
+                  <span className="char-stat-label">Tools</span>
+                  <Input
+                    className="char-dark-field"
+                    aria-label="Tool proficiencies"
+                    value={character.training?.tools?.join(', ') || ''}
+                    onChange={e =>
+                      onUpdate({
+                        training: {
+                          ...character.training,
+                          tools: e.target.value
+                            .split(',')
+                            .map(s => s.trim())
+                            .filter(Boolean),
+                        },
+                      })
+                    }
+                    placeholder="None"
+                  />
+                </div>
+                <div className="char-training-card">
+                  <span className="char-stat-label">Languages</span>
+                  <div className="char-chips-wrap" style={{ marginBottom: 6 }}>
+                    {(character.languages && character.languages.length > 0
+                      ? character.languages
+                      : ['Common']
+                    ).map(lang => (
+                      <Badge key={lang} variant="secondary" className="char-chip">
+                        {lang}
+                      </Badge>
+                    ))}
+                  </div>
+                  <Input
+                    className="char-dark-field"
+                    aria-label="Languages"
+                    value={(character.languages || []).join(', ')}
+                    onChange={e =>
+                      onUpdate({
+                        languages: e.target.value
+                          .split(',')
+                          .map(s => s.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                    placeholder="Common, Elvish, Dwarvish..."
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
+
+      {/* 9. NOTES */}
+      <Card className="char-section">
+        <button
+          type="button"
+          className="char-section-toggle"
+          aria-expanded={sections.notes}
+          onClick={() => toggleSection('notes')}
+        >
+          <span className="char-section-title">
+            <FileText size={15} className="char-section-icon" />
+            Notes
+            {sections.notes ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </span>
+        </button>
+
+        <AnimatePresence initial={false}>
+          {sections.notes && (
+            <motion.div
+              className="char-section-content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              <div className="char-notes-toolbar">
+                <div className="char-notes-search">
+                  <Search size={13} />
+                  <Input
+                    className="char-dark-field"
+                    aria-label="Search character notes"
+                    placeholder="Search notes..."
+                    value={noteSearch}
+                    onChange={e => setNoteSearch(e.target.value)}
+                  />
+                </div>
+                <div className="char-notes-controls">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="char-action-pill"
+                    onClick={() => setNoteSortDesc(!noteSortDesc)}
+                  >
+                    {noteSortDesc ? '↓' : '↑'}
+                  </Button>
+                  <select
+                    aria-label="Sort notes by"
+                    value={noteSortBy}
+                    onChange={e => setNoteSortBy(e.target.value as 'date' | 'title')}
+                  >
+                    <option value="date">Date</option>
+                    <option value="title">Title</option>
+                  </select>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    className="char-new-note-btn"
+                    aria-label="Add character note"
+                    onClick={addNoteEntry}
+                  >
+                    <Plus size={13} /> New Note
+                  </Button>
+                </div>
+              </div>
+
+              <div className="char-notes-list">
+                {characterNotes
+                  .filter(
+                    n =>
+                      !noteSearch.trim() ||
+                      n.title.toLowerCase().includes(noteSearch.trim().toLowerCase()) ||
+                      n.body.toLowerCase().includes(noteSearch.trim().toLowerCase())
+                  )
+                  .slice()
+                  .sort((a, b) => {
+                    if (a.pinned && !b.pinned) return -1;
+                    if (!a.pinned && b.pinned) return 1;
+                    const cmp =
+                      noteSortBy === 'title'
+                        ? a.title.localeCompare(b.title)
+                        : a.date.localeCompare(b.date);
+                    return noteSortDesc ? -cmp : cmp;
+                  })
+                  .map(note => (
+                    <div key={note.id} className="char-note-card">
+                      <div className="char-note-head">
+                        <Input
+                          className="char-note-title-input"
+                          aria-label="Note title"
+                          value={note.title}
+                          onChange={e => updateNoteEntry(note.id, { title: e.target.value })}
+                        />
+                        <div className="char-note-meta">
+                          <button
+                            type="button"
+                            className={`icon-button ${note.pinned ? 'active' : ''}`}
+                            aria-label="Pin note"
+                            onClick={() => updateNoteEntry(note.id, { pinned: !note.pinned })}
+                          >
+                            <Pin size={12} />
+                          </button>
+                          <span className="char-note-date">{note.date}</span>
+                          <button
+                            type="button"
+                            className="icon-button danger-text"
+                            aria-label="Delete note"
+                            onClick={() => removeNoteEntry(note.id)}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                      <Textarea
+                        rows={2}
+                        className="char-dark-textarea"
+                        aria-label="Note body"
+                        placeholder="Write note..."
+                        value={note.body}
+                        onChange={e => updateNoteEntry(note.id, { body: e.target.value })}
+                      />
+                    </div>
+                  ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
+
+      {compendiumSpellsOpen && (
+        <CompendiumSpellModal
+          campaign={campaign}
+          defaultClass={character.className || character.role}
+          onImport={importCompendiumSpells}
+          onClose={() => setCompendiumSpellsOpen(false)}
+        />
+      )}
     </div>
   );
 }

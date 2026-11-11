@@ -13,7 +13,8 @@ import SourcePicker from './SourcePicker';
 import YouTubeMixer from './YouTubeMixer';
 import { FreesoundModal } from './FreesoundModal';
 import { ArcheronBrand } from './ArcheronBrand';
-import { getCachedAudioBlob, type FreesoundSound } from './freesound';
+import { type FreesoundSound } from './freesound';
+import { audioEngine } from './audioEngine';
 import { useSaved, writeSavedValue, readSavedValue } from './storage';
 import CloudSettings, { useCloudStatus } from './CloudSettings';
 import { Button } from './components/ui/button';
@@ -86,7 +87,6 @@ export default function App() {
     const customLayersRef = useRef(customLayers);
     customLayersRef.current = customLayers;
     const [layerActive, setLayerActive] = useState<boolean[]>(() => layerNames.map(() => true));
-    const audioNodes = useRef<(AudioBufferSourceNode | null)[]>([]);
     const [youtubeDeckA, setYoutubeDeckA] = useSaved('wf-youtube-deck-a', ''), [youtubeDeckB, setYoutubeDeckB] = useSaved('wf-youtube-deck-b', ''), [youtubeVolumeA, setYoutubeVolumeA] = useSaved('wf-youtube-volume-a', 75), [youtubeVolumeB, setYoutubeVolumeB] = useSaved('wf-youtube-volume-b', 75), [youtubeMaster, setYoutubeMaster] = useSaved('wf-youtube-master', 80), [youtubeCrossfade, setYoutubeCrossfade] = useSaved('wf-youtube-crossfade', 50), [youtubeMixerOpen, setYoutubeMixerOpen] = useState(false), [youtubeStopSignal, setYoutubeStopSignal] = useState(0);
     const [battle, setBattle] = useSaved<Combatant[]>(`wf-battle:${campaignKey}`, []), [battleTitle, setBattleTitle] = useSaved(`wf-battle-title:${campaignKey}`, 'No active encounter'), [battleId, setBattleId] = useSaved(`wf-battle-id:${campaignKey}`, ''), [battleActive, setBattleActive] = useSaved(`wf-battle-active:${campaignKey}`, false);
     const preCombatView = useRef<{
@@ -207,7 +207,7 @@ export default function App() {
             catch { }
         }
     }, []);
-    const audio = useRef<AudioContext | null>(null), gains = useRef<GainNode[]>([]), drag = useRef('');
+    const drag = useRef('');
     const [characterVersion, setCharacterVersion] = useState(0);
     useEffect(() => {
         if (!rollOverlay) return;
@@ -374,13 +374,7 @@ export default function App() {
         }
     }, [battleActive]);
     useEffect(() => {
-        gains.current.forEach((g, i) => {
-            const isAudible = playing && !muted && layerActive[i];
-            const targetGain = isAudible ? (layers[i] / 100) * (master / 100) * 0.22 : 0;
-            if (audio.current) {
-                g.gain.setTargetAtTime(targetGain, audio.current.currentTime, 0.4);
-            }
-        });
+        audioEngine.updateGains(layers, master, playing, muted, layerActive);
     }, [playing, muted, layers, master, layerActive]);
     useEffect(() => {
         let lastToggle = 0;
@@ -435,73 +429,9 @@ export default function App() {
             window.removeEventListener('planarch-dice-roll', onCustomRoll);
         };
     }, []);
-    async function setupLayerSource(
-        i: number,
-        ctx: AudioContext,
-        gainNode: GainNode,
-        customSoundOverride?: FreesoundSound | null,
-        directBuffer?: ArrayBuffer
-    ) {
-        if (audioNodes.current[i]) {
-            try { audioNodes.current[i]?.stop(); audioNodes.current[i]?.disconnect(); } catch {}
-            audioNodes.current[i] = null;
-        }
-
-        const customSound = customSoundOverride !== undefined ? customSoundOverride : customLayersRef.current[i];
-        if (customSound) {
-            try {
-                const cachedBuf = directBuffer || await getCachedAudioBlob(customSound.id);
-                if (cachedBuf) {
-                    const audioBuffer = await ctx.decodeAudioData(cachedBuf.slice(0));
-                    const sourceNode = ctx.createBufferSource();
-                    sourceNode.buffer = audioBuffer;
-                    sourceNode.loop = true;
-                    sourceNode.connect(gainNode);
-                    sourceNode.start();
-                    audioNodes.current[i] = sourceNode;
-                    return;
-                }
-            } catch (e) {
-                console.warn('Failed to decode cached custom sound, falling back to procedural:', e);
-            }
-        }
-
-        // Procedural fallback / default synthetic ambience
-        const buffer = ctx.createBuffer(1, ctx.sampleRate * 6, ctx.sampleRate), data = buffer.getChannelData(0);
-        let last = 0;
-        const slotMod = i % 4;
-        for (let n = 0; n < data.length; n++) {
-            let white = Math.random() * 2 - 1;
-            last = (last + .025 * white) / 1.025;
-            data[n] = slotMod === 3 ? white * (Math.random() > .998 ? 1 : .08) : slotMod === 0 ? white * .45 : last * 6;
-        }
-        const node = ctx.createBufferSource();
-        node.buffer = buffer;
-        node.loop = true;
-        const f = ctx.createBiquadFilter();
-        f.type = slotMod === 0 ? 'highpass' : 'lowpass';
-        const freqs = [900, 420, 240, 1800];
-        f.frequency.value = freqs[slotMod];
-        node.connect(f).connect(gainNode);
-        node.start();
-        audioNodes.current[i] = node;
-    }
 
     async function ensureAudio() {
-        if (!audio.current) {
-            audio.current = new AudioContext();
-        }
-        const ctx = audio.current;
-        for (let i = gains.current.length; i < layerNames.length; i++) {
-            const g = ctx.createGain();
-            g.gain.value = 0;
-            g.connect(ctx.destination);
-            gains.current.push(g);
-            await setupLayerSource(i, ctx, g, customLayersRef.current[i]);
-        }
-        if (ctx.state === 'suspended') {
-            await ctx.resume();
-        }
+        await audioEngine.ensureAudio(layerNames.length, customLayersRef.current);
     }
 
     async function toggleAudio() {
@@ -566,15 +496,9 @@ export default function App() {
         setCustomLayers(nextCustom);
         customLayersRef.current = nextCustom;
 
-        if (audio.current) {
-            const ctx = audio.current;
-            const newIndex = gains.current.length;
-            const g = ctx.createGain();
+        if (audioEngine.getContext()) {
             const isAudible = playing && !muted;
-            g.gain.value = isAudible ? (50 / 100) * (master / 100) * 0.22 : 0;
-            g.connect(ctx.destination);
-            gains.current.push(g);
-            await setupLayerSource(newIndex, ctx, g, null);
+            await audioEngine.addLayer(50, master, isAudible);
         }
         notify(`Added layer "${newName}"`);
     };
@@ -596,19 +520,7 @@ export default function App() {
             return;
         }
         const removedName = layerNames[i];
-        if (audioNodes.current[i]) {
-            try {
-                audioNodes.current[i]?.stop();
-                audioNodes.current[i]?.disconnect();
-            } catch {}
-        }
-        if (gains.current[i]) {
-            try {
-                gains.current[i]?.disconnect();
-            } catch {}
-        }
-        audioNodes.current.splice(i, 1);
-        gains.current.splice(i, 1);
+        audioEngine.removeLayer(i);
 
         const nextNames = layerNames.filter((_, idx) => idx !== i);
         const nextLayers = layers.filter((_, idx) => idx !== i);
@@ -975,8 +887,8 @@ export default function App() {
                             next[i] = null;
                             customLayersRef.current = next;
                             setCustomLayers(next);
-                            if (audio.current && gains.current[i]) {
-                                await setupLayerSource(i, audio.current, gains.current[i], null);
+                            if (audioEngine.getContext()) {
+                                await audioEngine.setupLayerSource(i, null);
                             }
                             notify(`Layer ${i + 1} reset to default`);
                         }}><RotateCcw size={13}/></button>}
@@ -1041,8 +953,8 @@ export default function App() {
         customLayersRef.current = next;
         setCustomLayers(next);
         setFreesoundTargetSlot(null);
-        if (audio.current && gains.current[slot]) {
-            await setupLayerSource(slot, audio.current, gains.current[slot], sound, buffer);
+        if (audioEngine.getContext()) {
+            await audioEngine.setupLayerSource(slot, sound, buffer);
         }
         notify(`Loaded "${sound.name}" into slot ${slot + 1}`);
     }}/>}{toast && <motion.div role="status" className="toast" initial={{ opacity: 0, y: 16, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.95 }} transition={{ type: 'spring', damping: 25, stiffness: 350 }}><Check size={16}/>{toast}</motion.div>}{modal && <motion.div className="modal-backdrop" onClick={dismissModal} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}><motion.div className="modal" role="dialog" aria-modal="true" aria-label={modal} onClick={e => e.stopPropagation()} initial={{ opacity: 0, scale: 0.96, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 10 }} transition={{ type: 'spring', damping: 26, stiffness: 360 }}><button className="modal-close icon-button" aria-label="Close dialog" onClick={dismissModal}><X size={20}/></button>{modal === 'campaign' ? <>{campaigns.length ? <div className="campaign-create-icon"><ArcheronBrand mode={theme} compact className="modal-seal-mark" alt="Archeron"/></div> : <ArcheronBrand mode={theme} variant="stacked" className="welcome-brand-logo" alt="Archeron"/>}<span className="eyebrow">{campaigns.length ? 'NEW ADVENTURE' : 'WELCOME TO ARCHERON'}</span><h2>{campaigns.length ? 'Create a campaign' : 'Name your first campaign'}</h2><p>Campaigns keep encounters, characters, wiki pages, combat state and session notes separate.</p><label>Campaign name<input autoFocus aria-label="New campaign name" value={campaignName} maxLength={80} onChange={e => { setCampaignName(e.target.value); setCampaignError(''); }} onKeyDown={e => e.key === 'Enter' && createCampaign()} placeholder="e.g. The Shattered Crown"/></label>{campaignError && <p role="alert" className="form-error">{campaignError}</p>}<button className="primary campaign-create-submit" disabled={!campaignName.trim()} onClick={createCampaign}><Plus size={16}/>Create and activate</button></> : modal === 'rename-campaign' ? <><span className="eyebrow">RENAME CAMPAIGN</span><h2>Rename campaign</h2><label>Campaign display name<input autoFocus aria-label="Rename campaign" value={renameLabel} maxLength={80} onChange={e => { setRenameLabel(e.target.value); setRenameError(''); }} onKeyDown={e => e.key === 'Enter' && renameCampaign()} placeholder={campaignLabel}/></label>{renameError && <p role="alert" className="form-error">{renameError}</p>}<button className="primary rename-campaign-submit" disabled={!renameLabel.trim()} onClick={renameCampaign}><Save size={16}/>Save display name</button></> : modal === 'delete-campaign' ? <><div className="campaign-delete-icon"><Trash2 size={25}/></div><span className="eyebrow">DELETE CAMPAIGN</span><h2>Delete {campaignLabel}?</h2><p>This permanently clears its encounters, characters, wiki posts and images, combat state, and session notes from this workspace and queues those empty records for Supabase sync.</p><label>Type the campaign name to confirm<input autoFocus aria-label="Confirm campaign deletion" value={deleteCampaignText} onChange={e => { setDeleteCampaignText(e.target.value); setDeleteCampaignError(''); }} onKeyDown={e => e.key === 'Enter' && deleteCampaign()} placeholder={campaignLabel}/></label>{deleteCampaignError && <p role="alert" className="form-error">{deleteCampaignError}</p>}<button className="danger campaign-delete-submit" disabled={deleteCampaignText.trim() !== campaignLabel && deleteCampaignText.trim() !== campaign} onClick={deleteCampaign}><Trash2 size={16}/>Delete campaign permanently</button></> : modal === 'search' ? <><h2>Find your way</h2><input autoFocus placeholder="Search workspaces or scenes…" value={query} onChange={e => setQuery(e.target.value)}/>{['Dashboard', 'Atmosphere Studio', 'Encounters', 'Characters & NPCs', 'Campaign wiki', 'Compendium', ...allScenes.map(s => s.name)].filter(n => n.toLowerCase().includes(query.toLowerCase())).map(n => <button className="search-result" key={n} onClick={() => {

@@ -133,7 +133,7 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
     } else {
       nextHp = Math.max(0, nextHp - amount);
     }
-    onUpdate({ hp: nextHp, tempHp: nextTemp });
+    onUpdate({ hp: nextHp, maxHp, tempHp: nextTemp });
     setHpDelta('');
     notify?.(`Took ${amount} damage`);
   };
@@ -142,7 +142,7 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
     const amount = parseInt(hpDelta, 10);
     if (isNaN(amount) || amount <= 0) return;
     const nextHp = clamp(currentHp + amount, 0, maxHp);
-    onUpdate({ hp: nextHp });
+    onUpdate({ hp: nextHp, maxHp });
     setHpDelta('');
     notify?.(`Healed ${amount} HP`);
   };
@@ -732,7 +732,7 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
                             className="char-hp-input"
                             aria-label="Current HP"
                             value={currentHp}
-                            onChange={e => onUpdate({ hp: Math.max(0, +e.target.value) })}
+                            onChange={e => onUpdate({ hp: Math.max(0, +e.target.value), maxHp })}
                           />
                         </div>
                         <span className="char-hp-divider">/</span>

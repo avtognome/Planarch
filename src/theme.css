@@ -74,7 +74,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .quick-roll-close{min-width:44px;min-height:44px;padding:10px}
   .party-manage-btn{min-height:44px;display:inline-flex;align-items:center}
   .primary,.secondary,.text-button,.wiki-backlink-btn{min-height:44px}
-  .new-campaign-button,.delete-campaign-button{min-height:44px}
+  .new-campaign-button,.rename-campaign-button,.delete-campaign-button{min-height:44px}
   .hp-inline>button,.hp-custom button{min-height:44px;min-width:44px;padding:8px 12px}
   .tags button{min-height:44px;padding:8px 12px}
   .condition-menu>summary{min-height:44px;display:flex;align-items:center}

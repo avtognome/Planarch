@@ -209,6 +209,26 @@ await act(async () => {
 });
 assert.equal(character.hp, 19);
 
+// Verify editing Current HP does not alter Max HP even when maxHp was initially undefined
+delete character.maxHp;
+character.hp = 20;
+await act(async () => {
+  render.update(
+    React.createElement(CharacterSheet, {
+      character,
+      onUpdate: handleUpdate,
+      notify: () => {},
+    })
+  );
+});
+const curHpInput = hpCard.findByProps({ 'aria-label': 'Current HP' });
+await act(async () => {
+  curHpInput.props.onChange({ target: { value: '12' } });
+});
+assert.equal(character.hp, 12);
+assert.equal(character.maxHp, 20, 'Changing Current HP must preserve Max HP instead of tying them together');
+character.hp = 19;
+
 // Conditions group inside Combat (with Exhaustion stepper inside Conditions)
 const condGroup = root.find(el => String(el.props?.className || '').includes('char-conditions-group'));
 assert.ok(condGroup, 'Conditions chips, Exhaustion stepper, and Add control must share .char-conditions-group');

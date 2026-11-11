@@ -165,7 +165,7 @@ const settingsBtn = appRender.root.findByProps({ 'aria-label': 'Settings & backu
 await act(async () => {
   settingsBtn.props.onClick();
 });
-const darkPaletteBtn = appRender.root.findAllByType('button').find(b => b.props['data-palette'] === 'themberchaud');
+const darkPaletteBtn = appRender.root.findAllByType('button').find(b => b.props['data-palette'] === 'space-cadet');
 await act(async () => {
   darkPaletteBtn.props.onClick();
 });

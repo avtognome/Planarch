@@ -145,7 +145,7 @@ export default function App() {
         }
     });
     const openReference = (id: string) => { setCompendiumFocus(id); setPage('Compendium'); };
-    const [themePref, setThemePref] = useSaved<'light' | 'dark' | PaletteId>('wf-theme', 'celeste'), [saveError, setSaveError] = useState(false);
+    const [themePref, setThemePref] = useSaved<'light' | 'dark' | PaletteId>('wf-theme', 'charcoal'), [saveError, setSaveError] = useState(false);
     const palette = resolvePalette(themePref);
     const theme = palette.mode;
     useEffect(() => {

@@ -63,13 +63,13 @@ const themeToggle = buttons.find(b =>
 assert.equal(themeToggle, undefined, 'Topbar must not render binary light/dark theme-toggle button');
 console.log('PASS topbar: binary light/dark switch removed');
 
-// 4. Verify default root class is theme-celeste theme-dark
+// 4. Verify default root class is theme-charcoal theme-dark
 const rootDiv = render.root.findByProps({ className: render.root.findAllByType('div')[0].props.className });
 assert.ok(
-  rootDiv.props.className.includes('theme-celeste') && rootDiv.props.className.includes('theme-dark'),
-  `Root div must contain theme-celeste and theme-dark, got: ${rootDiv.props.className}`
+  rootDiv.props.className.includes('theme-charcoal') && rootDiv.props.className.includes('theme-dark'),
+  `Root div must contain theme-charcoal and theme-dark, got: ${rootDiv.props.className}`
 );
-console.log('PASS default theme: root container has theme-celeste theme-dark');
+console.log('PASS default theme: root container has theme-charcoal theme-dark');
 
 // 5. Open Settings modal
 const settingsToggle = render.root.findByProps({ 'aria-label': 'Settings & backup' });
@@ -77,14 +77,13 @@ await act(async () => {
   settingsToggle.props.onClick();
 });
 
-// Verify 6 palettes are rendered in Settings modal
+// Verify 5 palettes are rendered in Settings modal
 const expectedPalettes = [
-  'themberchaud',
-  'fulgur',
-  'exanimo',
-  'celeste',
-  'lady-of-silver',
-  'kreldo'
+  'black-stallion',
+  'space-cadet',
+  'ceres',
+  'twinkle',
+  'charcoal'
 ];
 
 for (const id of expectedPalettes) {
@@ -96,27 +95,27 @@ for (const id of expectedPalettes) {
   const swatches = paletteBtn.findAll(el => el.props?.className === 'swatch-circle');
   assert.equal(swatches.length, 6, `Palette card ${id} must render 6 swatch circles`);
 }
-console.log('PASS settings modal: all 6 palettes rendered');
+console.log('PASS settings modal: all 5 palettes rendered with 6 swatches each');
 
-// 6. Test selecting a palette (Kreldo)
-const kreldoBtn = render.root.findAllByType('button').find(b =>
-  b.props['data-palette'] === 'kreldo' ||
-  b.props['aria-label']?.toLowerCase().includes('kreldo')
+// 6. Test selecting a palette (Twinkle)
+const twinkleBtn = render.root.findAllByType('button').find(b =>
+  b.props['data-palette'] === 'twinkle' ||
+  b.props['aria-label']?.toLowerCase().includes('twinkle')
 );
-assert.ok(kreldoBtn, 'Missing Kreldo palette button');
+assert.ok(twinkleBtn, 'Missing Twinkle palette button');
 
 await act(async () => {
-  kreldoBtn.props.onClick();
+  twinkleBtn.props.onClick();
 });
 
 // Check persisted wf-theme
-assert.equal(JSON.parse(store.get('wf-theme')), 'kreldo', 'wf-theme must be persisted as kreldo');
+assert.equal(JSON.parse(store.get('wf-theme')), 'twinkle', 'wf-theme must be persisted as twinkle');
 
 // Check root container class
 const updatedRootDiv = render.root.findAllByType('div')[0];
 assert.ok(
-  updatedRootDiv.props.className.includes('theme-kreldo') && updatedRootDiv.props.className.includes('theme-dark'),
-  `Root div must contain theme-kreldo and theme-dark, got: ${updatedRootDiv.props.className}`
+  updatedRootDiv.props.className.includes('theme-twinkle') && updatedRootDiv.props.className.includes('theme-dark'),
+  `Root div must contain theme-twinkle and theme-dark, got: ${updatedRootDiv.props.className}`
 );
 
 // Check Archeron/Planarch brand mode is dark
@@ -126,7 +125,7 @@ assert.ok(
   brandLogos[0].props.src.includes('on-dark'),
   `Brand logo must use on-dark asset in dark mode, got: ${brandLogos[0].props.src}`
 );
-console.log('PASS palette selection: switching to kreldo updates root classes, persistence, and brand logo');
+console.log('PASS palette selection: switching to twinkle updates root classes, persistence, and brand logo');
 
 // 7. Test legacy 'dark' migration
 store.set('wf-theme', JSON.stringify('dark'));
@@ -136,10 +135,10 @@ await act(async () => {
 });
 const legacyDarkDiv = legacyDarkRender.root.findAllByType('div')[0];
 assert.ok(
-  legacyDarkDiv.props.className.includes('theme-celeste') && legacyDarkDiv.props.className.includes('theme-dark'),
-  `Legacy 'dark' must resolve to celeste, got: ${legacyDarkDiv.props.className}`
+  legacyDarkDiv.props.className.includes('theme-charcoal') && legacyDarkDiv.props.className.includes('theme-dark'),
+  `Legacy 'dark' must resolve to charcoal, got: ${legacyDarkDiv.props.className}`
 );
-console.log('PASS legacy migration: dark resolves to celeste');
+console.log('PASS legacy migration: dark resolves to charcoal');
 
 // 8. Test legacy 'light' migration
 store.set('wf-theme', JSON.stringify('light'));
@@ -149,7 +148,7 @@ await act(async () => {
 });
 const legacyLightDiv = legacyLightRender.root.findAllByType('div')[0];
 assert.ok(
-  legacyLightDiv.props.className.includes('theme-celeste') && legacyLightDiv.props.className.includes('theme-dark'),
-  `Legacy 'light' must resolve to celeste, got: ${legacyLightDiv.props.className}`
+  legacyLightDiv.props.className.includes('theme-charcoal') && legacyLightDiv.props.className.includes('theme-dark'),
+  `Legacy 'light' must resolve to charcoal, got: ${legacyLightDiv.props.className}`
 );
-console.log('PASS legacy migration: light resolves to celeste');
+console.log('PASS legacy migration: light resolves to charcoal');

@@ -93,6 +93,8 @@ for (const id of expectedPalettes) {
     b.props['aria-label']?.toLowerCase().includes(id.replace('-', ' '))
   );
   assert.ok(paletteBtn, `Settings modal must render a button for palette ${id}`);
+  const swatches = paletteBtn.findAll(el => el.props?.className === 'swatch-circle');
+  assert.equal(swatches.length, 6, `Palette card ${id} must render 6 swatch circles`);
 }
 console.log('PASS settings modal: all 6 palettes rendered');
 

@@ -15,9 +15,10 @@ export interface PaletteDef {
   surfaceWarm?: string;
   text: string;
   muted?: string;
-  border?: string;
+  border: string;
   accent: string;
-  secondary?: string;
+  secondary: string;
+  swatches: [string, string, string, string, string, string];
   description: string;
 }
 
@@ -26,57 +27,61 @@ export const PALETTES: PaletteDef[] = [
     id: 'themberchaud',
     name: 'Themberchaud',
     mode: 'dark',
-    canvas: '#1b262f',
-    surface: '#304352',
-    surfaceWarm: '#3d5467',
+    canvas: '#304352',
+    surface: '#9a2421',
+    surfaceWarm: '#58768e',
     text: '#eebd83',
-    muted: '#b59b7c',
+    muted: '#f7a653',
     border: '#58768e',
     accent: '#f7a653',
     secondary: '#e06a3c',
-    description: 'Deep cavern slate and steel blue lit by molten dragon gold and crimson ember.'
+    swatches: ['#304352', '#9a2421', '#58768e', '#eebd83', '#f7a653', '#e06a3c'],
+    description: 'Deep slate canvas and crimson dragon scales with steel blue, warm sand, amber gold, and dragon orange.'
   },
   {
     id: 'fulgur',
     name: 'Fulgur',
     mode: 'dark',
-    canvas: '#121b33',
-    surface: '#1a284b',
-    surfaceWarm: '#321a6b',
-    text: '#ece4f8',
-    muted: '#c3a7e3',
+    canvas: '#1a284b',
+    surface: '#321a6b',
+    surfaceWarm: '#064a69',
+    text: '#c3a7e3',
+    muted: '#4f95b1',
     border: '#064a69',
-    accent: '#c3a7e3',
+    accent: '#794cc3',
     secondary: '#4f95b1',
-    description: 'Storm-lashed midnight navy and deep violet struck by lavender lightning and sea blue.'
+    swatches: ['#1a284b', '#321a6b', '#064a69', '#c3a7e3', '#794cc3', '#4f95b1'],
+    description: 'Midnight navy canvas and deep violet panels with storm teal, lavender lightning, electric purple, and sea blue.'
   },
   {
     id: 'exanimo',
     name: 'Exanimo',
     mode: 'dark',
     canvas: '#0f0f0f',
-    surface: '#1c1211',
-    surfaceWarm: '#4a1c1a',
+    surface: '#4a1c1a',
+    surfaceWarm: '#797d62',
     text: '#f5f0e6',
-    muted: '#a8ab96',
+    muted: '#797d62',
     border: '#797d62',
-    accent: '#d13b3b',
+    accent: '#8b0000',
     secondary: '#5d3fd3',
-    description: 'Grit black and burnt caramel contrasted with bone white, blood red, and electric indigo.'
+    swatches: ['#0f0f0f', '#4a1c1a', '#797d62', '#f5f0e6', '#8b0000', '#5d3fd3'],
+    description: 'Grit black canvas and burnt caramel panels with dust olive, bone white, blood red, and electric indigo.'
   },
   {
     id: 'celeste',
     name: 'Celeste',
     mode: 'dark',
-    canvas: '#131a31',
-    surface: '#1a2342',
+    canvas: '#1a2342',
+    surface: '#4a4066',
     surfaceWarm: '#2f4945',
     text: '#e4d3b4',
     muted: '#99a4b0',
-    border: '#4a4066',
+    border: '#2f4945',
     accent: '#c2a368',
     secondary: '#818db8',
-    description: 'Celestial midnight inkwell with aged parchment, star gold, and starlight lilac.'
+    swatches: ['#1a2342', '#4a4066', '#2f4945', '#e4d3b4', '#c2a368', '#818db8'],
+    description: 'Midnight blue canvas and dusty plum panels with forest moss, aged parchment, star gold, and starlight lilac.'
   },
   {
     id: 'lady-of-silver',
@@ -87,10 +92,11 @@ export const PALETTES: PaletteDef[] = [
     surfaceWarm: '#484048',
     text: '#b8b0b0',
     muted: '#887878',
-    border: '#504848',
+    border: '#484048',
     accent: '#b8b0a0',
     secondary: '#887878',
-    description: 'Moonlit obsidian and charcoal stone veiled in silver mist and dusk plum.'
+    swatches: ['#181818', '#282828', '#484048', '#b8b0b0', '#b8b0a0', '#887878'],
+    description: 'Obsidian canvas and charcoal surfaces with dusk plum, silver mist, pale sage parchment, and muted mauve.'
   },
   {
     id: 'kreldo',
@@ -98,13 +104,14 @@ export const PALETTES: PaletteDef[] = [
     mode: 'dark',
     canvas: '#060d08',
     surface: '#1d2a10',
-    surfaceWarm: '#293a18',
-    text: '#e8d7bd',
-    muted: '#a89f81',
+    surfaceWarm: '#595d2b',
+    text: '#e6d3b3',
+    muted: '#cd8a39',
     border: '#595d2b',
     accent: '#cd8a39',
     secondary: '#a24502',
-    description: 'Deep forest shadow and seaweed moss warmed by raw sienna and oregon rust.'
+    swatches: ['#060d08', '#1d2a10', '#595d2b', '#e6d3b3', '#cd8a39', '#a24502'],
+    description: 'Racing green shadow and seaweed surfaces with olive moss, warm birch parchment, raw sienna, and oregon rust.'
   }
 ];
 

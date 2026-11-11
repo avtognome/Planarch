@@ -52,6 +52,7 @@ for (const palette of PALETTES) {
   assert.ok(typeof palette.surface === 'string' && palette.surface.length > 0, `Palette ${palette.id} missing surface`);
   assert.ok(typeof palette.text === 'string' && palette.text.length > 0, `Palette ${palette.id} missing text`);
   assert.ok(typeof palette.accent === 'string' && palette.accent.length > 0, `Palette ${palette.id} missing accent`);
+  assert.ok(Array.isArray(palette.swatches) && palette.swatches.length === 6, `Palette ${palette.id} must have 6 swatches`);
   assert.ok(typeof palette.description === 'string' && palette.description.length > 0, `Palette ${palette.id} missing description`);
 }
 
@@ -59,35 +60,52 @@ for (const palette of PALETTES) {
 const paletteMap = new Map(PALETTES.map(p => [p.id, p]));
 
 const themberchaud = paletteMap.get('themberchaud');
-assert.equal(themberchaud.surface, '#304352');
+assert.equal(themberchaud.canvas, '#304352');
+assert.equal(themberchaud.surface, '#9a2421');
+assert.equal(themberchaud.border, '#58768e');
 assert.equal(themberchaud.text, '#eebd83');
 assert.equal(themberchaud.accent, '#f7a653');
+assert.equal(themberchaud.secondary, '#e06a3c');
 
 const fulgur = paletteMap.get('fulgur');
-assert.equal(fulgur.surface, '#1a284b');
-assert.equal(fulgur.accent, '#c3a7e3');
+assert.equal(fulgur.canvas, '#1a284b');
+assert.equal(fulgur.surface, '#321a6b');
+assert.equal(fulgur.border, '#064a69');
+assert.equal(fulgur.text, '#c3a7e3');
+assert.equal(fulgur.accent, '#794cc3');
 assert.equal(fulgur.secondary, '#4f95b1');
 
 const exanimo = paletteMap.get('exanimo');
 assert.equal(exanimo.canvas, '#0f0f0f');
+assert.equal(exanimo.surface, '#4a1c1a');
+assert.equal(exanimo.border, '#797d62');
 assert.equal(exanimo.text, '#f5f0e6');
+assert.equal(exanimo.accent, '#8b0000');
 assert.equal(exanimo.secondary, '#5d3fd3');
 
 const celeste = paletteMap.get('celeste');
-assert.equal(celeste.surface, '#1a2342');
+assert.equal(celeste.canvas, '#1a2342');
+assert.equal(celeste.surface, '#4a4066');
+assert.equal(celeste.border, '#2f4945');
 assert.equal(celeste.text, '#e4d3b4');
 assert.equal(celeste.accent, '#c2a368');
+assert.equal(celeste.secondary, '#818db8');
 
 const ladyOfSilver = paletteMap.get('lady-of-silver');
 assert.equal(ladyOfSilver.canvas, '#181818');
 assert.equal(ladyOfSilver.surface, '#282828');
+assert.equal(ladyOfSilver.border, '#484048');
 assert.equal(ladyOfSilver.text, '#b8b0b0');
 assert.equal(ladyOfSilver.accent, '#b8b0a0');
+assert.equal(ladyOfSilver.secondary, '#887878');
 
 const kreldo = paletteMap.get('kreldo');
 assert.equal(kreldo.canvas, '#060d08');
 assert.equal(kreldo.surface, '#1d2a10');
+assert.equal(kreldo.border, '#595d2b');
+assert.equal(kreldo.text, '#e6d3b3');
 assert.equal(kreldo.accent, '#cd8a39');
+assert.equal(kreldo.secondary, '#a24502');
 
 // 3. Test resolvePalette
 assert.equal(resolvePalette('dark').id, 'celeste', "resolvePalette('dark') must return celeste");

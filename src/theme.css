@@ -153,6 +153,46 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .theme-dark :is(.participant-editor,.provider-player,.supabase-settings,.supabase-account,.cloud-status-detail,.sync-conflict,.password-update,.music-matching,.youtube-settings){background:var(--panel);border-color:var(--line);color:var(--text);border-radius:8px}
 .theme-dark :is(.profile-placeholder,.add-from-compendium,.wiki-inline-link,.youtube-transport){background:var(--panel-alt);border-color:var(--line-strong);color:var(--accent);border-radius:6px}
 .theme-dark :is(.source-player-dock,.youtube-mixer-dock){background:var(--panel);border-color:var(--line);color:var(--text);border-radius:12px}.theme-dark .youtube-mixer-dock>header{background:linear-gradient(90deg,var(--panel-alt),var(--panel))}.theme-dark .youtube-deck{background:var(--panel);border-color:var(--line);border-radius:8px}.theme-dark .youtube-deck-title,.theme-dark .youtube-deck-controls label span,.theme-dark .youtube-deck-controls strong,.theme-dark .youtube-mix-controls label span,.theme-dark .youtube-mix-controls b,.theme-dark .youtube-mix-controls strong{color:var(--accent)}.theme-dark .youtube-mix-controls{border-color:var(--line)}
+
+/* Compendium Monster & D&D Reference Stat Block Layout (Modern Charcoal) */
+.monster-reference, .dnd-reference{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;font-family:var(--font-ui);padding:20px}
+.monster-stat-block, .dnd-reference-card{font-family:var(--font-ui);font-size:var(--type-body);line-height:1.6;color:var(--text)}
+.monster-meta{margin:2px 0 10px;color:var(--muted);font-size:var(--type-label);font-style:italic}
+.monster-rule{height:2px;margin:12px 0 14px;background:linear-gradient(90deg,var(--accent),var(--secondary,var(--accent)) 65%,transparent 100%);border-radius:1px}
+.monster-core, .monster-details{display:grid;gap:4px}
+.monster-core p, .monster-details p{margin:0;font-size:var(--type-label);line-height:1.5;color:var(--text)}
+.monster-core strong, .monster-details strong{color:var(--accent);font-weight:600;margin-right:4px}
+.monster-abilities{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:14px 0;text-align:center}
+.monster-abilities div{background:var(--panel-alt);border:1px solid var(--line);border-radius:8px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0}
+.monster-abilities strong{display:block;font-size:var(--type-label);font-weight:600;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase}
+.monster-abilities span{display:block;font-size:var(--type-label);font-weight:600;color:var(--text);white-space:nowrap}
+@media(max-width:700px){.monster-abilities{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}}
+.monster-traits{border-top:1px solid var(--line);margin-top:14px;padding-top:10px}
+.monster-entry{margin:0 0 10px;font-size:var(--type-label);line-height:1.6;color:var(--text)}
+.monster-entry strong{color:var(--accent);font-weight:600}
+.monster-section{margin-top:16px}
+.monster-section h3, .dnd-section>h3{font-size:var(--type-section);font-weight:600;color:var(--accent);border-bottom:1px solid var(--line);margin:18px 0 10px;padding-bottom:4px}
+.monster-footer{display:grid;gap:4px;border-top:1px solid var(--line);margin-top:16px;padding-top:10px;font-size:var(--type-label);color:var(--muted)}
+.dnd-fact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 24px;margin:12px 0 16px}
+.dnd-fact-grid>div{display:grid;grid-template-columns:minmax(110px,.7fr) 1.3fr;gap:8px;border-bottom:1px solid var(--line);padding:6px 0;align-items:baseline}
+.dnd-fact-grid small{font-size:var(--type-label);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent)}
+.dnd-fact-grid strong{font-weight:400;font-size:var(--type-label);color:var(--text);white-space:pre-line}
+@media(max-width:900px){.dnd-fact-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.dnd-fact-grid>div{grid-template-columns:95px 1fr}}
+.dnd-entry-list{display:grid;gap:12px}
+.dnd-entry{padding-bottom:11px;border-bottom:1px solid var(--line)}
+.dnd-entry:last-child{border-bottom:0;padding-bottom:0}
+.dnd-entry h4, .class-level>h4{font-size:var(--type-body);font-weight:600;color:var(--accent);margin:0 0 6px}
+.dnd-entry p, .dnd-prose{white-space:pre-line;margin:0;line-height:1.6;font-size:var(--type-label);color:var(--text)}
+.dnd-entry-meta{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.dnd-entry-meta span{font-size:var(--type-label);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent);border:1px solid var(--line);background:var(--panel-alt);border-radius:6px;padding:2px 7px}
+.dnd-nested{margin:10px 0 0;padding:10px 14px;background:var(--panel-alt);border-radius:8px;border:1px solid var(--line)}
+.dnd-nested h5{font-size:var(--type-label);font-weight:600;text-transform:capitalize;color:var(--accent);margin:0 0 6px}
+.dnd-footer{display:grid;gap:5px;border-top:1px solid var(--line);margin-top:18px;padding-top:10px;color:var(--muted);font-size:var(--type-label)}
+.dnd-footer strong{color:var(--accent)}
+.class-progression{display:grid;gap:16px}
+.class-level{padding:12px 14px;background:var(--panel-alt);border-radius:8px;border:1px solid var(--line)}
+
 /* Compendium D&D Reference Typography & Colors - Dark Mode */
 .theme-dark :is(.monster-reference,.dnd-reference){background:var(--panel)!important;color:var(--text)!important;border-color:var(--line)!important;box-shadow:none!important;border-radius:12px!important;font-family:var(--font-ui)!important}
 .theme-dark :is(.monster-reference,.dnd-reference) .editor-title .eyebrow{color:var(--accent)!important;font-weight:600!important;font-size:var(--type-label)!important;letter-spacing:0.08em!important}
@@ -177,10 +217,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .theme-dark .dnd-footer strong{color:var(--accent)!important}
 .theme-dark :is(.monster-core strong,.monster-details strong,.monster-entry strong){color:var(--accent)!important;font-weight:600!important;font-family:var(--font-ui)!important}
 .theme-dark :is(.monster-core p,.monster-details p,.monster-entry){color:var(--text)!important;font-family:var(--font-ui)!important}
-.theme-dark .monster-abilities{margin:12px 0!important}
-.theme-dark .monster-abilities div{background:var(--panel-alt)!important;border:1px solid var(--line)!important;border-radius:6px!important;padding:6px 2px!important}
-.theme-dark .monster-abilities strong{color:var(--accent)!important;font-size:var(--type-label)!important;font-family:var(--font-ui)!important}
-.theme-dark .monster-abilities span{color:var(--text)!important;font-size:var(--type-label)!important;font-weight:600!important;font-family:var(--font-ui)!important}
+.theme-dark .monster-abilities{margin:14px 0!important;display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:8px!important;text-align:center!important}
+.theme-dark .monster-abilities div{background:var(--panel-alt)!important;border:1px solid var(--line)!important;border-radius:8px!important;padding:8px 4px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:4px!important;min-width:0!important}
+.theme-dark .monster-abilities strong{color:var(--accent)!important;font-size:var(--type-label)!important;font-weight:600!important;font-family:var(--font-ui)!important;letter-spacing:0.06em!important;display:block!important;text-transform:uppercase!important}
+.theme-dark .monster-abilities span{color:var(--text)!important;font-size:var(--type-label)!important;font-weight:600!important;font-family:var(--font-ui)!important;display:block!important;white-space:nowrap!important}
 
 /* Compendium D&D Reference Typography & Colors - Light Mode */
 .theme-light :is(.monster-reference,.dnd-reference){background:var(--panel)!important;color:var(--text)!important;border-color:var(--line)!important;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 4px 12px rgba(0,0,0,0.02)!important;border-radius:12px!important;font-family:var(--font-ui)!important}
@@ -206,10 +246,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .theme-light .dnd-footer strong{color:var(--accent)!important}
 .theme-light :is(.monster-core strong,.monster-details strong,.monster-entry strong){color:var(--accent)!important;font-weight:600!important;font-family:var(--font-ui)!important}
 .theme-light :is(.monster-core p,.monster-details p,.monster-entry){color:var(--text)!important;font-family:var(--font-ui)!important}
-.theme-light .monster-abilities{margin:12px 0!important}
-.theme-light .monster-abilities div{background:var(--panel-alt)!important;border:1px solid var(--line)!important;border-radius:6px!important;padding:6px 2px!important}
-.theme-light .monster-abilities strong{color:var(--accent)!important;font-size:var(--type-label)!important;font-family:var(--font-ui)!important}
-.theme-light .monster-abilities span{color:var(--text)!important;font-size:var(--type-label)!important;font-weight:600!important;font-family:var(--font-ui)!important}
+.theme-light .monster-abilities{margin:14px 0!important;display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:8px!important;text-align:center!important}
+.theme-light .monster-abilities div{background:var(--panel-alt)!important;border:1px solid var(--line)!important;border-radius:8px!important;padding:8px 4px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:4px!important;min-width:0!important}
+.theme-light .monster-abilities strong{color:var(--accent)!important;font-size:var(--type-label)!important;font-weight:600!important;font-family:var(--font-ui)!important;letter-spacing:0.06em!important;display:block!important;text-transform:uppercase!important}
+.theme-light .monster-abilities span{color:var(--text)!important;font-size:var(--type-label)!important;font-weight:600!important;font-family:var(--font-ui)!important;display:block!important;white-space:nowrap!important}
 
 /* Atmosphere library: compact vertical list, intentionally without artwork previews. */
 .scene-grid{display:grid;grid-template-columns:1fr;gap:8px;counter-reset:scene-list}
@@ -339,7 +379,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 .drawer-monster-wrapper .monster-core strong{font-size:var(--type-label);text-transform:uppercase;letter-spacing:.5px;color:var(--text, #f2f2f2)}
 .drawer-monster-wrapper .monster-abilities{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:10px 0}
 .drawer-monster-wrapper .monster-abilities div{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 2px;text-align:center}
-.drawer-monster-wrapper .monster-abilities strong{font-size:var(--type-label);color:#f59e0b}
+.drawer-monster-wrapper .monster-abilities strong{font-size:var(--type-label);color:var(--accent)}
 .drawer-monster-wrapper .monster-abilities span{font-size:var(--type-label);font-weight:600}
 .drawer-monster-wrapper .monster-details{display:grid;gap:4px;font-size:var(--type-label);margin:10px 0;line-height:1.5}
 .drawer-monster-wrapper .monster-details strong{color:var(--text, #ffffff)}
@@ -351,7 +391,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 .compendium-accordion summary::-webkit-details-marker{display:none}
 .compendium-accordion summary:hover{background:var(--panel-elevated);color:var(--accent)}
 .compendium-accordion summary::after{content:'›';font-size:var(--type-section);font-weight:600;color:var(--text, #f2f2f2);transition:transform .2s ease;line-height:1}
-.compendium-accordion[open] summary::after{transform:rotate(90deg);color:#f59e0b}
+.compendium-accordion[open] summary::after{transform:rotate(90deg);color:var(--accent)}
 .compendium-accordion .accordion-content{padding:12px 14px;border-top:1px solid var(--line);font-size:var(--type-label);line-height:1.7;color:var(--text, #ffffff)}
 .compendium-accordion .accordion-content p{margin:0 0 8px}
 .compendium-accordion .accordion-content p:last-child{margin-bottom:0}

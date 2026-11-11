@@ -49,13 +49,11 @@ assert.ok(html.includes('#17191a'), 'index.html missing #17191a theme-color');
 assert.ok(html.includes('Archeron') || html.includes('Planarch'), 'index.html title missing Archeron/Planarch');
 console.log('PASS index.html: favicon, touch-icon, theme-color, and title properly configured');
 
-// 3. Test PlanarchBrand/ArcheronBrand component
+// 3. Test ArcheronBrand component
 const out = path.resolve('.sites-runtime/test-modules');
 fs.mkdirSync(out, { recursive: true });
 
-const brandTsxPath = fs.existsSync(path.join('src', 'ArcheronBrand.tsx'))
-  ? path.join('src', 'ArcheronBrand.tsx')
-  : path.join('src', 'PlanarchBrand.tsx');
+const brandTsxPath = path.join('src', 'ArcheronBrand.tsx');
 assert.ok(fs.existsSync(brandTsxPath), `Missing ${brandTsxPath}`);
 
 const transpiled = ts.transpileModule(fs.readFileSync(brandTsxPath, 'utf8'), {
@@ -64,7 +62,7 @@ const transpiled = ts.transpileModule(fs.readFileSync(brandTsxPath, 'utf8'), {
 fs.writeFileSync(path.join(out, 'ArcheronBrand.js'), transpiled);
 
 const brandModule = await import(pathToFileURL(path.join(out, 'ArcheronBrand.js')).href);
-const BrandComponent = brandModule.ArcheronBrand || brandModule.PlanarchBrand || brandModule.default;
+const BrandComponent = brandModule.ArcheronBrand || brandModule.default;
 
 // Test horizontal logo on light
 let renderLight;

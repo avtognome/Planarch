@@ -5,12 +5,8 @@ import assert from 'node:assert/strict';
 test('strict palette CSS variable mapping', () => {
   const css = readFileSync('src/theme.css', 'utf-8');
 
-  // 1. All 5 palette classes define semantic variables
+  // 1. Only charcoal palette class defines semantic variables
   const palettes = [
-    'black-stallion',
-    'space-cadet',
-    'ceres',
-    'twinkle',
     'charcoal',
   ];
 

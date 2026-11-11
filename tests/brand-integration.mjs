@@ -149,28 +149,32 @@ const { default: App } = await import(pathToFileURL(path.join(out, 'App.js')).hr
 let appRender;
 store.set('wf-campaigns', JSON.stringify(['Avernus']));
 store.set('wf-campaign', JSON.stringify('Avernus'));
-store.set('wf-theme', JSON.stringify('light'));
+store.set('wf-theme', JSON.stringify('dark'));
 
 await act(async () => {
   appRender = TestRenderer.create(React.createElement(App));
 });
 
-const brandImgs = appRender.root.findAllByType('img').filter(img => img.props.alt === 'Archeron' || img.props.alt === 'Planarch');
+let brandImgs = appRender.root.findAllByType('img').filter(img => img.props.alt === 'Archeron' || img.props.alt === 'Planarch');
 assert.ok(brandImgs.length > 0, 'App failed to render brand image in DOM');
 assert.ok(brandImgs[0].props.src.endsWith('logo-horizontal-on-dark.svg'), 'Wrong dark brand logo in App');
 console.log('PASS app integration: App renders horizontal brand logo on dark surface');
 
-// Switch to another dark theme via Settings and verify logo remains dark
-const settingsBtn = appRender.root.findByProps({ 'aria-label': 'Settings & backup' });
+// Switch to light theme via topbar and verify logo switches to light asset
+const themeToggleBtn = appRender.root.findAllByType('button').find(b => b.props.className && b.props.className.includes('theme-toggle'));
 await act(async () => {
-  settingsBtn.props.onClick();
-});
-const darkPaletteBtn = appRender.root.findAllByType('button').find(b => b.props['data-palette'] === 'space-cadet');
-await act(async () => {
-  darkPaletteBtn.props.onClick();
+  themeToggleBtn.props.onClick();
 });
 
-const darkBrandImgs = appRender.root.findAllByType('img').filter(img => img.props.alt === 'Archeron' || img.props.alt === 'Planarch');
-assert.ok(darkBrandImgs[0].props.src.endsWith('logo-horizontal-on-dark.svg'), 'Wrong dark brand logo in App');
-console.log('PASS theme switching: brand logo automatically switches to dark asset without reload');
+brandImgs = appRender.root.findAllByType('img').filter(img => img.props.alt === 'Archeron' || img.props.alt === 'Planarch');
+assert.ok(brandImgs[0].props.src.endsWith('logo-horizontal-on-light.svg'), 'Wrong light brand logo in App');
+
+// Switch back to dark theme via topbar and verify logo switches back to dark asset
+await act(async () => {
+  themeToggleBtn.props.onClick();
+});
+
+brandImgs = appRender.root.findAllByType('img').filter(img => img.props.alt === 'Archeron' || img.props.alt === 'Planarch');
+assert.ok(brandImgs[0].props.src.endsWith('logo-horizontal-on-dark.svg'), 'Wrong dark brand logo in App');
+console.log('PASS theme switching: brand logo automatically switches between dark and light assets without reload');
 

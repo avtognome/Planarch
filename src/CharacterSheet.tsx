@@ -19,6 +19,8 @@ import {
   Search,
   ArrowUpCircle,
   Pin,
+  Minus,
+  Swords,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -726,7 +728,9 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
                     <div className="char-hp-boxes-row">
                       <div className="char-hp-subbox char-hp-curmax-box">
                         <div className="char-hp-block">
-                          <span className="char-stat-label">Current</span>
+                          <span className="char-stat-label" title="Current HP">
+                            <Heart size={11} style={{ display: 'inline' }} />
+                          </span>
                           <Input
                             type="number"
                             className="char-hp-input"
@@ -737,7 +741,9 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
                         </div>
                         <span className="char-hp-divider">/</span>
                         <div className="char-hp-block">
-                          <span className="char-stat-label">Max</span>
+                          <span className="char-stat-label" title="Max HP">
+                            <Shield size={11} style={{ display: 'inline' }} />
+                          </span>
                           <Input
                             type="number"
                             className="char-hp-input char-hp-max-input"
@@ -749,7 +755,9 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
                       </div>
 
                       <div className="char-hp-subbox char-temp-hp">
-                        <span className="char-stat-label">Temp</span>
+                        <span className="char-stat-label" title="Temporary HP">
+                          <Sparkles size={11} style={{ display: 'inline' }} />
+                        </span>
                         <Input
                           type="number"
                           className="char-hp-input"
@@ -773,8 +781,10 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
                       size="sm"
                       className="char-damage-btn"
                       onClick={applyDamage}
+                      title="Apply damage"
+                      aria-label="Damage"
                     >
-                      Damage
+                      <Minus size={13} style={{ strokeWidth: 3 }} />
                     </Button>
                     <Input
                       type="number"
@@ -790,8 +800,10 @@ export function CharacterSheet({ character, onUpdate, notify, campaign }: Charac
                       size="sm"
                       className="char-heal-btn"
                       onClick={applyHeal}
+                      title="Apply heal"
+                      aria-label="Heal"
                     >
-                      Heal
+                      <Plus size={13} style={{ strokeWidth: 3 }} />
                     </Button>
                   </div>
                 </div>

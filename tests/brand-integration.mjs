@@ -157,15 +157,15 @@ await act(async () => {
 
 const brandImgs = appRender.root.findAllByType('img').filter(img => img.props.alt === 'Archeron' || img.props.alt === 'Planarch');
 assert.ok(brandImgs.length > 0, 'App failed to render brand image in DOM');
-assert.ok(brandImgs[0].props.src.endsWith('logo-horizontal-on-light.svg'), 'Wrong light brand logo in App');
-console.log('PASS app integration: App renders horizontal brand logo on light surface');
+assert.ok(brandImgs[0].props.src.endsWith('logo-horizontal-on-dark.svg'), 'Wrong dark brand logo in App');
+console.log('PASS app integration: App renders horizontal brand logo on dark surface');
 
-// Switch to dark theme via Settings and verify logo updates
+// Switch to another dark theme via Settings and verify logo remains dark
 const settingsBtn = appRender.root.findByProps({ 'aria-label': 'Settings & backup' });
 await act(async () => {
   settingsBtn.props.onClick();
 });
-const darkPaletteBtn = appRender.root.findAllByType('button').find(b => b.props['data-palette'] === 'mission-control');
+const darkPaletteBtn = appRender.root.findAllByType('button').find(b => b.props['data-palette'] === 'themberchaud');
 await act(async () => {
   darkPaletteBtn.props.onClick();
 });

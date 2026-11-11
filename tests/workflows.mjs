@@ -65,7 +65,7 @@ await change(field('New campaign name'),'Sagara');await click('Create and activa
 assert.equal(root().findAll(el=>el.props?.className?.includes?.('breadcrumb')).length,0);
 assert.equal(root().findAll(el=>text(el).includes('Ready to plan')).length,0);
 assert.equal(root().findAll(el=>el.props?.className==='campaign-status').length,0);
-assert.ok(root().findAllByType('div')[0].props.className.includes('theme-light'));await act(()=>field('Settings & backup').props.onClick());const darkBtn=root().findAllByType('button').find(b=>b.props['data-palette']==='mission-control');await act(()=>darkBtn.props.onClick());assert.equal(saved('wf-theme'),'mission-control');assert.ok(root().findAllByType('div')[0].props.className.includes('theme-dark'));const lightBtn=root().findAllByType('button').find(b=>b.props['data-palette']==='premium');await act(()=>lightBtn.props.onClick());assert.equal(saved('wf-theme'),'premium');await act(()=>field('Close dialog').props.onClick());
+assert.ok(root().findAllByType('div')[0].props.className.includes('theme-celeste'));await act(()=>field('Settings & backup').props.onClick());const darkBtn=root().findAllByType('button').find(b=>b.props['data-palette']==='themberchaud');await act(()=>darkBtn.props.onClick());assert.equal(saved('wf-theme'),'themberchaud');assert.ok(root().findAllByType('div')[0].props.className.includes('theme-dark'));const defaultBtn=root().findAllByType('button').find(b=>b.props['data-palette']==='celeste');await act(()=>defaultBtn.props.onClick());assert.equal(saved('wf-theme'),'celeste');await act(()=>field('Close dialog').props.onClick());
 console.log('PASS clean launch: no bundled campaign records; first campaign is created and activated');
 await click('Atmosphere Studio');await click('Add provider link');
 await change(root().findByProps({placeholder:'Rainy tavern · evening'}),'Storm soundtrack');
@@ -126,7 +126,7 @@ for(const [name,expected] of [['Test Spell [5.5e]','Casting Time'],['Test Blade'
 console.log('PASS XML schema and continuous D&D references for monsters, spells, items, classes, ancestries, feats and backgrounds');
 assert.equal(data.importIncluded,undefined);await assert.rejects(()=>data.restoreLibrary([{kind:'invalid'}],'bad.xml'));assert.equal((await data.readMeta()).generation,'test-generation');
 console.log('PASS failed import keeps the previous active compendium');
-await act(()=>field('Settings & backup').props.onClick());const darkBtn2=root().findAllByType('button').find(b=>b.props['data-palette']==='mission-control');await act(()=>darkBtn2.props.onClick());await act(()=>render.unmount());await act(async()=>{render=TestRenderer.create(React.createElement(App))});assert.ok(root().findAllByType('div')[0].props.className.includes('theme-dark'));await act(()=>render.unmount());console.log('PASS reload and theme persistence');
+await act(()=>field('Settings & backup').props.onClick());const darkBtn2=root().findAllByType('button').find(b=>b.props['data-palette']==='fulgur');await act(()=>darkBtn2.props.onClick());await act(()=>render.unmount());await act(async()=>{render=TestRenderer.create(React.createElement(App))});assert.ok(root().findAllByType('div')[0].props.className.includes('theme-fulgur'));await act(()=>render.unmount());console.log('PASS reload and theme persistence');
 await act(async()=>{render=TestRenderer.create(React.createElement(App))});
 assert.ok(field('Rename active campaign'));
 await act(()=>field('Rename active campaign').props.onClick());

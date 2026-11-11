@@ -27,31 +27,27 @@ const { PALETTES, resolvePalette } = await import(pathToFileURL(outJsPath).href)
 
 // 1. Validate PALETTES array
 assert.ok(Array.isArray(PALETTES), 'PALETTES must be an array');
-assert.equal(PALETTES.length, 8, 'PALETTES must contain exactly 8 palettes');
+assert.equal(PALETTES.length, 6, 'PALETTES must contain exactly 6 palettes');
 
 const expectedIds = [
-  'totality',
-  'futuristic',
-  'spacex',
-  'mission-control',
-  'apple',
-  'premium',
-  'cursor',
-  'ollama'
+  'themberchaud',
+  'fulgur',
+  'exanimo',
+  'celeste',
+  'lady-of-silver',
+  'kreldo'
 ];
 
 const foundIds = PALETTES.map(p => p.id);
 assert.deepEqual(foundIds, expectedIds, `Palette IDs must match expected: ${expectedIds.join(', ')}`);
 
 const darkPalettes = PALETTES.filter(p => p.mode === 'dark');
-const lightPalettes = PALETTES.filter(p => p.mode === 'light');
-assert.equal(darkPalettes.length, 4, 'Must have exactly 4 dark palettes');
-assert.equal(lightPalettes.length, 4, 'Must have exactly 4 light palettes');
+assert.equal(darkPalettes.length, 6, 'Must have 6 dark palettes');
 
 for (const palette of PALETTES) {
   assert.ok(typeof palette.id === 'string' && palette.id.length > 0, `Palette ${palette.id} missing id`);
   assert.ok(typeof palette.name === 'string' && palette.name.length > 0, `Palette ${palette.id} missing name`);
-  assert.ok(['dark', 'light'].includes(palette.mode), `Palette ${palette.id} mode must be dark or light`);
+  assert.equal(palette.mode, 'dark', `Palette ${palette.id} mode must be dark`);
   assert.ok(typeof palette.canvas === 'string' && palette.canvas.length > 0, `Palette ${palette.id} missing canvas`);
   assert.ok(typeof palette.surface === 'string' && palette.surface.length > 0, `Palette ${palette.id} missing surface`);
   assert.ok(typeof palette.text === 'string' && palette.text.length > 0, `Palette ${palette.id} missing text`);
@@ -62,77 +58,47 @@ for (const palette of PALETTES) {
 // 2. Validate exact colors according to brief
 const paletteMap = new Map(PALETTES.map(p => [p.id, p]));
 
-// Totality
-const totality = paletteMap.get('totality');
-assert.equal(totality.canvas, '#121318');
-assert.equal(totality.surface, '#1e1f25');
-assert.equal(totality.text, '#e3e1e9');
-assert.equal(totality.accent, '#ffd700');
+const themberchaud = paletteMap.get('themberchaud');
+assert.equal(themberchaud.surface, '#304352');
+assert.equal(themberchaud.text, '#eebd83');
+assert.equal(themberchaud.accent, '#f7a653');
 
-// Futuristic
-const futuristic = paletteMap.get('futuristic');
-assert.equal(futuristic.canvas, '#090b12');
-assert.equal(futuristic.surface, '#121722');
-assert.equal(futuristic.text, '#f8fafc');
-assert.equal(futuristic.accent, '#3b82f6');
+const fulgur = paletteMap.get('fulgur');
+assert.equal(fulgur.surface, '#1a284b');
+assert.equal(fulgur.accent, '#c3a7e3');
+assert.equal(fulgur.secondary, '#4f95b1');
 
-// SpaceX
-const spacex = paletteMap.get('spacex');
-assert.equal(spacex.canvas, '#000000');
-assert.equal(spacex.surface, '#000000');
-assert.equal(spacex.text, '#f0f0fa');
-assert.equal(spacex.accent, '#f0f0fa');
+const exanimo = paletteMap.get('exanimo');
+assert.equal(exanimo.canvas, '#0f0f0f');
+assert.equal(exanimo.text, '#f5f0e6');
+assert.equal(exanimo.secondary, '#5d3fd3');
 
-// Mission Control
-const missionControl = paletteMap.get('mission-control');
-assert.equal(missionControl.canvas, '#0b1120');
-assert.equal(missionControl.surface, '#111827');
-assert.equal(missionControl.text, '#e8f0fe');
-assert.equal(missionControl.accent, '#ffb800');
+const celeste = paletteMap.get('celeste');
+assert.equal(celeste.surface, '#1a2342');
+assert.equal(celeste.text, '#e4d3b4');
+assert.equal(celeste.accent, '#c2a368');
 
-// Apple
-const apple = paletteMap.get('apple');
-assert.equal(apple.canvas, '#ffffff');
-assert.equal(apple.surface, '#f5f5f7');
-assert.equal(apple.text, '#1d1d1f');
-assert.equal(apple.accent, '#0071e3');
+const ladyOfSilver = paletteMap.get('lady-of-silver');
+assert.equal(ladyOfSilver.canvas, '#181818');
+assert.equal(ladyOfSilver.surface, '#282828');
+assert.equal(ladyOfSilver.text, '#b8b0b0');
+assert.equal(ladyOfSilver.accent, '#b8b0a0');
 
-// Premium
-const premium = paletteMap.get('premium');
-assert.equal(premium.canvas, '#faf8f4');
-assert.equal(premium.surface, '#ffffff');
-assert.equal(premium.text, '#1c1b19');
-assert.equal(premium.accent, '#a06a3b');
-
-// Cursor
-const cursor = paletteMap.get('cursor');
-assert.equal(cursor.canvas, '#f2f1ed');
-assert.equal(cursor.surface, '#e6e5e0');
-assert.equal(cursor.text, '#26251e');
-assert.equal(cursor.accent, '#f54e00');
-
-// Ollama
-const ollama = paletteMap.get('ollama');
-assert.equal(ollama.canvas, '#ffffff');
-assert.equal(ollama.surface, '#fafafa');
-assert.equal(ollama.text, '#000000');
-assert.equal(ollama.accent, '#000000');
+const kreldo = paletteMap.get('kreldo');
+assert.equal(kreldo.canvas, '#060d08');
+assert.equal(kreldo.surface, '#1d2a10');
+assert.equal(kreldo.accent, '#cd8a39');
 
 // 3. Test resolvePalette
-assert.equal(resolvePalette('dark').id, 'mission-control', "resolvePalette('dark') must return mission-control");
-assert.equal(resolvePalette('light').id, 'premium', "resolvePalette('light') must return premium");
-assert.equal(resolvePalette('totality').id, 'totality', "resolvePalette('totality') must return totality");
-assert.equal(resolvePalette('futuristic').id, 'futuristic', "resolvePalette('futuristic') must return futuristic");
-assert.equal(resolvePalette('spacex').id, 'spacex', "resolvePalette('spacex') must return spacex");
-assert.equal(resolvePalette('mission-control').id, 'mission-control', "resolvePalette('mission-control') must return mission-control");
-assert.equal(resolvePalette('apple').id, 'apple', "resolvePalette('apple') must return apple");
-assert.equal(resolvePalette('premium').id, 'premium', "resolvePalette('premium') must return premium");
-assert.equal(resolvePalette('cursor').id, 'cursor', "resolvePalette('cursor') must return cursor");
-assert.equal(resolvePalette('ollama').id, 'ollama', "resolvePalette('ollama') must return ollama");
-assert.equal(resolvePalette(null).id, 'premium', "resolvePalette(null) must return default premium");
-assert.equal(resolvePalette(undefined).id, 'premium', "resolvePalette(undefined) must return default premium");
-assert.equal(resolvePalette('').id, 'premium', "resolvePalette('') must return default premium");
-assert.equal(resolvePalette('invalid-theme').id, 'premium', "resolvePalette('invalid-theme') must return default premium");
+assert.equal(resolvePalette('dark').id, 'celeste', "resolvePalette('dark') must return celeste");
+assert.equal(resolvePalette('light').id, 'celeste', "resolvePalette('light') must return celeste");
+for (const id of expectedIds) {
+  assert.equal(resolvePalette(id).id, id, `resolvePalette('${id}') must return ${id}`);
+}
+assert.equal(resolvePalette(null).id, 'celeste', "resolvePalette(null) must return default celeste");
+assert.equal(resolvePalette(undefined).id, 'celeste', "resolvePalette(undefined) must return default celeste");
+assert.equal(resolvePalette('').id, 'celeste', "resolvePalette('') must return default celeste");
+assert.equal(resolvePalette('invalid-theme').id, 'celeste', "resolvePalette('invalid-theme') must return default celeste");
 
 console.log('PASS palettes: TypeScript exports and resolution logic correct');
 
@@ -148,10 +114,10 @@ assert.ok(!palettesTsContent.includes('\u2014'), 'src/palettes.ts must not conta
 assert.ok(themeCss.includes('.theme-dark'), 'src/theme.css missing .theme-dark baseline');
 assert.ok(themeCss.includes('.theme-light'), 'src/theme.css missing .theme-light baseline');
 
-// Ensure each of the 8 palette classes exists
+// Ensure each of the 6 palette classes exists
 for (const id of expectedIds) {
   const className = `.theme-${id}`;
   assert.ok(themeCss.includes(className), `src/theme.css missing class ${className}`);
 }
 
-console.log('PASS theme.css: all 8 palette classes and baselines present without em dashes');
+console.log('PASS theme.css: all 6 palette classes and baselines present without em dashes');

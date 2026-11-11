@@ -1,6 +1,6 @@
 import type { CompendiumRecord, FieldValue } from './compendiumData';
 import { plain } from './compendiumData';
-import { type WikiPage, uid, seedPages } from './models';
+import { type WikiPage, uid } from './models';
 import { writeSavedValue } from './storage';
 
 export function readHomebrew(campaign: string): CompendiumRecord[] {
@@ -122,10 +122,10 @@ export function saveHomebrew(campaign: string, record: CompendiumRecord): { home
   let wikiPages: WikiPage[] = [];
   try {
     const raw = localStorage.getItem(wikiKey);
-    wikiPages = raw ? JSON.parse(raw) : seedPages(campaign);
-    if (!Array.isArray(wikiPages)) wikiPages = seedPages(campaign);
+    wikiPages = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(wikiPages)) wikiPages = [];
   } catch {
-    wikiPages = seedPages(campaign);
+    wikiPages = [];
   }
 
   const wikiTitle = record.name;

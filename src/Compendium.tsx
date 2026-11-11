@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {BookOpen,Search,Upload,Plus,ChevronLeft,ChevronRight,Check,Swords,RotateCcw,X,Sparkles} from 'lucide-react';
 import {useSaved} from './storage';
-import {uid,seedEncounters,type Encounter} from './models';
+import {uid,type Encounter} from './models';
 import {kinds,readMeta,readRecord,writeBatch,activateLibrary,deleteGeneration,indexRecord,monsterToCombatant,plain,isCompendiumDirty,type LibraryMeta,type CompendiumRecord,type EntryIndex,type FieldValue} from './compendiumData';
 import {getCloudState,subscribeCloud,getCloudCompendiumMeta,getCloudCompendiumRecord,type CloudState} from './supabaseCloud';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from './select';
@@ -161,7 +161,7 @@ function parseSpellLevel(summary: string): number | null {
 export default function Compendium({campaign,campaignLabel,focus,onFocusHandled,notify}:{campaign:string,campaignLabel?:string,focus?:string,onFocusHandled?:()=>void,notify:(message:string)=>void}){
  const [meta,setMeta]=useState<LibraryMeta|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[progress,setProgress]=useState([0,0]),[error,setError]=useState(''),[kind,setKind]=useState('All'),[edition,setEdition]=useState('All'),[query,setQuery]=useState(''),[debouncedQuery,setDebouncedQuery]=useState(''),[page,setPage]=useState(0),[selected,setSelected]=useState(''),[record,setRecord]=useState<CompendiumRecord|null>(null),[encounterId,setEncounterId]=useState('');
  const [monsterCR,setMonsterCR]=useState('All'),[monsterType,setMonsterType]=useState('All'),[spellLevel,setSpellLevel]=useState('All'),[spellClass,setSpellClass]=useState('All'),[itemRarity,setItemRarity]=useState('All'),[itemType,setItemType]=useState('All'),[sort,setSort]=useState('name-asc');
- const [encounters,setEncounters]=useSaved<Encounter[]>(`wf-encounters:${campaign}`,seedEncounters(campaign));
+ const [encounters,setEncounters]=useSaved<Encounter[]>(`wf-encounters:${campaign}`,[]);
  const [homebrew,setHomebrew]=useState<CompendiumRecord[]>(()=>readHomebrew(campaign));
  const [homebrewModalOpen,setHomebrewModalOpen]=useState(false);
  const [editingHomebrew,setEditingHomebrew]=useState<CompendiumRecord|null>(null);

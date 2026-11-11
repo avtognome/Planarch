@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, type ReactNode } from 'react';
 import { Plus, Search, Save, Trash2, Play, Swords, Users, BookOpen, Check, ArrowUpRight, Copy, Dices, Upload, ImagePlus, Sparkles, ChevronUp, ChevronDown, Crop } from 'lucide-react';
 import { useSaved } from './storage';
-import { uid, seedEncounters, seedCharacters, seedPages, type Encounter, type Character, type WikiPage, type WikiImage, type Combatant, type Ruleset } from './models';
+import { uid, type Encounter, type Character, type WikiPage, type WikiImage, type Combatant, type Ruleset } from './models';
 import { monsterToCombatant, readLibraryRecords, readMeta } from './compendiumData';
 import { getCloudCompendiumMeta, getCloudCompendiumRecords } from './supabaseCloud';
 import { crToXP, difficulties, evaluateEncounter, randomizeMonsterRecords, recordXP } from './encounterBalance';
@@ -20,8 +20,8 @@ function Empty({ title, text }: { title: string, text: string ;}) { return <div 
 export default function CampaignTools(props: Props) { return props.page === 'Encounters' ? <Encounters {...props} /> : props.page === 'Characters & NPCs' ? <Characters {...props} /> : <Wiki {...props} /> ;}
 
 function Encounters({ campaign, onStart, onUpdate, activeEncounterId, battleActive, notify, onReference }: Props) {
-  const [items, setItems] = useSaved<Encounter[]>(`wf-encounters:${campaign}`, seedEncounters(campaign));
-  const [characters] = useSaved<Character[]>(`wf-characters:${campaign}`, seedCharacters(campaign));
+  const [items, setItems] = useSaved<Encounter[]>(`wf-encounters:${campaign}`, []);
+  const [characters] = useSaved<Character[]>(`wf-characters:${campaign}`, []);
   const [selected, setSelected] = useState(items[0]?.id || ''), [query, setQuery] = useState(''), [filter, setFilter] = useState('All'), [importError, setImportError] = useState(''), [randomizing, setRandomizing] = useState(false), [balanceError, setBalanceError] = useState(''), [pickerOpen, setPickerOpen] = useState(false), [compendiumMeta, setCompendiumMeta] = useState<{ generation: string; index: EntryIndex[] } | null>(null);
   const [homebrewMonsters, setHomebrewMonsters] = useState<CompendiumRecord[]>(() => readHomebrew(campaign).filter(r => r.kind === 'monster'));
 
@@ -154,7 +154,7 @@ function Encounters({ campaign, onStart, onUpdate, activeEncounterId, battleActi
 }
 
 function Characters({ campaign, campaignLabel, notify }: Props) {
-  const [items, setItems] = useSaved<Character[]>(`wf-characters:${campaign}`, seedCharacters(campaign));
+  const [items, setItems] = useSaved<Character[]>(`wf-characters:${campaign}`, []);
   const [selected, setSelected] = useState(items[0]?.id || '');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('All');
@@ -168,7 +168,7 @@ function Characters({ campaign, campaignLabel, notify }: Props) {
 }
 
 function Wiki({ campaign, notify }: Props) {
-  const [items, setItems] = useSaved<WikiPage[]>(`wf-wiki:${campaign}`, seedPages(campaign)); const [selected, setSelected] = useState(items[0]?.id || ''), [query, setQuery] = useState(''), [category, setCategory] = useState('All'), [view, setView] = useState('Edit'), [imageBusy, setImageBusy] = useState(false), [selectMode, setSelectMode] = useState(false), [selectedIds, setSelectedIds] = useState<Set<string>>(new Set()), [bulkConfirm, setBulkConfirm] = useState(false); const bodyRef = useRef<HTMLTextAreaElement>(null), item = items.find(p => p.id === selected), categories = ['Location', 'Lore', 'Faction', 'Item', 'Session log'];
+  const [items, setItems] = useSaved<WikiPage[]>(`wf-wiki:${campaign}`, []); const [selected, setSelected] = useState(items[0]?.id || ''), [query, setQuery] = useState(''), [category, setCategory] = useState('All'), [view, setView] = useState('Edit'), [imageBusy, setImageBusy] = useState(false), [selectMode, setSelectMode] = useState(false), [selectedIds, setSelectedIds] = useState<Set<string>>(new Set()), [bulkConfirm, setBulkConfirm] = useState(false); const bodyRef = useRef<HTMLTextAreaElement>(null), item = items.find(p => p.id === selected), categories = ['Location', 'Lore', 'Faction', 'Item', 'Session log'];
   const [wikiCropQueue, setWikiCropQueue] = useState<File[]>([]);
   const update = (patch: Partial<WikiPage>) => setItems(items.map(p => p.id === selected ? { ...p, ...patch, updated: new Date().toISOString() } : p));
   const add = () => { const p: WikiPage = { id: uid(), title: 'Untitled page', category: 'Lore', body: '', tags: '', updated: new Date().toISOString(), images: [] }; setItems([...items, p]); setSelected(p.id); setView('Edit') ;};

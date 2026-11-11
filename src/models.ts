@@ -144,6 +144,3 @@ export type Character = {
 export type WikiImage={id:string,name:string,data:string,caption:string};
 export type WikiPage={id:string,title:string,category:string,body:string,tags:string,updated:string,thumbnail?:string,images?:WikiImage[]};
 export const uid=()=>crypto.randomUUID();
-export const seedEncounters=(_campaign:string):Encounter[]=>[];
-export const seedCharacters=(_campaign:string):Character[]=>[];
-export const seedPages=(_campaign:string):WikiPage[]=>[];

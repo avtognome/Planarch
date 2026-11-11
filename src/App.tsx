@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useState, useEffect, useRef } from 'react';
 import { Compass, LayoutDashboard, Headphones, Swords, BookOpen, Users, Dices, Settings, Search, ChevronDown, ChevronUp, ArrowUpRight, Play, Pause, Volume2, VolumeX, Plus, Grip, MoreHorizontal, Check, Save, X, Music, SlidersHorizontal, PanelTop, RotateCcw, Download, Trash2, PanelLeftClose, PanelLeft, SkipForward, Shield, Eye, Lock, Unlock, ArrowUp, ArrowDown, ExternalLink, Shrink, Edit2, Sun, Moon } from 'lucide-react';
-import { type Character, seedCharacters } from './models';
+import { type Character } from './models';
 import { PALETTES, resolvePalette, type PaletteId } from './palettes';
 import './style.css';
 import './features.css';
@@ -25,7 +25,7 @@ import { Slider as ShadcnSlider } from './components/ui/slider';
 import { bootSupabase } from './supabaseCloud';
 import { saveAudio, readAudio } from './cloudFiles';
 import { parseProviderSource, type Scene } from './sources';
-import { seedEncounters, seedPages, uid, type Combatant, type Encounter, type WikiPage } from './models';
+import { uid, type Combatant, type Encounter, type WikiPage } from './models';
 import { cleanBundledCampaignTemplates } from './campaigns';
 const scenes: Scene[] = [{ name: 'The Drowned Coast', tag: 'EXPLORATION', art: 'coast', desc: 'Salt in the air. Something beneath the waves.', layers: [72, 36, 48, 0] }, { name: 'Whispers in the Pines', tag: 'EXPLORATION', art: 'forest', desc: 'An old path through an older forest.', layers: [12, 68, 0, 0] }, { name: 'The Last Hearth', tag: 'ROLEPLAY', art: 'tavern', desc: 'Warm fire. Cold ale. Familiar strangers.', layers: [0, 0, 0, 76] }, { name: 'Beneath the Ruins', tag: 'TENSION', art: 'ruins', desc: 'The silence here has a weight of its own.', layers: [20, 45, 0, 15] }, { name: 'A Storm Approaches', tag: 'COMBAT', art: 'storm', desc: 'A dark horizon. Nowhere left to run.', layers: [90, 80, 50, 0] }];
 const campaignPrefixes = ['encounters', 'characters', 'wiki', 'homebrew', 'battle', 'battle-title', 'battle-id', 'battle-active', 'note', 'round', 'turn', 'hp'];
@@ -185,7 +185,7 @@ export default function App() {
         setTurn(activeIndex >= 0 ? activeIndex : Math.min(turn, Math.max(0, next.length - 1)));
         notify(`${e.name} roster updated · HP and round ${round} preserved`);
     };
-    const endEncounter = () => { const key = `wf-encounters:${campaign}`; const stored: Encounter[] = JSON.parse(localStorage.getItem(key) || 'null') || seedEncounters(campaign); writeSavedValue(key, stored.map(e => e.id === battleId ? { ...e, status: 'Completed' } : e)); const defeated = battle.filter(m => m.role === 'Monster' && m.hp === 0).map(m => m.name); const log = `${battleTitle} ended after ${round} rounds.\nDefeated monsters: ${defeated.join(', ') || 'None recorded'}.`; setNote(note + '\n\n' + log); const wikiKey = `wf-wiki:${campaign}`, pages: WikiPage[] = JSON.parse(localStorage.getItem(wikiKey) || 'null') || seedPages(campaign); writeSavedValue(wikiKey, [...pages, { id: uid(), title: battleTitle + ' · Encounter log', category: 'Session log', body: log, tags: 'combat', updated: new Date().toISOString() }]); setBattleActive(false); setBattle([]); setBattleTitle('No active encounter'); setBattleId(''); setRound(1); setTurn(0); notify('Encounter ended; session journal and wiki log updated'); };
+    const endEncounter = () => { const key = `wf-encounters:${campaign}`; const stored: Encounter[] = JSON.parse(localStorage.getItem(key) || 'null') || []; writeSavedValue(key, stored.map(e => e.id === battleId ? { ...e, status: 'Completed' } : e)); const defeated = battle.filter(m => m.role === 'Monster' && m.hp === 0).map(m => m.name); const log = `${battleTitle} ended after ${round} rounds.\nDefeated monsters: ${defeated.join(', ') || 'None recorded'}.`; setNote(note + '\n\n' + log); const wikiKey = `wf-wiki:${campaign}`, pages: WikiPage[] = JSON.parse(localStorage.getItem(wikiKey) || 'null') || []; writeSavedValue(wikiKey, [...pages, { id: uid(), title: battleTitle + ' · Encounter log', category: 'Session log', body: log, tags: 'combat', updated: new Date().toISOString() }]); setBattleActive(false); setBattle([]); setBattleTitle('No active encounter'); setBattleId(''); setRound(1); setTurn(0); notify('Encounter ended; session journal and wiki log updated'); };
     const advanceTurn = () => {
         if (!battle.length)
             return;

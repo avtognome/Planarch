@@ -87,10 +87,10 @@ for (const pageName of campaignPages) {
   assert.equal(heroBadges.length, 0, `Decorative header badge subtle must be absent on ${pageName}`);
 }
 
-// Atmosphere Studio eyebrow remains "ATMOSPHERE STUDIO" and retains in-content badge
+// Atmosphere Studio eyebrow displays active campaignLabel and retains in-content badge
 await navigateTo('Atmosphere Studio');
 const studioEyebrow = root.find(el => typeof el.props?.className === 'string' && el.props.className.includes('campaign-hero-eyebrow'));
-assert.equal(studioEyebrow.props.children, 'ATMOSPHERE STUDIO', 'Atmosphere Studio eyebrow must remain ATMOSPHERE STUDIO');
+assert.equal(studioEyebrow.props.children, 'Sagara', 'Atmosphere Studio eyebrow must equal active campaignLabel');
 const studioBadges = root.findAll(el => typeof el.props?.className === 'string' && el.props.className.includes('badge') && el.props.className.includes('subtle') && typeof el.props?.children === 'string' && el.props.children.includes('Campaign + global'));
 assert.ok(studioBadges.length > 0, 'Atmosphere Studio in-content badge "Campaign + global" must still exist');
 

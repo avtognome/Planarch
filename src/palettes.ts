@@ -21,35 +21,36 @@ export const PALETTES: PaletteDef[] = [
     id: 'charcoal',
     name: 'Charcoal',
     mode: 'dark',
-    canvas: '#101010',
-    surface: '#272727',
-    surfaceWarm: '#393939',
+    canvas: '#17191a',
+    surface: '#222527',
+    surfaceWarm: '#2c3033',
     text: '#f2f2f2',
-    muted: '#8c8c8c',
-    border: 'transparent',
+    muted: '#a1a1aa',
+    border: '#383c40',
     accent: '#f2f2f2',
-    secondary: '#393939',
-    swatches: ['#000000', '#101010', '#171717', '#272727', '#393939', '#f2f2f2'],
-    description: 'Pure carbon canvas, graphite panels, pitch black accents, and crisp chalk white text.'
+    secondary: '#2c3033',
+    swatches: ['#101214', '#17191a', '#222527', '#2c3033', '#a1a1aa', '#f2f2f2'],
+    description: 'Modern dark slate canvas, elevated graphite panels, and crisp chalk text.'
   }
 ];
 
-// ponytail: fallback to charcoal always. Supports 'light' inverted mode.
+// ponytail: fallback to charcoal always. Supports 'light' alabaster mode.
 export function resolvePalette(raw: string | null | undefined): PaletteDef {
   const base = PALETTES[0];
   if (raw === 'light') {
     return {
       ...base,
       mode: 'light',
-      canvas: '#f2f2f2',
-      surface: '#e5e5e5',
-      surfaceWarm: '#d4d4d4',
-      text: '#101010',
-      muted: '#525252',
-      accent: '#101010',
-      secondary: '#d4d4d4',
-      swatches: ['#ffffff', '#f2f2f2', '#e5e5e5', '#d4d4d4', '#525252', '#101010'],
-      description: 'Crisp inverted chalk canvas, elevated platinum panels, and pure charcoal text.'
+      canvas: '#f8fafc',
+      surface: '#ffffff',
+      surfaceWarm: '#f1f5f9',
+      text: '#0f172a',
+      muted: '#64748b',
+      border: '#e2e8f0',
+      accent: '#0f172a',
+      secondary: '#e2e8f0',
+      swatches: ['#ffffff', '#f8fafc', '#f1f5f9', '#e2e8f0', '#64748b', '#0f172a'],
+      description: 'Crisp alabaster canvas, pure white cards, subtle slate borders, and deep ink text.'
     };
   }
   return base;

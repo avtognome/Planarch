@@ -146,4 +146,23 @@ await act(async () => {
 const trackNumsAfterDelete = appRoot.findAll(el => el.props?.className && typeof el.props.className === 'string' && el.props.className.includes('layer-track-num'));
 assert.equal(trackNumsAfterDelete.length, 4, 'Track numbers should return to 4 after deleting a layer');
 
+// 3. Verify Music channel inside .source-panel, custom local audio controls, no "Mix autosaved locally", and collapsible Live Mixer
+const sourcePanel = appRoot.find(el => typeof el.props?.className === 'string' && el.props.className.split(/\s+/).includes('source-panel'));
+const musicSliderInSource = sourcePanel.findByProps({ 'aria-label': 'Music volume' });
+assert.ok(musicSliderInSource, 'Music volume slider must be inside .source-panel');
+
+const customLocalPlayer = sourcePanel.findByProps({ 'aria-label': 'Custom local audio controls' });
+assert.ok(customLocalPlayer, 'Custom local audio controls must exist in .source-panel');
+
+const autosavedNote = appRoot.findAll(el => typeof el.props?.children === 'string' && el.props.children.includes('Mix autosaved locally'));
+assert.equal(autosavedNote.length, 0, '"Mix autosaved locally" text must be removed');
+
+const collapseMixerBtn = appRoot.findByProps({ 'aria-label': 'Collapse live mixer' });
+assert.ok(collapseMixerBtn, 'Collapse live mixer button must exist');
+await act(async () => {
+  collapseMixerBtn.props.onClick();
+});
+const collapsedGrid = appRoot.findAll(el => typeof el.props?.className === 'string' && el.props.className.includes('mixer-collapsed'));
+assert.equal(collapsedGrid.length, 1, 'studio-grid must have mixer-collapsed class when collapsed');
+
 console.log('✓ Atmosphere Studio Dynamic Layers & Session Dock tests passed!');

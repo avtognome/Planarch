@@ -1,25 +1,51 @@
 import * as React from "react";
-import * as SliderPrimitive from "@radix-ui/react-slider";
 import { cn } from "@/lib/utils";
 
-const Slider = React.forwardRef<
-  React.ElementRef<typeof SliderPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <SliderPrimitive.Root
-    ref={ref}
-    className={cn(
-      "relative flex w-full touch-none select-none items-center",
-      className
-    )}
-    {...props}
-  >
-    <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-      <SliderPrimitive.Range className="absolute h-full bg-amber-500" />
-    </SliderPrimitive.Track>
-    <SliderPrimitive.Thumb className="block h-4 w-4 rounded-full border border-amber-500/50 bg-white dark:bg-slate-900 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500 disabled:pointer-events-none disabled:opacity-50 cursor-pointer" />
-  </SliderPrimitive.Root>
-));
-Slider.displayName = SliderPrimitive.Root.displayName;
+export interface SliderProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "defaultValue"> {
+  value?: number[] | number;
+  defaultValue?: number[] | number;
+  onValueChange?: (value: number[]) => void;
+}
+
+const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
+  ({ className, value, defaultValue, min = 0, max = 100, step = 1, onValueChange, onChange, ...props }, ref) => {
+    const numVal = Array.isArray(value)
+      ? (value[0] ?? 0)
+      : typeof value === "number"
+      ? value
+      : Array.isArray(defaultValue)
+      ? (defaultValue[0] ?? 0)
+      : typeof defaultValue === "number"
+      ? defaultValue
+      : 0;
+    const minNum = Number(min) || 0;
+    const maxNum = Number(max) || 100;
+    const pct = maxNum > minNum ? Math.min(100, Math.max(0, ((numVal - minNum) / (maxNum - minNum)) * 100)) : 0;
+
+    return (
+      <div className={cn("shadcn-slider-wrap relative flex w-full touch-none select-none items-center", className)}>
+        <div className="shadcn-slider-track">
+          <div className="shadcn-slider-range" style={{ width: `${pct}%` }} />
+        </div>
+        <input
+          ref={ref}
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={numVal}
+          onChange={(e) => {
+            onChange?.(e);
+            onValueChange?.([Number(e.target.value)]);
+          }}
+          className="shadcn-slider-input"
+          {...props}
+        />
+      </div>
+    );
+  }
+);
+Slider.displayName = "Slider";
 
 export { Slider };

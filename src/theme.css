@@ -261,8 +261,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .scene-wrapper .scene-card.chosen{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 4px 16px rgba(0,0,0,0.06)}
 .scene-wrapper .scene-deck-actions{top:50%;right:38px;transform:translateY(-50%)}
 .scene-wrapper .scene-deck-actions button{background:var(--panel);border-color:var(--accent);color:var(--accent);border-radius:6px}
-.scene-wrapper .scene-remove{top:50%;right:8px;transform:translateY(-50%);background:var(--panel);border-color:var(--line);color:#f87171;border-radius:6px}
-.scene-wrapper:has(.scene-deck-actions) .scene-card{padding-right:105px}.scene-wrapper:has(.scene-remove):not(:has(.scene-deck-actions)) .scene-card{padding-right:38px}
+.scene-card-actions{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;gap:4px}.scene-card-actions .icon-button{position:static;transform:none;background:var(--panel);border:1px solid var(--line);border-radius:6px}.scene-card-actions .scene-remove{color:var(--status-red)}
+.scene-wrapper:has(.scene-deck-actions) .scene-card{padding-right:138px}.scene-wrapper:has(.scene-card-actions):not(:has(.scene-deck-actions)) .scene-card{padding-right:70px}
 .studio-console .console-art{display:none}.studio-console>h2{margin-top:22px}
 .studio-grid.mixer-collapsed{grid-template-columns:1fr!important}
 .studio-console.collapsed{order:-1;padding:12px 16px;position:static}

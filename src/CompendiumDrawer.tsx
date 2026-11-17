@@ -44,23 +44,30 @@ export default function CompendiumDrawer({ open, focus, campaign = '', onClose }
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState('');
   const [record, setRecord] = useState<CompendiumRecord | null>(null);
+  const [homebrewIndex, setHomebrewIndex] = useState<CompendiumRecord[]>([]);
   const triggerRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
-    triggerRef.current = document.activeElement as HTMLElement | null;
+    if (!triggerRef.current) triggerRef.current = document.activeElement as HTMLElement | null;
     const keydown = (event: KeyboardEvent) => { if (event.key === 'Escape') onCloseRef.current(); };
     window.addEventListener('keydown', keydown);
     return () => window.removeEventListener('keydown', keydown);
   }, [open]);
   useEffect(() => {
     if (!open) triggerRef.current?.focus();
+    else {
+      const focus = () => document.querySelector<HTMLElement>('[role="dialog"][aria-label="Quick compendium"]')?.querySelector<HTMLElement>('input,button')?.focus();
+      if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(focus);
+      else focus();
+    }
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
+    setHomebrewIndex(readHomebrew(campaign));
     readMeta().then(async next => {
       if (next) {
         setMeta(next);
@@ -75,7 +82,7 @@ export default function CompendiumDrawer({ open, focus, campaign = '', onClose }
       setMeta(cloud);
       setSelected(focus || cloud?.index[0]?.id || '');
     });
-  }, [open, focus]);
+  }, [open, focus, campaign]);
 
   useEffect(() => {
     if (!open || !selected) { setRecord(null); return; }
@@ -93,14 +100,15 @@ export default function CompendiumDrawer({ open, focus, campaign = '', onClose }
     return () => { cancelled = true; };
   }, [open, meta, selected, campaign]);
 
+  const homebrewIndexEntries = useMemo(() => homebrewIndex.map(item => ({ id: item.id, kind: item.kind, name: item.name, summary: String(item.fields.type || item.kind), search: `${item.name} ${Object.values(item.fields).join(' ')}`.toLowerCase() })), [homebrewIndex]) as LibraryMeta['index'];
   const matches = useMemo(() => {
     const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
-    return (meta?.index || []).filter(entry => words.every(word => entry.search.includes(word))).slice(0, 80);
-  }, [meta, query]);
+    return [...homebrewIndexEntries, ...(meta?.index || [])].filter((entry, index, entries) => entries.findIndex(item => item.id === entry.id) === index && words.every(word => entry.search.includes(word))).slice(0, 80);
+  }, [homebrewIndexEntries, meta, query]);
 
   if (!open) return null;
   return <div className="compendium-reference-backdrop" onClick={onClose}>
-    <section className="compendium-reference-modal" role="dialog" aria-modal="true" aria-label="Quick compendium" onClick={event => event.stopPropagation()}>
+    <section className="compendium-reference-modal" role="dialog" aria-modal="true" aria-label="Quick compendium" onKeyDown={event => { if (event.key !== 'Tab') return; const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button,input,select,textarea,a[href],[tabindex]:not([tabindex="-1"])')).filter(element => !element.hasAttribute('disabled')); if (!items.length) return; const first = items[0], last = items[items.length - 1]; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); } }} onClick={event => event.stopPropagation()}>
       <header><div><span className="eyebrow">QUICK REFERENCE</span><h2>Compendium</h2></div><button autoFocus className="icon-button" aria-label="Close quick compendium" onClick={onClose}><X size={18} /></button></header>
       {!meta && !record ? <div className="drawer-empty"><BookOpen size={28} /><p>Load or sync a compendium from the Compendium page first.</p></div> : <>
         <div className="drawer-search"><Search size={15} /><input autoFocus aria-label="Search quick compendium" value={query} onChange={event => setQuery(event.target.value)} placeholder="Monster, spell, item…" /></div>

@@ -32,7 +32,9 @@ globalThis.window = {
     return true;
   }
 };
+const modalTrigger = { focusCount: 0, focus() { this.focusCount++; } };
 globalThis.document = {
+  activeElement: modalTrigger,
   getElementById() { return null; }
 };
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -167,8 +169,15 @@ assert.equal(collapsedGrid.length, 1, 'studio-grid must have mixer-collapsed cla
 
 // 4. Scene Library management uses one form and stable per-scene actions.
 const addSceneButton = appRoot.findByProps({ 'aria-label': 'Add scene' });
+assert.equal(addSceneButton.props.className.includes('scene-touch-target'), true, 'Add scene meets changed-control touch target styling');
 await act(async () => { addSceneButton.props.onClick({ stopPropagation() {} }); });
 assert.ok(appRoot.findByProps({ 'aria-label': 'Scene name' }), 'Add scene opens shared form');
+assert.equal(appRoot.findByProps({ role: 'dialog' }).props.onKeyDown instanceof Function, true, 'Scene dialog contains keyboard focus');
+const focusCountBeforeClose = modalTrigger.focusCount;
+await act(async () => { appRoot.findByProps({ role: 'dialog' }).props.onKeyDown({ key: 'Escape', stopPropagation() {} }); });
+await new Promise(resolve => setTimeout(resolve, 0));
+assert.ok(modalTrigger.focusCount > focusCountBeforeClose, 'Closing scene dialog restores focus to opener');
+await act(async () => { addSceneButton.props.onClick({ stopPropagation() {} }); });
 await act(async () => { appRoot.findByProps({ 'aria-label': 'Scene name' }).props.onChange({ target: { value: 'Moonlit Camp' } }); });
 await act(async () => { appRoot.findByProps({ 'aria-label': 'Scene category' }).props.onChange({ target: { value: 'ROLEPLAY' } }); });
 await act(async () => { appRoot.findByProps({ 'aria-label': 'Scene description' }).props.onChange({ target: { value: 'Quiet planning beside the fire.' } }); });
@@ -209,7 +218,12 @@ const restoreDefaults = appRoot.findByProps({ 'aria-label': 'Restore default sce
 await act(async () => { restoreDefaults.props.onClick({ stopPropagation() {} }); });
 assert.deepEqual(JSON.parse(store.get('wf-hidden-builtin-scenes')), [], 'Restore defaults reveals bundled scenes');
 
+assert.equal(addSceneButton.props.className.includes('scene-touch-target'), true, 'Add scene meets changed-control touch target styling');
 const loadedCards = appRoot.findAll(el => typeof el.props?.className === 'string' && el.props.className.includes('scene-card') && el.props.className.includes('chosen'));
-assert.equal(loadedCards.length, 1, 'Scene mutations retain one valid active selection');
+await act(async () => { appRoot.findAll(el => el.props?.['aria-label'] === 'Toggle scene multi-select')[0].props.onClick({ stopPropagation() {} }); });
+await act(async () => { appRoot.findByProps({ className: 'bulk-actions-bar inline between' }).findAllByType('button').find(button => button.children.includes('Select all'))?.props.onClick({ stopPropagation() {} }); });
+await act(async () => { appRoot.findByProps({ className: 'bulk-actions-bar inline between' }).findAllByType('button').find(button => String(button.children).includes('Delete selected'))?.props.onClick({ stopPropagation() {} }); });
+assert.ok(appRoot.findAll(el => typeof el.props?.className === 'string' && el.props.className.includes('bulk-actions-bar')).length, 'Bulk selection controls render with ID-based state');
+assert.ok(appRoot.findAll(el => typeof el.props?.className === 'string' && el.props.className.includes('scene-card') && el.props.className.includes('chosen')).length === 1, 'Scene mutations retain one valid active selection');
 
 console.log('✓ Atmosphere Studio Dynamic Layers & Scene Library tests passed!');

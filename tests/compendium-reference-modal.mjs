@@ -53,7 +53,10 @@ await act(async () => {});
 const drawerRoot = drawer.root;
 assert.equal(drawerRoot.findByProps({ role: 'dialog' }).props.className.includes('compendium-reference-modal'), true, 'Reference renders as centered modal');
 assert.ok(drawerRoot.findAll(el => el.type === 'h2' && el.children.includes('Astral Weaver')).length, 'Focused homebrew loads without compendium metadata');
+assert.ok(drawerRoot.findAllByType('nav')[0].findAllByType('button').some(button => button.children.some(child => child?.children?.includes?.('Astral Weaver'))), 'Campaign homebrew appears in searchable reference index');
+assert.equal(drawerRoot.findByProps({ role: 'dialog' }).props.onKeyDown instanceof Function, true, 'Reference modal owns keyboard focus containment');
 
+globalThis.document.activeElement = { focus() {} };
 await act(async () => { window.dispatchEvent({ type: 'keydown', key: 'Escape' }); });
 assert.equal(closeCount, 1, 'Escape closes reference modal');
 await act(async () => { drawerRoot.findByProps({ 'aria-label': 'Close quick compendium' }).props.onClick(); });

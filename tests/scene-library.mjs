@@ -48,4 +48,10 @@ assert.equal(findSceneIndexById(records, 'custom:two'), 1, 'selection resolves m
 assert.equal(findSceneIndexById(records, 'missing'), 0, 'missing selection falls back to first scene');
 assert.equal(findSceneIndexById([], 'missing'), -1, 'empty library has no valid selection');
 
+const appSource = fs.readFileSync('src/App.tsx', 'utf8');
+assert.match(appSource, /id: 'builtin:the-drowned-coast'/, 'bundled scene identity is explicit and independent of display name');
+assert.doesNotMatch(appSource, /selectedSceneNames/, 'bulk selection stores stable scene IDs, not names');
+assert.match(appSource, /selectedSceneIds\.has\(s\.id!\)/, 'bulk checkbox state resolves by scene ID');
+assert.match(appSource, /baseVisibleBuiltinScenes\.length \|\| normalizedCustom\.length \? baseVisibleBuiltinScenes : scenes/, 'library restores bundled visibility instead of activating hidden fallback');
+
 console.log('PASS scene library identity and mutation helpers');

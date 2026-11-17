@@ -16,4 +16,4 @@ export function parseProviderSource(input:string):ProviderSource{
  }
  throw Error('Use a YouTube or Spotify source link.');
 }
-export type Scene={name:string,tag:string,art:string,desc:string,layers:number[],source?:ProviderSource,spotifyOriginal?:string};
+export type Scene={id?:string,name:string,tag:string,art:string,desc:string,layers:number[],source?:ProviderSource,spotifyOriginal?:string};

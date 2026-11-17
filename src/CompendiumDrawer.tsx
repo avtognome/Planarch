@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, Search, X, ChevronDown, ChevronRight, Shield, Heart, Zap } from 'lucide-react';
 import { plain, readMeta, readRecord, type CompendiumRecord, type LibraryMeta, type FieldValue } from './compendiumData';
 import { getCloudCompendiumMeta, getCloudCompendiumRecord } from './supabaseCloud';
 import { MonsterStatBlock, ReferenceStatBlock } from './Compendium';
+import { readHomebrew } from './homebrewData';
 
 const labels: Record<string, string> = {
   monster: 'Monster', spell: 'Spell', item: 'Item', class: 'Class',
@@ -38,11 +39,25 @@ function DrawerInteractiveText({ text }: { text: string }) {
   return <>{parts}</>;
 }
 
-export default function CompendiumDrawer({ open, focus, onClose }: { open: boolean; focus?: string; onClose: () => void }) {
+export default function CompendiumDrawer({ open, focus, campaign = '', onClose }: { open: boolean; focus?: string; campaign?: string; onClose: () => void }) {
   const [meta, setMeta] = useState<LibraryMeta | null>(null);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState('');
   const [record, setRecord] = useState<CompendiumRecord | null>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!open) return;
+    triggerRef.current = document.activeElement as HTMLElement | null;
+    const keydown = (event: KeyboardEvent) => { if (event.key === 'Escape') onCloseRef.current(); };
+    window.addEventListener('keydown', keydown);
+    return () => window.removeEventListener('keydown', keydown);
+  }, [open]);
+  useEffect(() => {
+    if (!open) triggerRef.current?.focus();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -63,19 +78,20 @@ export default function CompendiumDrawer({ open, focus, onClose }: { open: boole
   }, [open, focus]);
 
   useEffect(() => {
-    if (!open || !meta || !selected) { setRecord(null); return; }
+    if (!open || !selected) { setRecord(null); return; }
+    const homebrew = readHomebrew(campaign).find(item => item.id === selected);
+    if (homebrew) { setRecord(homebrew); return; }
     let cancelled = false;
-    readRecord(meta.generation, selected).then(async next => {
+    const load = async () => {
+      const local = meta ? await readRecord(meta.generation, selected).catch(() => null) : null;
       if (cancelled) return;
-      if (next) { setRecord(next); return; }
-      const cloudRec = await getCloudCompendiumRecord(selected).catch(() => null);
-      if (!cancelled) setRecord(cloudRec);
-    }).catch(async () => {
-      const cloudRec = await getCloudCompendiumRecord(selected).catch(() => null);
-      if (!cancelled) setRecord(cloudRec);
-    });
+      if (local) { setRecord(local); return; }
+      const cloud = await getCloudCompendiumRecord(selected).catch(() => null);
+      if (!cancelled) setRecord(cloud);
+    };
+    void load();
     return () => { cancelled = true; };
-  }, [open, meta, selected]);
+  }, [open, meta, selected, campaign]);
 
   const matches = useMemo(() => {
     const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
@@ -83,10 +99,10 @@ export default function CompendiumDrawer({ open, focus, onClose }: { open: boole
   }, [meta, query]);
 
   if (!open) return null;
-  return <div className="compendium-drawer-backdrop" onClick={onClose}>
-    <aside className="compendium-drawer" role="dialog" aria-modal="true" aria-label="Quick compendium" onClick={event => event.stopPropagation()}>
-      <header><div><span className="eyebrow">QUICK REFERENCE</span><h2>Compendium</h2></div><button className="icon-button" aria-label="Close quick compendium" onClick={onClose}><X size={18} /></button></header>
-      {!meta ? <div className="drawer-empty"><BookOpen size={28} /><p>Load or sync a compendium from the Compendium page first.</p></div> : <>
+  return <div className="compendium-reference-backdrop" onClick={onClose}>
+    <section className="compendium-reference-modal" role="dialog" aria-modal="true" aria-label="Quick compendium" onClick={event => event.stopPropagation()}>
+      <header><div><span className="eyebrow">QUICK REFERENCE</span><h2>Compendium</h2></div><button autoFocus className="icon-button" aria-label="Close quick compendium" onClick={onClose}><X size={18} /></button></header>
+      {!meta && !record ? <div className="drawer-empty"><BookOpen size={28} /><p>Load or sync a compendium from the Compendium page first.</p></div> : <>
         <div className="drawer-search"><Search size={15} /><input autoFocus aria-label="Search quick compendium" value={query} onChange={event => setQuery(event.target.value)} placeholder="Monster, spell, item…" /></div>
         <div className="drawer-layout">
           <nav>{matches.map(entry => <button key={entry.id} className={selected === entry.id ? 'selected' : ''} onClick={() => setSelected(entry.id)}><strong>{entry.name}</strong><small>{labels[entry.kind]} · {entry.summary}</small></button>)}</nav>
@@ -128,6 +144,6 @@ export default function CompendiumDrawer({ open, focus, onClose }: { open: boole
           </> : <div className="drawer-empty"><BookOpen size={24} /><p>Select a reference entry.</p></div>}</article>
         </div>
       </>}
-    </aside>
+    </section>
   </div>;
 }

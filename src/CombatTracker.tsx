@@ -14,7 +14,7 @@ type Props = {
   setRound: Dispatch<SetStateAction<number>>;
   turn: number;
   setTurn: Dispatch<SetStateAction<number>>;
-  onReference: (id: string) => void;
+  campaign?: string;
   onOpenEncounters: () => void;
   onEnd: () => void;
   notify: (message: string) => void;
@@ -22,7 +22,7 @@ type Props = {
 
 type Snapshot = { id: string; label: string; battle: Combatant[]; round: number; turn: number };
 
-export default function CombatTracker({ battle, setBattle, battleTitle, battleActive, round, setRound, turn, setTurn, onOpenEncounters, onEnd, notify }: Props) {
+export default function CombatTracker({ battle, setBattle, battleTitle, battleActive, round, setRound, turn, setTurn, campaign, onOpenEncounters, onEnd, notify }: Props) {
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [hpDrafts, setHpDrafts] = useState<Record<string, string>>({});
   const [initDrafts, setInitDrafts] = useState<Record<string, string>>({});
@@ -362,6 +362,6 @@ export default function CombatTracker({ battle, setBattle, battleTitle, battleAc
     {battle.length ? <><motion.div layout className="combat-list">{standing.map(row)}</motion.div>{defeated.length > 0 && <details className="defeated-list"><summary><X size={13} />{defeated.length} defeated</summary><div className="combat-list">{defeated.map(row)}</div></details>}<div className="combat-footer"><button className="secondary small" onClick={onOpenEncounters}><Plus size={14} />Manage roster</button><div className="inline"><button className="secondary" onClick={onEnd}>End encounter</button><button className="primary" disabled={!battleActive} onClick={nextTurn}>Next turn <SkipForward size={15} /></button></div></div></> : <div className="combat-empty"><Swords size={28} /><p>Start an encounter, then manage HP and initiative here without restarting the round.</p><button className="primary" onClick={onOpenEncounters}><Plus size={15} />Open encounters</button></div>}
 
     {commandOpen && <div className="command-backdrop" onClick={() => setCommandOpen(false)}><div className="command-palette" role="dialog" aria-modal="true" aria-label="Session command palette" onClick={event => event.stopPropagation()}><div className="command-input"><Command size={17} /><input ref={commandInput} autoFocus aria-label="Session command" value={command} onChange={event => setCommand(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') executeCommand(); if (event.key === 'Escape') setCommandOpen(false); }} placeholder="Goblin -7, Mira +5, Orc poisoned, roll 2d6+3…" /><kbd>Enter</kbd></div><div className="command-results">{commandSuggestions.map(item => <button key={item.command} onClick={() => executeCommand(item.command)}><strong>{item.label}</strong><small>{item.command}</small></button>)}</div><footer>Commands also support “Mira concentration Bless” and any custom condition.</footer></div></div>}
-    <CompendiumDrawer open={drawerOpen} focus={drawerFocus} onClose={() => setDrawerOpen(false)} />
+    <CompendiumDrawer open={drawerOpen} focus={drawerFocus} campaign={campaign} onClose={() => setDrawerOpen(false)} />
   </>;
 }

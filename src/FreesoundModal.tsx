@@ -136,8 +136,8 @@ export function FreesoundModal({ onClose, onSelectSound, targetLayerIndex }: Fre
         </div>
 
         {/* Search Input Bar */}
-        <div className="tool-search" style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: '8px', padding: '6px 12px', marginBottom: '12px' }}>
-          <Search size={16} style={{ color: 'var(--muted)', marginRight: '8px' }} />
+        <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: '8px', padding: '6px 12px', marginBottom: '12px', gap: '8px' }}>
+          <Search size={16} style={{ color: 'var(--muted)', flexShrink: 0 }} />
           <input
             type="text"
             aria-label="Search Freesound"
@@ -145,9 +145,9 @@ export function FreesoundModal({ onClose, onSelectSound, targetLayerIndex }: Fre
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            style={{ flex: 1, background: 'transparent', border: 0, color: 'var(--text-main)', fontSize: '13px', outline: 'none' }}
+            style={{ flex: 1, background: 'transparent', border: 0, color: 'var(--text-main)', fontSize: '13px', outline: 'none', margin: 0, padding: 0 }}
           />
-          <button className="primary" onClick={() => performSearch(query)} disabled={loading} style={{ padding: '4px 12px', fontSize: '13px' }}>
+          <button className="primary" onClick={() => performSearch(query)} disabled={loading} style={{ padding: '4px 12px', fontSize: '13px', flexShrink: 0 }}>
             {loading ? <Loader2 size={13} className="spin" /> : 'Search'}
           </button>
         </div>

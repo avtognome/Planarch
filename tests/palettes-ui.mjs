@@ -120,28 +120,19 @@ assert.ok(
 );
 console.log('PASS toggle back to dark mode: restored theme-charcoal theme-dark');
 
-// 8. Open Settings modal and verify only charcoal palette exists
+// 8. Open Settings modal and verify palette section is completely removed
 const settingsToggle = render.root.findByProps({ 'aria-label': 'Settings & backup' });
 await act(async () => {
   settingsToggle.props.onClick();
 });
 
-const charcoalBtn = render.root.findAllByType('button').find(b =>
-  b.props['data-palette'] === 'charcoal'
+const palettePickerSection = render.root.findAll(el => el.props?.className === 'palette-picker-section');
+assert.equal(palettePickerSection.length, 0, 'Settings modal must not render palette-picker-section');
+const anyPaletteBtn = render.root.findAllByType('button').find(b =>
+  b.props['data-palette'] !== undefined
 );
-assert.ok(charcoalBtn, 'Settings modal must render a button for palette charcoal');
-const swatches = charcoalBtn.findAll(el => el.props?.className === 'swatch-circle');
-assert.equal(swatches.length, 6, 'Palette card charcoal must render 6 swatch circles');
-
-// Verify deleted palettes are NOT rendered
-const removedPalettes = ['black-stallion', 'space-cadet', 'ceres', 'twinkle'];
-for (const id of removedPalettes) {
-  const removedBtn = render.root.findAllByType('button').find(b =>
-    b.props['data-palette'] === id
-  );
-  assert.equal(removedBtn, undefined, `Removed palette ${id} must not be rendered`);
-}
-console.log('PASS settings modal: only charcoal palette rendered with 6 swatches');
+assert.equal(anyPaletteBtn, undefined, 'Settings modal must not render any palette buttons');
+console.log('PASS settings modal: color palette section is completely removed');
 
 // 9. Test legacy 'dark' migration
 store.set('wf-theme', JSON.stringify('dark'));

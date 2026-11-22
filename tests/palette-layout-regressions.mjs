@@ -23,6 +23,11 @@ const searchInput = rule(theme, '.comp-spell-search input');
 assert.match(searchInput, /flex:1/, 'Spell search input consumes remaining row width');
 assert.match(searchInput, /min-width:0/, 'Spell search input may shrink without clipping');
 assert.match(searchInput, /width:auto/, 'Spell search input overrides global full width');
+assert.match(searchInput, /margin:0!important/, 'Spell search input resets margin');
+assert.match(searchInput, /background:transparent!important/, 'Spell search input resets background');
+
+const modalToolSearch = rule(theme, '.modal .tool-search input');
+assert.match(modalToolSearch, /margin-bottom:0!important/, 'Modal tool-search input resets bottom margin');
 
 const filters = rule(theme, '.comp-spell-filters');
 assert.match(filters, /grid-template-columns:minmax\(0,1\.5fr\)repeat\(3,minmax\(0,1fr\)\)/, 'Spell filters use zero-minimum grid tracks');

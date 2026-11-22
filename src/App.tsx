@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import React, { useState, useEffect, useRef } from 'react';
 import { Compass, LayoutDashboard, Headphones, Swords, BookOpen, Users, Dices, Settings, Search, ChevronDown, ChevronUp, ArrowUpRight, Play, Pause, Volume2, VolumeX, Plus, Grip, MoreHorizontal, Check, Save, X, Music, SlidersHorizontal, PanelTop, RotateCcw, Download, Trash2, PanelLeftClose, PanelLeft, SkipForward, Shield, Eye, Lock, Unlock, ArrowUp, ArrowDown, ExternalLink, Shrink, Edit2, Sun, Moon } from 'lucide-react';
 import { type Character } from './models';
-import { PALETTES, resolvePalette, type PaletteId } from './palettes';
+import { resolvePalette, type PaletteId } from './palettes';
 import './style.css';
 import './features.css';
 import './theme.css';
@@ -1071,7 +1071,7 @@ export default function App() {
                     setFilter('All scenes');
                     setModal('');
                     notify('Source added to atmosphere selection');
-                }}/> : modal === 'journal' ? <><h2>{campaignLabel} · Session notes</h2><textarea value={note} onChange={e => setNote(e.target.value)} aria-label="Expanded journal"/><small>Autosaved to this browser.</small></> : <><div className="settings-brand-header"><ArcheronBrand mode={theme} className="settings-brand-logo" alt="Archeron"/></div><h2>Your workspace</h2><div className="palette-picker-section"><h3>Theme & Palette</h3><div className="palette-group"><div className="palette-grid" role="radiogroup" aria-label="Theme palettes">{PALETTES.map(p => <button key={p.id} type="button" role="radio" aria-checked={true} data-palette={p.id} className="palette-card selected" aria-label={`${palette.name} (${theme === 'dark' ? 'Dark' : 'Light'} theme)`}><div className="palette-header"><span className="palette-name">{palette.name}</span><span className="badge subtle">{theme === 'dark' ? 'Dark' : 'Light'}</span></div><div className="palette-swatches" aria-hidden="true">{palette.swatches.map((hex, idx) => <span key={idx} className="swatch-circle" style={{ backgroundColor: hex }} title={hex} />)}</div></button>)}</div></div></div><p>Connect Supabase to synchronize your workspace across devices. JSON backups remain available; the compendium and uploaded audio are synchronized separately through Cloud Storage.</p><CloudSettings /><button className="secondary" onClick={exportData}><Download size={16}/> Export workspace backup</button><label className="secondary file-label">Import backup<input type="file" accept="application/json" onChange={async (e) => {
+                }}/> : modal === 'journal' ? <><h2>{campaignLabel} · Session notes</h2><textarea value={note} onChange={e => setNote(e.target.value)} aria-label="Expanded journal"/><small>Autosaved to this browser.</small></> : <><div className="settings-brand-header"><ArcheronBrand mode={theme} className="settings-brand-logo" alt="Archeron"/></div><h2>Your workspace</h2><p>Connect Supabase to synchronize your workspace across devices. JSON backups remain available; the compendium and uploaded audio are synchronized separately through Cloud Storage.</p><CloudSettings /><button className="secondary" onClick={exportData}><Download size={16}/> Export workspace backup</button><label className="secondary file-label">Import backup<input type="file" accept="application/json" onChange={async (e) => {
                     try {
                         const f = e.target.files?.[0];
                         if (!f)

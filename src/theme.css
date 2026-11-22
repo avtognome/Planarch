@@ -2751,8 +2751,11 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 
 .char-header-search-input,
 .char-sheet input.char-header-search-input {
-  border: none;
-  background: transparent;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  margin: 0 !important;
   height: 24px;
   width: 130px;
   font-size: var(--type-label);
@@ -2861,8 +2864,11 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 }
 
 .char-inv-search-bar .char-dark-field {
-  border: none;
-  background: transparent;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  margin: 0 !important;
 }
 
 .char-currency-block {
@@ -3033,8 +3039,11 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 }
 
 .char-notes-search .char-dark-field {
-  border: none;
-  background: transparent;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  margin: 0 !important;
 }
 
 .char-notes-controls {
@@ -3158,11 +3167,18 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 .comp-spell-search input {
   flex: 1;
   min-width: 0;
-  width: auto;
-  border: none;
-  background: transparent;
+  width: auto !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  margin: 0 !important;
   height: 28px;
   padding: 2px 4px;
+}
+
+.modal .tool-search input {
+  margin-bottom: 0 !important;
 }
 
 .comp-spell-notice {

@@ -4,20 +4,27 @@ import { RotateCw, ZoomIn, ZoomOut, Check, X, Sliders, Sun, Contrast, RotateCcw 
 export interface ImageCropModalProps {
   file: File;
   aspectRatio?: number; // e.g. 1 for square (portraits), 16/9, or undefined for free
+  circularFrame?: boolean;
   title?: string;
   onComplete: (dataUrl: string, fileName: string) => void;
   onCancel: () => void;
 }
 
+const MAX_BOX_WIDTH = 320;
+const MAX_BOX_HEIGHT = 240;
+const MIN_BOX_SIZE = 80;
+
 export function ImageCropModal({
   file,
-  aspectRatio: initialAspectRatio = 1,
+  aspectRatio: initialAspectRatio,
+  circularFrame,
   title = 'Crop & Adjust Image',
   onComplete,
   onCancel
 }: ImageCropModalProps) {
   const [imageSrc, setImageSrc] = useState<string>('');
   const [aspectRatio, setAspectRatio] = useState<number | undefined>(initialAspectRatio);
+  const [freeBox, setFreeBox] = useState<{ width: number; height: number }>({ width: 260, height: 200 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0); // in degrees: 0, 90, 180, 270
   const [brightness, setBrightness] = useState(0); // -50 to 50
@@ -25,6 +32,13 @@ export function ImageCropModal({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [resizeState, setResizeState] = useState<{
+    dir: string;
+    startX: number;
+    startY: number;
+    startW: number;
+    startH: number;
+  } | null>(null);
   const [processing, setProcessing] = useState(false);
 
   const [imgDims, setImgDims] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
@@ -42,6 +56,19 @@ export function ImageCropModal({
       img.onload = () => {
         imgRef.current = img;
         setImgDims({ width: img.naturalWidth, height: img.naturalHeight });
+        if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+          const naturalRatio = img.naturalWidth / img.naturalHeight;
+          let w = MAX_BOX_WIDTH;
+          let h = Math.round(w / naturalRatio);
+          if (h > MAX_BOX_HEIGHT) {
+            h = MAX_BOX_HEIGHT;
+            w = Math.round(h * naturalRatio);
+          }
+          setFreeBox({
+            width: Math.max(MIN_BOX_SIZE, Math.min(MAX_BOX_WIDTH, w)),
+            height: Math.max(MIN_BOX_SIZE, Math.min(MAX_BOX_HEIGHT, h))
+          });
+        }
       };
     }
     return () => {
@@ -103,6 +130,51 @@ export function ImageCropModal({
     setIsDragging(false);
   };
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onCancel]);
+
+  useEffect(() => {
+    if (!resizeState) return;
+    const applyDelta = (clientX: number, clientY: number) => {
+      const dx = clientX - resizeState.startX;
+      const dy = clientY - resizeState.startY;
+      let nextW = resizeState.startW;
+      let nextH = resizeState.startH;
+      if (resizeState.dir.includes('e')) nextW += dx * 2;
+      if (resizeState.dir.includes('w')) nextW -= dx * 2;
+      if (resizeState.dir.includes('s')) nextH += dy * 2;
+      if (resizeState.dir.includes('n')) nextH -= dy * 2;
+      setFreeBox({
+        width: Math.round(Math.max(MIN_BOX_SIZE, Math.min(MAX_BOX_WIDTH, nextW))),
+        height: Math.round(Math.max(MIN_BOX_SIZE, Math.min(MAX_BOX_HEIGHT, nextH)))
+      });
+    };
+    const onMouseMove = (e: MouseEvent) => applyDelta(e.clientX, e.clientY);
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 1) applyDelta(e.touches[0].clientX, e.touches[0].clientY);
+    };
+    const onEnd = () => setResizeState(null);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('touchmove', onTouchMove);
+    window.addEventListener('touchend', onEnd);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onEnd);
+    };
+  }, [resizeState]);
+
+  const startResize = (dir: string, clientX: number, clientY: number) => {
+    setResizeState({ dir, startX: clientX, startY: clientY, startW: freeBox.width, startH: freeBox.height });
+  };
+
   const handleRotate = () => {
     setRotation(prev => (prev + 90) % 360);
   };
@@ -116,8 +188,17 @@ export function ImageCropModal({
   };
 
   // Preview Crop Box Dimensions
-  const boxWidth = 280;
-  const boxHeight = aspectRatio ? Math.round(boxWidth / aspectRatio) : 280;
+  let boxWidth = freeBox.width;
+  let boxHeight = freeBox.height;
+  if (aspectRatio) {
+    boxWidth = MAX_BOX_WIDTH;
+    boxHeight = Math.round(boxWidth / aspectRatio);
+    if (boxHeight > MAX_BOX_HEIGHT) {
+      boxHeight = MAX_BOX_HEIGHT;
+      boxWidth = Math.round(boxHeight * aspectRatio);
+    }
+  }
+  const useCircularFrame = circularFrame ?? (initialAspectRatio === 1 && aspectRatio === 1);
 
   // Calculate matching base preview dimension so WYSIWYG matches exactly
   const isRotated90 = rotation === 90 || rotation === 270;
@@ -135,8 +216,9 @@ export function ImageCropModal({
 
     setProcessing(true);
     try {
-      const targetWidth = 600;
-      const targetHeight = aspectRatio ? Math.round(targetWidth / aspectRatio) : 600;
+      const effectiveRatio = aspectRatio ?? (boxWidth / boxHeight);
+      const targetWidth = effectiveRatio >= 1 ? 800 : Math.round(800 * effectiveRatio);
+      const targetHeight = Math.round(targetWidth / effectiveRatio);
 
       const canvas = document.createElement('canvas');
       canvas.width = targetWidth;
@@ -229,17 +311,58 @@ export function ImageCropModal({
         >
           {/* Target crop frame guideline */}
           <div
+            className="crop-frame-guideline"
             style={{
               position: 'absolute',
               width: `${boxWidth}px`,
               height: `${boxHeight}px`,
               border: '2px solid rgba(245, 158, 11, 0.85)',
-              borderRadius: aspectRatio === 1 ? '50%' : '6px',
+              borderRadius: useCircularFrame ? '50%' : '6px',
               boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.72)',
               pointerEvents: 'none',
               zIndex: 10
             }}
-          />
+          >
+            {aspectRatio === undefined && [
+              { dir: 'nw', style: { top: '-6px', left: '-6px', cursor: 'nwse-resize' } },
+              { dir: 'ne', style: { top: '-6px', right: '-6px', cursor: 'nesw-resize' } },
+              { dir: 'sw', style: { bottom: '-6px', left: '-6px', cursor: 'nesw-resize' } },
+              { dir: 'se', style: { bottom: '-6px', right: '-6px', cursor: 'nwse-resize' } },
+              { dir: 'n', style: { top: '-6px', left: '50%', transform: 'translateX(-50%)', cursor: 'ns-resize' } },
+              { dir: 's', style: { bottom: '-6px', left: '50%', transform: 'translateX(-50%)', cursor: 'ns-resize' } },
+              { dir: 'w', style: { left: '-6px', top: '50%', transform: 'translateY(-50%)', cursor: 'ew-resize' } },
+              { dir: 'e', style: { right: '-6px', top: '50%', transform: 'translateY(-50%)', cursor: 'ew-resize' } }
+            ].map(handle => (
+              <div
+                key={handle.dir}
+                role="slider"
+                aria-label={`Resize crop ${handle.dir}`}
+                aria-valuetext={`${boxWidth} by ${boxHeight}`}
+                tabIndex={-1}
+                onMouseDown={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  startResize(handle.dir, e.clientX, e.clientY);
+                }}
+                onTouchStart={e => {
+                  e.stopPropagation();
+                  if (e.touches.length === 1) {
+                    startResize(handle.dir, e.touches[0].clientX, e.touches[0].clientY);
+                  }
+                }}
+                style={{
+                  position: 'absolute',
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '3px',
+                  background: '#f59e0b',
+                  border: '1.5px solid #0d0c0a',
+                  pointerEvents: 'auto',
+                  ...handle.style
+                }}
+              />
+            ))}
+          </div>
 
           {imageSrc && (
             <img
@@ -350,20 +473,21 @@ export function ImageCropModal({
 
           {/* Optional Aspect Ratio presets if not locked */}
           {!initialAspectRatio && (
-            <div className="inline" style={{ gap: '6px', marginTop: '2px' }}>
+            <div className="inline wrap crop-ratio-presets" style={{ gap: '6px', marginTop: '2px' }}>
               <span style={{ fontSize: '13px', color: '#94a3b8', marginRight: '4px' }}>Ratio:</span>
               {[
                 { label: 'Free', val: undefined },
                 { label: '1:1', val: 1 },
                 { label: '16:9', val: 16 / 9 },
-                { label: '4:3', val: 4 / 3 }
+                { label: '9:16', val: 9 / 16 }
               ].map(opt => (
                 <button
                   key={opt.label}
                   type="button"
+                  aria-pressed={aspectRatio === opt.val}
                   className={aspectRatio === opt.val ? 'primary' : 'secondary'}
                   onClick={() => setAspectRatio(opt.val)}
-                  style={{ padding: '3px 8px', fontSize: '13px', borderRadius: '4px' }}
+                  style={{ padding: '4px 10px', fontSize: '13px', borderRadius: '4px' }}
                 >
                   {opt.label}
                 </button>

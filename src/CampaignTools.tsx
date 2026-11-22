@@ -171,7 +171,7 @@ function Characters({ campaign, campaignLabel, notify }: Props) {
 
 function Wiki({ campaign, notify }: Props) {
   const [items, setItems] = useSaved<WikiPage[]>(`wf-wiki:${campaign}`, []); const [selected, setSelected] = useState(items[0]?.id || ''), [query, setQuery] = useState(''), [category, setCategory] = useState('All'), [view, setView] = useState('Edit'), [imageBusy, setImageBusy] = useState(false), [selectMode, setSelectMode] = useState(false), [selectedIds, setSelectedIds] = useState<Set<string>>(new Set()), [bulkConfirm, setBulkConfirm] = useState(false); const bodyRef = useRef<HTMLTextAreaElement>(null), item = items.find(p => p.id === selected), categories = ['Location', 'Lore', 'Faction', 'Item', 'Session log'];
-  const [wikiCropQueue, setWikiCropQueue] = useState<File[]>([]);
+  const [wikiCropQueue, setWikiCropQueue] = useState<{ file: File; mode: 'thumbnail' | 'content' }[]>([]);
   const update = (patch: Partial<WikiPage>) => setItems(items.map(p => p.id === selected ? { ...p, ...patch, updated: new Date().toISOString() } : p));
   const add = () => { const p: WikiPage = { id: uid(), title: 'Untitled page', category: 'Lore', body: '', tags: '', updated: new Date().toISOString(), images: [] }; setItems([...items, p]); setSelected(p.id); setView('Edit') ;};
   const toggleSelect = (id: string, e: React.MouseEvent | React.ChangeEvent) => {
@@ -192,6 +192,15 @@ function Wiki({ campaign, notify }: Props) {
     notify(`${count} wiki page${count === 1 ? '' : 's'} deleted`);
   };
   const imageFor = (page: WikiPage, id?: string) => (page.images || []).find(image => image.id === id);
+  const uploadThumbnail = (files: FileList | null) => {
+    if (!item || !files?.length) return;
+    const file = files[0];
+    if (!item.thumbnail && (item.images?.length || 0) >= MAX_WIKI_IMAGES) {
+      notify(`A wiki page can hold up to ${MAX_WIKI_IMAGES} images`);
+      return;
+    }
+    setWikiCropQueue(prev => [...prev, { file, mode: 'thumbnail' }]);
+  };
   const addImages = async (files: FileList | null) => {
     if (!item || !files?.length) return;
     const remaining = MAX_WIKI_IMAGES - (item.images?.length || 0);
@@ -199,20 +208,130 @@ function Wiki({ campaign, notify }: Props) {
       notify(`A wiki page can hold up to ${MAX_WIKI_IMAGES} images`);
       return;
     }
-    const chosen = Array.from(files).slice(0, remaining);
-    setWikiCropQueue(chosen);
+    const chosen = Array.from(files).slice(0, remaining).map(file => ({ file, mode: 'content' as const }));
+    setWikiCropQueue(prev => [...prev, ...chosen]);
   };
   const handleCropComplete = (dataUrl: string, fileName: string) => {
     if (!item) return;
+    const current = wikiCropQueue[0];
     const addedImage: WikiImage = { id: uid(), name: fileName, data: dataUrl, caption: '' };
-    const images = [...(item.images || []), addedImage];
-    update({ images, thumbnail: item.thumbnail || addedImage.id });
-    notify(`Image added to ${item.title}`);
+    if (current?.mode === 'thumbnail') {
+      const oldThumbId = item.thumbnail;
+      const keepOldThumb = oldThumbId && item.body.includes(`[[image:${oldThumbId}]]`);
+      const baseImages = keepOldThumb || !oldThumbId
+        ? (item.images || [])
+        : (item.images || []).filter(img => img.id !== oldThumbId);
+      update({ images: [...baseImages, addedImage], thumbnail: addedImage.id });
+      notify(`Thumbnail updated for ${item.title}`);
+    } else {
+      const images = [...(item.images || []), addedImage];
+      const token = `[[image:${addedImage.id}]]`;
+      const textarea = bodyRef.current;
+      const start = textarea?.selectionStart ?? item.body.length;
+      const end = textarea?.selectionEnd ?? start;
+      const before = item.body.slice(0, start);
+      const after = item.body.slice(end);
+      const prefix = before.length > 0 && !before.endsWith('\n') ? '\n' : '';
+      const suffix = after.length > 0 && !after.startsWith('\n') ? '\n' : '';
+      update({ images, body: `${before}${prefix}${token}${suffix}${after}` });
+      notify(`Image inserted into ${item.title}`);
+    }
     setWikiCropQueue(prev => prev.slice(1));
+  };
+  const removeThumbnail = () => {
+    if (!item || !item.thumbnail) return;
+    const oldThumbId = item.thumbnail;
+    const usedInBody = item.body.includes(`[[image:${oldThumbId}]]`);
+    const images = usedInBody ? (item.images || []) : (item.images || []).filter(img => img.id !== oldThumbId);
+    update({ images, thumbnail: undefined });
   };
   const insertImage = (image: WikiImage) => { if (!item) return; const token = `[[image:${image.id}]]`, textarea = bodyRef.current, start = textarea?.selectionStart ?? item.body.length, end = textarea?.selectionEnd ?? start; update({ body: item.body.slice(0, start) + token + item.body.slice(end) }); notify('Image placed in the post') ;};
   const removeImage = (image: WikiImage) => { if (!item) return; const images = (item.images || []).filter(candidate => candidate.id !== image.id), escaped = image.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), body = item.body.replace(new RegExp(`\\[\\[image:${escaped}\\]\\]`, 'g'), ''); update({ images, body, thumbnail: item.thumbnail === image.id ? images[0]?.id : item.thumbnail }) ;};
   const renderBody = (page: WikiPage) => page.body.split(/(\[\[[^\]]+\]\])/g).map((part, i) => { if (part.startsWith('[[') && part.endsWith(']]')) { const token = part.slice(2, -2); if (token.startsWith('image:')) { const image = imageFor(page, token.slice(6)); return image ? <figure className="wiki-inline-image" key={`${image.id}-${i}`}><img src={image.data} alt={image.caption || image.name} />{image.caption && <figcaption>{image.caption}</figcaption>}</figure> : <span key={i} className="wiki-missing-image">[Missing image]</span> ;} const target = items.find(p => p.title.toLowerCase() === token.toLowerCase()); return <button key={i} className={`wiki-inline-link ${target ? '' : 'missing'}`} onClick={() => { if (target) setSelected(target.id); else notify(`No page titled “${token}” yet`) ;}}>{token}</button> ;} return <span key={i}>{part}</span> ;});
   const visibleItems = [...items].filter(p => (category === 'All' || category === p.category) && `${p.title} ${p.body} ${p.tags}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => b.updated.localeCompare(a.updated));
-  return <><div className="tool-toolbar"><div className="tool-search"><Search size={16} /><input aria-label="Search wiki" placeholder="Search titles, notes, tags…" value={query} onChange={e => setQuery(e.target.value)} /></div><select className="category-select" aria-label="Wiki category filter" value={category} onChange={e => setCategory(e.target.value)}>{['All', ...categories].map(c => <option key={c}>{c}</option>)}</select><button className="secondary" aria-label="Toggle multi-select" onClick={() => { setSelectMode(!selectMode); setSelectedIds(new Set()); setBulkConfirm(false); }}>{selectMode ? 'Cancel selection' : 'Select'}</button><button className="primary" onClick={add}><Plus size={16} />New page</button></div>{selectMode && <div className="bulk-actions-bar inline between" style={{ padding: '8px 12px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '8px', marginBottom: '12px' }}><div className="inline"><strong>{selectedIds.size} selected</strong><button className="secondary" onClick={() => setSelectedIds(selectedIds.size === visibleItems.length ? new Set() : new Set(visibleItems.map(p => p.id)))}>{selectedIds.size === visibleItems.length ? 'Deselect all' : 'Select all'}</button></div>{selectedIds.size > 0 && (bulkConfirm ? <div className="inline"><span style={{ fontSize: '13px', color: '#f87171' }}>Delete {selectedIds.size} pages?</span><button className="danger" onClick={deleteSelected}>Confirm delete</button><button className="secondary" onClick={() => setBulkConfirm(false)}>Cancel</button></div> : <button className="secondary danger-text" onClick={() => setBulkConfirm(true)}><Trash2 size={14} />Delete ({selectedIds.size})</button>)}</div>}<div className="tool-layout"><aside className="record-list"><div className="record-list-title">CAMPAIGN WIKI <span>{items.length}</span></div>{visibleItems.map(p => { const thumbnail = imageFor(p, p.thumbnail); return <button className={`record-row ${p.id === selected && !selectMode ? 'selected' : ''}`} key={p.id} onClick={(e) => { if (selectMode) toggleSelect(p.id, e); else setSelected(p.id); }}>{selectMode && <input type="checkbox" aria-label={`Select ${p.title}`} checked={selectedIds.has(p.id)} onChange={(e) => toggleSelect(p.id, e)} onClick={(e) => e.stopPropagation()} style={{ marginRight: '6px', cursor: 'pointer', width: '16px', height: '16px', accentColor: 'var(--accent)' }} />}{thumbnail ? <img className="record-portrait wiki-record-thumb" src={thumbnail.data} alt="" /> : <div className="record-icon"><BookOpen size={19} /></div>}<div><strong>{p.title}</strong><small>{p.category} · {new Date(p.updated).toLocaleDateString()}</small><span className="record-meta">{p.tags || 'No tags'}</span></div></button> ;})}{!items.length && <Empty title="A place for your world" text="Collect locations, lore, factions and session logs." />}</aside>{item ? <section className="record-editor"><div className="editor-title"><span className="eyebrow">{campaign.toUpperCase()} · PRIVATE KNOWLEDGE</span><div className="tabs">{['Edit', 'Read', 'Graph'].map(v => <button key={v} className={view === v ? 'selected' : ''} onClick={() => setView(v)}>{v}</button>)}</div></div>{view === 'Graph' ? <WikiGraph items={items} onSelectPage={(id) => { setSelected(id); setView('Read'); }} activeId={selected} /> : view === 'Edit' ? <><input className="title-input" aria-label="Wiki page title" value={item.title} onChange={e => update({ title: e.target.value })} /><div className="editor-fields two"><Field label="Category"><select value={item.category} onChange={e => update({ category: e.target.value })}>{categories.map(c => <option key={c}>{c}</option>)}</select></Field><Field label="Tags"><input value={item.tags} onChange={e => update({ tags: e.target.value })} placeholder="ruins, island, secret" /></Field></div><div className="wiki-media-editor"><div className="between"><div><h3>Post images</h3><small>Upload up to {MAX_WIKI_IMAGES}. Choose a thumbnail and insert images wherever you want in the post.</small></div><label className={`secondary file-label ${imageBusy ? 'disabled' : ''}`}><ImagePlus size={14} />{imageBusy ? 'Optimizing…' : 'Upload images'}<input aria-label="Upload wiki images" type="file" multiple accept="image/jpeg,image/png,image/webp" disabled={imageBusy || (item.images?.length || 0) >= MAX_WIKI_IMAGES} onChange={async e => { await addImages(e.target.files); e.target.value = '' ;}} /></label></div>{(item.images || []).length > 0 && <div className="wiki-image-grid">{(item.images || []).map(image => <div className={`wiki-image-card ${item.thumbnail === image.id ? 'thumbnail' : ''}`} key={image.id}><img src={image.data} alt={image.caption || image.name} /><input aria-label={`${image.name} caption`} value={image.caption} onChange={e => update({ images: (item.images || []).map(candidate => candidate.id === image.id ? { ...candidate, caption: e.target.value } : candidate) })} placeholder="Image caption" /><div className="inline wrap"><button className="secondary small" onClick={() => insertImage(image)}>Insert in post</button><button className="secondary small" disabled={item.thumbnail === image.id} onClick={() => update({ thumbnail: image.id })}>{item.thumbnail === image.id ? 'Thumbnail' : 'Set thumbnail'}</button><button className="icon-button danger-text" aria-label={`Remove ${image.name}`} onClick={() => removeImage(image)}><Trash2 size={13} /></button></div></div>)}</div>}</div><Field label="Page content"><textarea ref={bodyRef} className="wiki-body" value={item.body} onChange={e => update({ body: e.target.value })} placeholder="Write your world here… Link another page with [[Page title]]." /></Field><p className="field-help">Link pages with [[Page title]]. Inserted image tokens stay in place as you edit. Switch to Read to see the finished post.</p></> : <>{imageFor(item, item.thumbnail) && <img className="wiki-hero" src={imageFor(item, item.thumbnail)!.data} alt={imageFor(item, item.thumbnail)!.caption || item.title} />}<h2 className="wiki-read-title">{item.title}</h2><div className="inline"><span className="badge subtle">{item.category}</span><small>{item.tags}</small></div><div className="wiki-reading">{renderBody({ ...item, body: item.body || 'This page is waiting for its story.' })}</div>{(item.images || []).some(image => image.id !== item.thumbnail && !item.body.includes(`[[image:${image.id}]]`)) && <div className="wiki-attachments"><h3>Attached images</h3><div className="wiki-gallery">{(item.images || []).filter(image => image.id !== item.thumbnail && !item.body.includes(`[[image:${image.id}]]`)).map(image => <figure key={image.id}><img src={image.data} alt={image.caption || image.name} />{image.caption && <figcaption>{image.caption}</figcaption>}</figure>)}</div></div>}<div className="wiki-backlinks"><h3>Linked from</h3>{items.filter(p => p.body.toLowerCase().includes(`[[${item.title.toLowerCase()}]]`)).map(p => <button key={p.id} className="secondary small wiki-backlink-btn" onClick={() => setSelected(p.id)}>{p.title}<ArrowUpRight size={13} /></button>)}</div></>}<div className="editor-actions"><span className="inline autosave-note"><Check size={12} />All changes saved locally and queued for cloud sync</span><DeleteButton label="page" onDelete={() => { setItems(items.filter(p => p.id !== item.id)); setSelected(''); notify('Page deleted') ;}} /></div></section> : <section className="record-editor"><Empty title="Connect the story" text="Select a page or start writing a new piece of your world." /></section>}</div>{wikiCropQueue.length > 0 && <ImageCropModal file={wikiCropQueue[0]} aspectRatio={undefined} title={`Adjust wiki image (${wikiCropQueue.length} remaining)`} onComplete={handleCropComplete} onCancel={() => setWikiCropQueue(prev => prev.slice(1))} />}</>;
+  return <><div className="tool-toolbar"><div className="tool-search"><Search size={16} /><input aria-label="Search wiki" placeholder="Search titles, notes, tags…" value={query} onChange={e => setQuery(e.target.value)} /></div><select className="category-select" aria-label="Wiki category filter" value={category} onChange={e => setCategory(e.target.value)}>{['All', ...categories].map(c => <option key={c}>{c}</option>)}</select><button className="secondary" aria-label="Toggle multi-select" onClick={() => { setSelectMode(!selectMode); setSelectedIds(new Set()); setBulkConfirm(false); }}>{selectMode ? 'Cancel selection' : 'Select'}</button><button className="primary" onClick={add}><Plus size={16} />New page</button></div>{selectMode && <div className="bulk-actions-bar inline between" style={{ padding: '8px 12px', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '8px', marginBottom: '12px' }}><div className="inline"><strong>{selectedIds.size} selected</strong><button className="secondary" onClick={() => setSelectedIds(selectedIds.size === visibleItems.length ? new Set() : new Set(visibleItems.map(p => p.id)))}>{selectedIds.size === visibleItems.length ? 'Deselect all' : 'Select all'}</button></div>{selectedIds.size > 0 && (bulkConfirm ? <div className="inline"><span style={{ fontSize: '13px', color: '#f87171' }}>Delete {selectedIds.size} pages?</span><button className="danger" onClick={deleteSelected}>Confirm delete</button><button className="secondary" onClick={() => setBulkConfirm(false)}>Cancel</button></div> : <button className="secondary danger-text" onClick={() => setBulkConfirm(true)}><Trash2 size={14} />Delete ({selectedIds.size})</button>)}</div>}<div className="tool-layout"><aside className="record-list"><div className="record-list-title">CAMPAIGN WIKI <span>{items.length}</span></div>{visibleItems.map(p => { const thumbnail = imageFor(p, p.thumbnail); return <button className={`record-row ${p.id === selected && !selectMode ? 'selected' : ''}`} key={p.id} onClick={(e) => { if (selectMode) toggleSelect(p.id, e); else setSelected(p.id); }}>{selectMode && <input type="checkbox" aria-label={`Select ${p.title}`} checked={selectedIds.has(p.id)} onChange={(e) => toggleSelect(p.id, e)} onClick={(e) => e.stopPropagation()} style={{ marginRight: '6px', cursor: 'pointer', width: '16px', height: '16px', accentColor: 'var(--accent)' }} />}{thumbnail ? <img className="record-portrait wiki-record-thumb" src={thumbnail.data} alt="" /> : <div className="record-icon"><BookOpen size={19} /></div>}<div><strong>{p.title}</strong><small>{p.category} · {new Date(p.updated).toLocaleDateString()}</small><span className="record-meta">{p.tags || 'No tags'}</span></div></button> ;})}{!items.length && <Empty title="A place for your world" text="Collect locations, lore, factions and session logs." />}</aside>{item ? <section className="record-editor"><div className="editor-title"><span className="eyebrow">{campaign.toUpperCase()} · PRIVATE KNOWLEDGE</span><div className="tabs">{['Edit', 'Read', 'Graph'].map(v => <button key={v} className={view === v ? 'selected' : ''} onClick={() => setView(v)}>{v}</button>)}</div></div>{view === 'Graph' ? <WikiGraph items={items} onSelectPage={(id) => { setSelected(id); setView('Read'); }} activeId={selected} /> : view === 'Edit' ? <><input className="title-input" aria-label="Wiki page title" value={item.title} onChange={e => update({ title: e.target.value })} /><div className="editor-fields two"><Field label="Category"><select value={item.category} onChange={e => update({ category: e.target.value })}>{categories.map(c => <option key={c}>{c}</option>)}</select></Field><Field label="Tags"><input value={item.tags} onChange={e => update({ tags: e.target.value })} placeholder="ruins, island, secret" /></Field></div><div className="wiki-media-editor">
+  <div className="between wrap" style={{ gap: '10px', paddingBottom: '10px', marginBottom: '10px', borderBottom: '1px solid var(--line)' }}>
+    <div className="inline" style={{ gap: '10px' }}>
+      {imageFor(item, item.thumbnail) && (
+        <img
+          src={imageFor(item, item.thumbnail)!.data}
+          alt={imageFor(item, item.thumbnail)!.caption || `${item.title} thumbnail`}
+          style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--line)' }}
+        />
+      )}
+      <div>
+        <h3>Wiki thumbnail (1:1)</h3>
+        <small>Square cover image shown in the wiki list and page header.</small>
+      </div>
+    </div>
+    <div className="inline" style={{ gap: '8px' }}>
+      <label className={`secondary file-label ${imageBusy ? 'disabled' : ''}`}>
+        <ImagePlus size={14} />
+        {item.thumbnail ? 'Change thumbnail' : 'Set thumbnail'}
+        <input
+          aria-label="Upload wiki thumbnail"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          disabled={imageBusy}
+          onChange={e => { uploadThumbnail(e.target.files); e.target.value = ''; }}
+        />
+      </label>
+      {item.thumbnail && (
+        <button type="button" className="icon-button danger-text" aria-label="Remove wiki thumbnail" onClick={removeThumbnail}>
+          <Trash2 size={14} />
+        </button>
+      )}
+    </div>
+  </div>
+  <div className="between">
+    <div>
+      <h3>Content images</h3>
+      <small>Add up to {MAX_WIKI_IMAGES} images. Crop freely or pick an aspect ratio to insert into page content.</small>
+    </div>
+    <label className={`secondary file-label ${imageBusy ? 'disabled' : ''}`}>
+      <ImagePlus size={14} />
+      {imageBusy ? 'Optimizing…' : 'Add image to content'}
+      <input
+        aria-label="Upload wiki images"
+        type="file"
+        multiple
+        accept="image/jpeg,image/png,image/webp"
+        disabled={imageBusy || (item.images?.length || 0) >= MAX_WIKI_IMAGES}
+        onChange={async e => { await addImages(e.target.files); e.target.value = ''; }}
+      />
+    </label>
+  </div>
+  {(item.images || []).filter(image => image.id !== item.thumbnail).length > 0 && (
+    <div className="wiki-image-grid">
+      {(item.images || []).filter(image => image.id !== item.thumbnail).map(image => (
+        <div className="wiki-image-card" key={image.id}>
+          <img src={image.data} alt={image.caption || image.name} />
+          <input
+            aria-label={`${image.name} caption`}
+            value={image.caption}
+            onChange={e => update({ images: (item.images || []).map(candidate => candidate.id === image.id ? { ...candidate, caption: e.target.value } : candidate) })}
+            placeholder="Image caption"
+          />
+          <div className="inline wrap">
+            <button className="secondary small" onClick={() => insertImage(image)}>Insert in post</button>
+            <button className="icon-button danger-text" aria-label={`Remove ${image.name}`} onClick={() => removeImage(image)}><Trash2 size={13} /></button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div><Field label="Page content"><textarea ref={bodyRef} className="wiki-body" value={item.body} onChange={e => update({ body: e.target.value })} placeholder="Write your world here… Link another page with [[Page title]]." /></Field><p className="field-help">Link pages with [[Page title]]. Inserted image tokens stay in place as you edit. Switch to Read to see the finished post.</p></> : <>{imageFor(item, item.thumbnail) && <img className="wiki-hero" src={imageFor(item, item.thumbnail)!.data} alt={imageFor(item, item.thumbnail)!.caption || item.title} />}<h2 className="wiki-read-title">{item.title}</h2><div className="inline"><span className="badge subtle">{item.category}</span><small>{item.tags}</small></div><div className="wiki-reading">{renderBody({ ...item, body: item.body || 'This page is waiting for its story.' })}</div>{(item.images || []).some(image => image.id !== item.thumbnail && !item.body.includes(`[[image:${image.id}]]`)) && <div className="wiki-attachments"><h3>Attached images</h3><div className="wiki-gallery">{(item.images || []).filter(image => image.id !== item.thumbnail && !item.body.includes(`[[image:${image.id}]]`)).map(image => <figure key={image.id}><img src={image.data} alt={image.caption || image.name} />{image.caption && <figcaption>{image.caption}</figcaption>}</figure>)}</div></div>}<div className="wiki-backlinks"><h3>Linked from</h3>{items.filter(p => p.body.toLowerCase().includes(`[[${item.title.toLowerCase()}]]`)).map(p => <button key={p.id} className="secondary small wiki-backlink-btn" onClick={() => setSelected(p.id)}>{p.title}<ArrowUpRight size={13} /></button>)}</div></>}<div className="editor-actions"><span className="inline autosave-note"><Check size={12} />All changes saved locally and queued for cloud sync</span><DeleteButton label="page" onDelete={() => { setItems(items.filter(p => p.id !== item.id)); setSelected(''); notify('Page deleted') ;}} /></div></section> : <section className="record-editor"><Empty title="Connect the story" text="Select a page or start writing a new piece of your world." /></section>}</div>{wikiCropQueue.length > 0 && (
+  <ImageCropModal
+    file={wikiCropQueue[0].file}
+    aspectRatio={wikiCropQueue[0].mode === 'thumbnail' ? 1 : undefined}
+    circularFrame={false}
+    title={
+      wikiCropQueue[0].mode === 'thumbnail'
+        ? 'Crop wiki thumbnail (1:1)'
+        : `Crop content image (${wikiCropQueue.length} remaining)`
+    }
+    onComplete={handleCropComplete}
+    onCancel={() => setWikiCropQueue(prev => prev.slice(1))}
+  />
+)}</>;
 }

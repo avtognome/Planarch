@@ -269,7 +269,26 @@ const { default: CampaignTools } = await import(pathToFileURL(path.join(out, 'Ca
   const themeCss = fs.readFileSync('src/theme.css', 'utf8');
   assert.match(themeCss, /\.campaign-actions\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*nowrap/s, '.campaign-actions must be a non-wrapping flex row');
   assert.match(themeCss, /\.campaign-actions\s+\.new-campaign-button\s*\{[^}]*flex:\s*1\s+1\s+auto[^}]*width:\s*auto[^}]*white-space:\s*nowrap/s, '.new-campaign-button must flex on one line');
+  assert.match(themeCss, /\.campaign-actions\s+\.rename-campaign-button[^{]*\{[^}]*width:\s*32px[^}]*height:\s*32px/s, 'Desktop campaign action buttons must be compact 32px');
   console.log('✓ Active campaign one-line actions CSS verified');
+}
+
+// Test 6: YouTube mixer dock & player shell responsive CSS
+{
+  const styleCss = fs.readFileSync('src/style.css', 'utf8');
+  assert.match(styleCss, /\.youtube-mixer-dock>header\s*\{[^}]*min-height:\s*48px[^}]*height:\s*auto/s, 'YouTube mixer header must have min-height: 48px and auto height');
+  assert.match(styleCss, /\.youtube-mixer-dock\.collapsed\s*\{[^}]*width:\s*min\(360px/s, 'Collapsed YouTube mixer dock must adaptively expand up to 360px');
+  assert.match(styleCss, /\.youtube-player-shell\s*\{[^}]*aspect-ratio:\s*16\/9/s, 'YouTube player shell must enforce responsive 16/9 aspect-ratio');
+  console.log('✓ YouTube mixer dock header and 16/9 player shell verified');
+}
+
+// Test 7: Scene actions non-overlapping layout and layer rename width
+{
+  const themeCss = fs.readFileSync('src/theme.css', 'utf8');
+  assert.match(themeCss, /\.scene-wrapper\s+\.scene-deck-actions\s*\{[^}]*right:\s*78px/s, 'Deck actions must stay left of card actions');
+  assert.match(themeCss, /\.scene-card-actions\s*\{[^}]*right:\s*8px/s, 'Card actions must be pinned to right: 8px');
+  assert.match(themeCss, /\.layer-rename-input\s*\{[^}]*max-width:\s*180px[^}]*flex:\s*1\s+1\s+auto/s, 'Layer rename input must be responsive flex-capable');
+  console.log('✓ Scene actions non-overlapping layout and layer rename width verified');
 }
 
 console.log('All image-crop-adjust tests passed!');

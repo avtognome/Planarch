@@ -188,10 +188,13 @@ export function ImageCropModal({
   };
 
   // Preview Crop Box Dimensions
-  let boxWidth = freeBox.width;
+  const responsiveMaxBoxWidth = typeof window !== 'undefined' && typeof window.innerWidth === 'number'
+    ? Math.min(MAX_BOX_WIDTH, Math.max(MIN_BOX_SIZE, window.innerWidth - 64))
+    : MAX_BOX_WIDTH;
+  let boxWidth = Math.min(freeBox.width, responsiveMaxBoxWidth);
   let boxHeight = freeBox.height;
   if (aspectRatio) {
-    boxWidth = MAX_BOX_WIDTH;
+    boxWidth = responsiveMaxBoxWidth;
     boxHeight = Math.round(boxWidth / aspectRatio);
     if (boxHeight > MAX_BOX_HEIGHT) {
       boxHeight = MAX_BOX_HEIGHT;

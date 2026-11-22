@@ -44,7 +44,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .layer-play-btn.playing{border-color:var(--accent)!important;color:var(--accent)!important;box-shadow:0 0 10px rgba(245,158,11,0.35)}
 .layer-active{background:rgba(245,158,11,0.03)}
 .layer-track-num{font-size:var(--type-label);font-weight:600;letter-spacing:0.04em;opacity:0.8}
-.layer-rename-input{font-size:var(--type-label);padding:2px 6px!important;height:24px;width:130px!important;border-radius:4px;background:var(--panel);border:1px solid var(--accent)!important}
+.layer-rename-input{font-size:var(--type-label);padding:2px 6px!important;height:24px;width:100%!important;max-width:180px;min-width:0;flex:1 1 auto;border-radius:4px;background:var(--panel);border:1px solid var(--accent)!important}
 .primary-icon{color:var(--accent)!important}
 .theme-light small,.theme-light .page-heading p,.theme-light .workspace-toolbar>span{color:var(--muted)}
 .theme-light h1,.theme-light h2,.theme-light h3,.theme-light .page-heading h1,.theme-light .scene-info h3{color:var(--text)}
@@ -57,8 +57,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .theme-light nav button.active{background:var(--panel-alt);color:var(--text);font-weight:600}
 .theme-light .new-campaign-button{color:var(--accent);border-color:var(--line-strong);border-radius:6px}.theme-light .new-campaign-button:hover{background:var(--panel-alt)}
 .campaign-actions{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:nowrap}
-.campaign-actions .new-campaign-button{flex:1 1 auto;width:auto;min-width:0;margin-top:0;padding:6px 8px;min-height:44px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.campaign-actions .rename-campaign-button,.campaign-actions .delete-campaign-button{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:0;border:1px solid var(--line);border-radius:6px;color:var(--muted)}
+.campaign-actions .new-campaign-button{flex:1 1 auto;width:auto;min-width:0;margin-top:0;padding:5px 8px;min-height:32px;height:32px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.campaign-actions .rename-campaign-button,.campaign-actions .delete-campaign-button{flex:0 0 32px;width:32px;height:32px;min-width:32px;min-height:32px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1px solid var(--line);border-radius:6px;color:var(--muted)}
 .campaign-actions .rename-campaign-button:hover:not(:disabled),.campaign-actions .delete-campaign-button:hover:not(:disabled){background:var(--panel-elevated);color:var(--text);border-color:var(--line-strong)}
 .theme-light .sidebar-bottom>button,.theme-light .profile>svg{color:var(--muted)}
 .theme-light .avatar,.theme-light .combat-avatar{background:var(--panel-alt);border-color:var(--line);color:var(--accent)}
@@ -71,7 +71,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .quick-roll-close{min-width:44px;min-height:44px;padding:10px}
   .party-manage-btn{min-height:44px;display:inline-flex;align-items:center}
   .primary,.secondary,.text-button,.wiki-backlink-btn{min-height:44px}
-  .new-campaign-button,.rename-campaign-button,.delete-campaign-button{min-height:44px}
+  .new-campaign-button{min-height:44px}
+  .campaign-actions .new-campaign-button{min-height:44px;height:44px}
+  .campaign-actions .rename-campaign-button,.campaign-actions .delete-campaign-button{min-width:44px;min-height:44px;flex-basis:44px;width:44px;height:44px}
   .hp-inline>button,.hp-custom button{min-height:44px;min-width:44px;padding:8px 12px}
   .tags button{min-height:44px;padding:8px 12px}
   .condition-menu>summary{min-height:44px;display:flex;align-items:center}
@@ -181,7 +183,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .dnd-fact-grid small{font-size:var(--type-label);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--accent)}
 .dnd-fact-grid strong{font-weight:400;font-size:var(--type-label);color:var(--text);white-space:pre-line}
 @media(max-width:900px){.dnd-fact-grid{grid-template-columns:1fr}}
-@media(max-width:700px){.dnd-fact-grid>div{grid-template-columns:95px 1fr}}
+@media(max-width:700px){.dnd-fact-grid>div{grid-template-columns:minmax(80px,auto) 1fr}}
 .dnd-entry-list{display:grid;gap:12px}
 .dnd-entry{padding-bottom:11px;border-bottom:1px solid var(--line)}
 .dnd-entry:last-child{border-bottom:0;padding-bottom:0}
@@ -263,10 +265,21 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .scene-wrapper .scene-info{padding:14px 18px;display:grid;grid-template-columns:minmax(145px,.55fr) minmax(170px,1fr) auto;align-items:center;gap:18px;min-width:0}
 .scene-wrapper .scene-info h3{margin:0;font-size:var(--type-label);font-weight:600}.scene-wrapper .scene-info p{margin:0;min-height:0;line-height:1.55}.scene-wrapper .scene-info>span{margin:0;padding:0;border:0;text-align:right;white-space:nowrap}
 .scene-wrapper .scene-card.chosen{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 4px 16px rgba(0,0,0,0.06)}
-.scene-wrapper .scene-deck-actions{top:50%;right:38px;transform:translateY(-50%)}
-.scene-wrapper .scene-deck-actions button{background:var(--panel);border-color:var(--accent);color:var(--accent);border-radius:6px}
-.scene-card-actions{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;gap:4px}.scene-card-actions .icon-button,.scene-touch-target{min-width:44px;min-height:44px}.scene-card-actions .icon-button{position:static;transform:none;background:var(--panel);border:1px solid var(--line);border-radius:6px}.scene-card-actions .scene-remove{color:var(--status-red)}
-.scene-wrapper:has(.scene-deck-actions) .scene-card{padding-right:138px}.scene-wrapper:has(.scene-card-actions):not(:has(.scene-deck-actions)) .scene-card{padding-right:70px}
+.scene-wrapper .scene-deck-actions{position:absolute;right:78px;top:50%;transform:translateY(-50%);display:flex;gap:4px;z-index:5}
+.scene-wrapper .scene-deck-actions button{width:28px;height:28px;min-width:28px;min-height:28px;padding:0;background:var(--panel);border:1px solid var(--accent);color:var(--accent);border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:var(--type-label);font-weight:600}
+.scene-card-actions{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:4px;z-index:5}
+.scene-card-actions .icon-button,.scene-touch-target{min-width:32px;min-height:32px;width:32px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.scene-card-actions .icon-button{position:static;transform:none;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.scene-card-actions .scene-remove{color:var(--status-red)}
+.scene-wrapper .scene-card{padding-right:80px}
+.scene-wrapper:has(.scene-deck-actions) .scene-card{padding-right:148px}
+@media(pointer:coarse){
+  .scene-card-actions .icon-button,.scene-touch-target{min-width:44px;min-height:44px;width:44px;height:44px}
+  .scene-wrapper .scene-deck-actions{right:104px}
+  .scene-wrapper .scene-deck-actions button{min-width:36px;min-height:44px;height:44px}
+  .scene-wrapper .scene-card{padding-right:104px}
+  .scene-wrapper:has(.scene-deck-actions) .scene-card{padding-right:190px}
+}
 .studio-console .console-art{display:none}.studio-console>h2{margin-top:22px}
 .studio-grid.mixer-collapsed{grid-template-columns:1fr!important}
 .studio-console.collapsed{order:-1;padding:12px 16px;position:static}

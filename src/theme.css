@@ -659,6 +659,8 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 
 /* Collapsible Widgets */
 .widget-grid{align-items:start}
+.widget-masonry-row{align-items:start}
+.widget-column{min-width:0}
 .widget.widget-collapsed,.widget-collapsed{overflow:hidden;align-self:start!important;height:auto!important}
 .widget-collapsed .widget-head{border-bottom:0}
 .widget-controls{display:flex;align-items:center;gap:4px}

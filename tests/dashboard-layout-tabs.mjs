@@ -114,4 +114,11 @@ assert.ok(
 );
 console.log('✓ Collapsed widget grid alignment verified');
 
+// Test 5: Verify 2-column masonry rows and columns for non-wide widgets
+const masonryRows = root.findAll(node => node.props?.className === 'widget-masonry-row');
+assert.ok(masonryRows.length > 0, 'Dashboard must render widget-masonry-row for non-wide widgets');
+const masonryCols = root.findAll(node => node.props?.className === 'widget-column');
+assert.ok(masonryCols.length >= 2, 'Dashboard must render widget-column instances inside masonry row');
+console.log('✓ 2-column masonry layout verified');
+
 console.log('All dashboard layout & tab tests passed!');

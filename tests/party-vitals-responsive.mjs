@@ -8,6 +8,7 @@ import TestRenderer, { act } from 'react-test-renderer';
 
 const appContent = fs.readFileSync(path.resolve('src/App.tsx'), 'utf8');
 const themeCss = fs.readFileSync(path.resolve('src/theme.css'), 'utf8');
+const styleCss = fs.readFileSync(path.resolve('src/style.css'), 'utf8');
 
 // Test 1: App imports and renders shadcn Card for party cards
 assert.ok(
@@ -50,6 +51,18 @@ assert.match(
   /<Card\b[^>]*party-card[^>]*role="button"[^>]*tabIndex=\{0\}[^>]*onKeyDown=/s,
   'Party cards must be keyboard interactive with role="button", tabIndex, and onKeyDown'
 );
+
+// Test 5b: Negative-space regression guards across Party Vitals, CombatTracker, CharacterSheet, Dice bar, and Record List
+assert.match(themeCss, /\.party-cards-grid\s*\{[^}]*minmax\(320px,\s*1fr\)/s, '.party-cards-grid must use minmax(320px, 1fr) to prevent premature two-row wrap');
+assert.match(themeCss, /\.party-card-info\s*\{[^}]*flex:\s*1\s+1\s+80px/s, '.party-card-info must use compact 80px flex-basis so stats stay on row 1');
+assert.doesNotMatch(themeCss, /\.party-hp-track\s*\{[^}]*max-width:\s*160px/s, '.party-hp-track must span 100% of info column without 160px stub cap');
+assert.match(themeCss, /@container\s*\(max-width:\s*290px\)\s*\{\s*\.party-card-stats\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s, 'Narrow party-card container must distribute wrapped stats evenly across 3 columns');
+assert.match(themeCss, /\.combat-list\s*\{[^}]*container-type:\s*inline-size/s, '.combat-list must declare container-type: inline-size for half-width widget adaptation');
+assert.match(themeCss, /@container\s+combat-list\s*\(max-width:\s*620px\)\s*\{[\s\S]*?\.combat-actions\s*\{[^}]*grid-column:\s*1\/-1[^}]*justify-content:\s*space-between/, 'Half-width combatant-live must span combat-actions across 1/-1 with space-between (no bottom-left L-hole)');
+assert.match(themeCss, /@container\s+char-sheet\s*\(max-width:\s*820px\)\s*\{\s*\.char-combat-mid-strip\s*\{\s*grid-template-columns:\s*1fr/s, '.char-combat-mid-strip must stack to 1fr at 820px before internal segment wrap');
+assert.match(themeCss, /\.char-mid-segment\s*\{[^}]*flex-wrap:\s*nowrap/s, '.char-mid-segment must keep flex-wrap: nowrap when side-by-side');
+assert.match(styleCss, /@media\(max-width:950px\)\{[\s\S]*?\.record-list\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/, 'Tablet record-list at <=950px must use 2-column CSS grid');
+assert.match(styleCss, /\.record-row:last-of-type:nth-of-type\(odd\)\{grid-column:1\/-1/, 'Odd trailing record-row at <=950px must span full width');
 
 // Test 6: CampaignTools focusCharacterId selects target PC sheet on mount and updates
 const store = new Map();

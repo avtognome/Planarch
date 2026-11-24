@@ -14,7 +14,7 @@ import { readHomebrew } from './homebrewData';
 import { CharacterSheet } from './CharacterSheet';
 import CompendiumDrawer from './CompendiumDrawer';
 
-type Props = { page: string, campaign: string, campaignLabel?: string, onStart: (encounter: Encounter) => void, onUpdate: (encounter: Encounter) => void, activeEncounterId: string, battleActive: boolean, notify: (text: string) => void ;};
+type Props = { page: string, campaign: string, campaignLabel?: string, onStart: (encounter: Encounter) => void, onUpdate: (encounter: Encounter) => void, activeEncounterId: string, battleActive: boolean, notify: (text: string) => void, focusCharacterId?: string, onFocusHandled?: () => void ;};
 function DeleteButton({ onDelete, label }: { onDelete: () => void, label: string ;}) { const [confirm, setConfirm] = useState(false); return confirm ? <div className="inline"><span className="delete-warning">Delete this {label}?</span><button className="danger" onClick={onDelete}>Delete</button><button className="secondary" onClick={() => setConfirm(false)}>Cancel</button></div> : <button className="secondary danger-text" onClick={() => setConfirm(true)}><Trash2 size={14} />Delete {label}</button> ;}
 function Field({ label, children }: { label: string, children: ReactNode ;}) { return <label className="editor-field"><span>{label}</span>{children}</label> ;}
 function Empty({ title, text }: { title: string, text: string ;}) { return <div className="tool-empty"><BookOpen size={32} /><h3>{title}</h3><p>{text}</p></div> ;}
@@ -155,13 +155,23 @@ function Encounters({ campaign, onStart, onUpdate, activeEncounterId, battleActi
       </div><div className="inline wrap"><button className="primary" onClick={openCompendiumPicker}><BookOpen size={14} />Add from compendium</button><button className="secondary" onClick={() => addMember('Monster')}><Plus size={14} />Add monster</button><button className="secondary" onClick={() => addMember('Player')}><Plus size={14} />Add player</button><button className="secondary" disabled={!characters.some(c => c.kind === 'Player')} onClick={() => update({ members: [...item.members, ...characters.filter(c => c.kind === 'Player').map(c => ({ id: uid(), name: c.name, role: 'Player' as const, hp: c.hp, maxHp: c.hp, initiative: 10, modifier: c.initiative, conditions: '', concentration: '' }))] })}><Users size={14} />Add campaign players</button></div><div className="editor-actions"><button className="primary" disabled={!item.members.length || !item.name.trim()} onClick={() => onStart(item)}><Play size={16} />Run encounter</button><button className="secondary update-encounter-button" disabled={!battleActive || activeEncounterId !== item.id} onClick={() => onUpdate(item)}><Save size={15} />Update active encounter</button><button className="secondary" onClick={() => { const copy = { ...item, id: uid(), name: item.name + ' (copy)', members: item.members.map(m => ({ ...m, id: uid() })) }; setItems([...items, copy]); setSelected(copy.id) ;}}><Copy size={14} />Duplicate</button><DeleteButton label="encounter" onDelete={() => { setItems(items.filter(e => e.id !== item.id)); setSelected(''); notify('Encounter deleted') ;}} /></div><p className="field-help">{battleActive && activeEncounterId === item.id ? 'Update active encounter adds, removes, and follows this participant order while preserving current HP, round, and the active combatant whenever possible.' : 'Run encounter replaces the active tracker, sorts initiative, and starts at round 1. Each creature remains a separate turn.'}</p></section> : <section className="record-editor"><Empty title="Prepare the next challenge" text="Select an encounter to edit, or create a new one." /></section>}</div>{pickerOpen && (compendiumMeta || homebrewMonsters.length > 0) && <CompendiumMonsterModal generation={compendiumMeta?.generation} indexEntries={compendiumMeta?.index} homebrewRecords={homebrewMonsters} onAdd={combatants => { if (item) { update({ members: [...item.members, ...combatants] }); notify(`Added ${combatants.length} monster(s) to encounter`); } }} onClose={() => setPickerOpen(false)} />}<CompendiumDrawer open={Boolean(referenceFocus)} focus={referenceFocus} campaign={campaign} onClose={() => setReferenceFocus('')} /></>;
 }
 
-function Characters({ campaign, campaignLabel, notify }: Props) {
+function Characters({ campaign, campaignLabel, notify, focusCharacterId, onFocusHandled }: Props) {
   const [items, setItems] = useSaved<Character[]>(`wf-characters:${campaign}`, []);
-  const [selected, setSelected] = useState(items[0]?.id || '');
+  const [selected, setSelected] = useState(() => (focusCharacterId && items.some(c => c.id === focusCharacterId)) ? focusCharacterId : (items[0]?.id || ''));
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('All');
   const item = items.find(c => c.id === selected);
   const [charTabOverride, setCharTabOverride] = useState<'profile' | 'sheet' | null>(null);
+  useEffect(() => {
+    if (!focusCharacterId) return;
+    if (items.some(c => c.id === focusCharacterId)) {
+      setSelected(focusCharacterId);
+      setCharTabOverride(null);
+      setFilter('All');
+      setQuery('');
+    }
+    onFocusHandled?.();
+  }, [focusCharacterId, items]);
   const charTab = charTabOverride ?? (item?.kind === 'Player' ? 'sheet' : 'profile');
   const [cropFile, setCropFile] = useState<File | null>(null);
   const update = (patch: Partial<Character>) => setItems(items.map(c => c.id === selected ? { ...c, ...patch } : c));

@@ -675,38 +675,49 @@ main{transition:margin-left .28s cubic-bezier(0.4, 0, 0.2, 1),width .28s cubic-b
 .widget-controls .icon-button:hover{color:var(--accent);background:var(--panel-alt)}
 
 /* Party Vitals Tracker Bar */
-.party-status-strip{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+.party-status-strip{background:transparent;border:0;padding:0;margin-bottom:20px;box-shadow:none}
 .party-strip-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .party-strip-heading .inline{font-size:var(--type-label);font-weight:600;letter-spacing:1px;color:var(--muted);gap:6px}
 .party-strip-heading .inline svg{color:var(--accent)}
 .party-manage-btn{font-size:var(--type-label);font-weight:600;display:inline-flex;align-items:center;gap:4px}
 .party-manage-btn:hover{color:var(--accent)}
-.party-cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
-.party-card{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;row-gap:8px;column-gap:10px;background:var(--panel-alt);border:1px solid var(--line);border-radius:10px;padding:8px 12px;transition:border-color .15s,box-shadow .15s;min-width:0}
-.party-card:hover{border-color:var(--line-strong);box-shadow:0 2px 8px rgba(0,0,0,0.25)}
-.party-card-avatar{width:32px;height:32px;border-radius:8px;background:var(--line);color:var(--accent);font-weight:600;font-size:var(--type-label);display:grid;place-items:center;overflow:hidden;flex-shrink:0}
+.party-cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.party-card{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;row-gap:10px;column-gap:12px;background:var(--panel)!important;border:1px solid var(--line)!important;border-radius:12px;padding:12px 14px;transition:border-color .15s,background-color .15s;min-width:0;box-shadow:none}
+.party-card-interactive{cursor:pointer;user-select:none}
+.party-card:hover{border-color:var(--line-strong)!important;background:var(--panel-alt)!important}
+.party-card-interactive:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.party-card-avatar{width:44px;height:44px;border-radius:8px;background:var(--panel-alt);border:1px solid var(--line);color:var(--accent);font-weight:600;font-size:var(--type-section);display:grid;place-items:center;overflow:hidden;flex-shrink:0}
 .party-card-avatar img{width:100%;height:100%;object-fit:cover}
-.party-card-info{flex:1 1 120px;min-width:0}
-.party-card-info strong{display:block;font-size:var(--type-label);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
-.party-card-info small{display:block;font-size:var(--type-label);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.party-card-stats{display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap}
-.party-stat{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:6px;font-size:var(--type-label);font-weight:600}
-.party-stat small{font-size:var(--type-label);font-weight:600;opacity:.8}
-.ac-stat{background:var(--stat-ac-bg);color:var(--stat-ac-color);border:1px solid var(--stat-ac-border)}
-.pp-stat{background:var(--stat-pp-bg);color:var(--stat-pp-color);border:1px solid var(--stat-pp-border)}
-.hp-stat{background:var(--stat-hp-bg);color:var(--stat-hp-color);border:1px solid var(--stat-hp-border)}
+.party-card-info{flex:1 1 130px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.party-card-info strong{display:block;font-size:var(--type-body);font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.party-card-info small{display:block;font-size:var(--type-label);font-weight:400;line-height:1.25;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.party-hp-track{width:100%;max-width:160px;height:5px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:3px}
+.party-hp-fill{display:block;height:100%;border-radius:999px;transition:width .2s ease,background-color .2s ease}
+.party-hp-fill.hp-healthy{background:var(--status-green)}
+.party-hp-fill.hp-bloodied{background:var(--status-yellow)}
+.party-hp-fill.hp-critical{background:var(--status-red)}
+.party-card-conditions{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:3px}
+.party-condition-pill{display:inline-flex;align-items:center;padding:1px 6px;border-radius:999px;font-size:var(--type-label);font-weight:400;line-height:1.3;background:color-mix(in srgb,var(--status-yellow) 14%,var(--panel-alt));border:1px solid color-mix(in srgb,var(--status-yellow) 38%,var(--line));color:var(--text)}
+.party-card-stats{display:flex;align-items:flex-start;gap:14px;flex-shrink:0;flex-wrap:wrap;margin-left:auto}
+.party-stat-col{display:flex;flex-direction:column;align-items:center;min-width:30px;text-align:center;line-height:1.15}
+.party-stat-col.hp-col{min-width:42px}
+.party-stat-val{font-size:var(--type-section);font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;display:inline-flex;align-items:baseline;gap:2px}
+.party-stat-col.hp-healthy .party-stat-val{color:var(--status-green)}
+.party-stat-col.hp-bloodied .party-stat-val{color:var(--status-yellow)}
+.party-stat-col.hp-critical .party-stat-val{color:var(--status-red)}
+.party-temp-hp{font-style:normal;font-size:var(--type-label);font-weight:600;color:var(--accent)}
+.party-stat-sub{font-size:var(--type-label);font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:2px}
+@media(max-width:700px){.party-cards-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.party-card,.party-hp-fill{transition:none}}
 
 /* Theme light overrides for party status */
-.theme-light .party-status-strip{background:var(--panel);border-color:var(--line);box-shadow:0 1px 3px rgba(0,0,0,0.04),0 4px 12px rgba(0,0,0,0.02)}
+.theme-light .party-status-strip{background:transparent;border:0;box-shadow:none}
 .theme-light .party-strip-heading .inline{color:var(--muted)}
-.theme-light .party-card{background:var(--panel-alt);border-color:var(--line)}
-.theme-light .party-card:hover{border-color:var(--line-strong);box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+.theme-light .party-card{background:var(--panel)!important;border-color:var(--line)!important;box-shadow:none}
+.theme-light .party-card:hover{background:var(--panel-alt)!important;border-color:var(--line-strong)!important}
 .theme-light .party-card-info strong{color:var(--text)}
 .theme-light .party-card-info small{color:var(--muted)}
-.theme-light .party-card-avatar{background:var(--line);color:var(--accent)}
-.theme-light .ac-stat{background:var(--stat-ac-bg);color:var(--stat-ac-color);border-color:var(--stat-ac-border)}
-.theme-light .pp-stat{background:var(--stat-pp-bg);color:var(--stat-pp-color);border-color:var(--stat-pp-border)}
-.theme-light .hp-stat{background:var(--stat-hp-bg);color:var(--stat-hp-color);border-color:var(--stat-hp-border)}
+.theme-light .party-card-avatar{background:var(--panel-alt);border-color:var(--line);color:var(--accent)}
 
 /* Clickable Action Roll Badges */
 .dice-inline-btn{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;margin:0 2px;font-size:var(--type-label);font-weight:600;font-family:var(--font-ui);border-radius:5px;cursor:pointer;vertical-align:baseline;transition:background .12s,border-color .12s}

@@ -54,71 +54,60 @@ await act(async () => {
 
 const root = testRenderer.root;
 
-// Test 1: Layout lock/unlock switch exists (replaces "Customize layout" button)
-const lockUnlockBtns = root.findAll(node => 
-  node.type === 'button' && (
-    (node.props['aria-label'] && (node.props['aria-label'].includes('layout') || node.props['aria-label'].includes('Lock'))) ||
-    (node.children && node.children.some(c => typeof c === 'string' && (c.includes('Unlocked layout') || c.includes('Locked layout'))))
-  )
-);
-assert.ok(lockUnlockBtns.length > 0, 'Lock / Unlock layout toggle button must exist');
-const lockUnlockBtn = lockUnlockBtns[0];
-assert.ok(
-  lockUnlockBtn.props['aria-label'] === 'Lock layout' || lockUnlockBtn.props['aria-label'] === 'Unlock layout',
-  'Lock/Unlock toggle must have accessible aria-label'
-);
-console.log('✓ Lock / Unlock switch present');
+const R = () => testRenderer.root;
+const has = label => R().findAll(n => n.type === 'button' && n.props['aria-label'] === label);
+const gridCount = () => R().findAll(n => n.props?.className === 'widget-grid').length;
+const openWidgets = () => R().findAll(n => typeof n.props?.className === 'string' && /^widget( span-full)?$/.test(n.props.className));
 
-// Test 2: Tablet/touch arrow buttons present when unlocked
-const upButtons = root.findAll(node => node.type === 'button' && node.props['aria-label'] && node.props['aria-label'].includes('up'));
-assert.ok(upButtons.length > 0, 'Up reorder button for touch/tablet must exist when unlocked');
+// Test 1: legacy drag/resize/lock controls are gone
+assert.equal(R().findAll(n => n.type === 'button' && /^(Move |Resize )/.test(n.props['aria-label'] || '')).length, 0, 'No move/resize widget buttons');
+assert.equal(has('Lock layout').length + has('Unlock layout').length, 0, 'No lock/unlock toggle');
+assert.equal(R().findAll(n => n.props?.draggable === true).length, 0, 'No draggable widget handles');
+assert.equal(R().findAll(n => n.props?.className === 'widget-masonry-row').length, 0, 'No masonry rows');
+console.log('✓ Free-form drag/resize/lock controls removed');
 
-const downButtons = root.findAll(node => node.type === 'button' && node.props['aria-label'] && node.props['aria-label'].includes('down'));
-assert.ok(downButtons.length > 0, 'Down reorder button for touch/tablet must exist when unlocked');
-console.log('✓ Touch/tablet up/down reorder buttons verified');
+// Test 2: four widgets render as a balanced grid
+assert.equal(gridCount(), 1, 'Single widget-grid');
+assert.equal(openWidgets().length, 4, 'Four open widgets');
+assert.equal(openWidgets().filter(n => n.props.className.includes('span-full')).length, 0, 'No span-full with an even count');
+console.log('✓ Even widget count renders balanced 2x2 grid');
 
-// Test 3: Customizable tabs - can add new tab, remove tab, and no hardcoded "Session / Combat / Exploration" mandatory list
-const addTabBtns = root.findAll(node => 
-  node.type === 'button' && (
-    node.props['aria-label'] === 'Add tab' ||
-    (node.children && node.children.some(c => typeof c === 'string' && c.includes('New tab')))
-  )
-);
-assert.ok(addTabBtns.length > 0, 'Add tab button must exist');
-console.log('✓ Add tab button verified');
+// Test 3: minimizing moves a widget into the dock as a pill
+await act(async () => { has('Minimize atmosphere widget')[0].props.onClick(); });
+assert.equal(R().findAll(n => n.props?.className === 'minimized-widget-dock').length, 1, 'Dock appears');
+assert.equal(has('Restore atmosphere widget').length, 1, 'Atmosphere pill present');
+assert.equal(openWidgets().length, 3, 'Three open widgets');
+assert.equal(openWidgets().filter(n => n.props.className.includes('span-full')).length, 1, 'Exactly one full-width widget when count is odd');
+assert.ok(openWidgets()[0].props.className.includes('span-full'), 'First widget spans full width');
+console.log('✓ Minimize dock and odd-count full-width promotion verified');
 
-// Test 4: Locking layout hides touch up/down buttons to prevent accidental edits
-const toggledBtn = root.findByProps({ 'aria-label': 'Lock layout' });
-await act(async () => {
-  toggledBtn.props.onClick();
-});
+// Test 4: restore via pill, then minimize everything and use Expand all
+await act(async () => { has('Restore atmosphere widget')[0].props.onClick(); });
+assert.equal(openWidgets().length, 4, 'Restored to four widgets');
+assert.equal(R().findAll(n => n.props?.className === 'minimized-widget-dock').length, 0, 'Dock hidden when nothing minimized');
+for (const id of ['combat', 'journal', 'atmosphere', 'dice']) { await act(async () => { has('Minimize ' + id + ' widget')[0].props.onClick(); }); }
+assert.equal(gridCount(), 0, 'Grid hidden when all minimized');
+assert.equal(R().findAll(n => n.props?.className === 'widget-empty').length, 1, 'Empty state shown');
+await act(async () => { R().findAll(n => n.type === 'button' && n.props.className === 'text-button dock-expand-all')[0].props.onClick(); });
+assert.equal(openWidgets().length, 4, 'Expand all restores every widget');
+console.log('✓ Restore pill, empty state and Expand all verified');
 
-const upButtonsAfterLock = root.findAll(node => 
-  node.type === 'button' && 
-  node.props['aria-label'] && 
-  node.props['aria-label'].startsWith('Move ') &&
-  node.props['aria-label'].endsWith(' up')
-);
-assert.equal(upButtonsAfterLock.length, 0, 'Move up buttons should be hidden when layout is locked');
-console.log('✓ Locked state disables editing/touch shifts successfully');
+// Test 5: tabs and Reset layout
+assert.ok(R().findAll(n => n.type === 'button' && n.props['aria-label'] === 'Add tab').length > 0, 'Add tab button must exist');
+await act(async () => { has('Minimize journal widget')[0].props.onClick(); });
+const resetBtn = R().findAll(n => n.type === 'button' && Array.isArray(n.children) && n.children.includes('Reset layout'))[0];
+assert.ok(resetBtn, 'Reset layout button exists');
+await act(async () => { resetBtn.props.onClick(); });
+assert.equal(openWidgets().length, 4, 'Reset layout restores all widgets');
+console.log('✓ Tabs and Reset layout verified');
 
-// Test 4: Collapsed widget in grid does not stretch into a blank box
+// Test 6: CSS contract
 const themeCss = fs.readFileSync('src/theme.css', 'utf8');
-assert.ok(
-  themeCss.includes('.widget.widget-collapsed') || themeCss.includes('.widget-collapsed'),
-  'theme.css must define .widget-collapsed'
-);
-assert.ok(
-  /widget-collapsed[^{]*\{[^}]*align-self:\s*start/i.test(themeCss) || /widget-grid[^{]*\{[^}]*align-items:\s*start/i.test(themeCss),
-  '.widget-collapsed or .widget-grid must specify align-self: start or align-items: start to prevent stretching when sibling is expanded'
-);
-console.log('✓ Collapsed widget grid alignment verified');
-
-// Test 5: Verify 2-column masonry rows and columns for non-wide widgets
-const masonryRows = root.findAll(node => node.props?.className === 'widget-masonry-row');
-assert.ok(masonryRows.length > 0, 'Dashboard must render widget-masonry-row for non-wide widgets');
-const masonryCols = root.findAll(node => node.props?.className === 'widget-column');
-assert.ok(masonryCols.length >= 2, 'Dashboard must render widget-column instances inside masonry row');
-console.log('✓ 2-column masonry layout verified');
+const styleCss = fs.readFileSync('src/style.css', 'utf8');
+assert.match(styleCss, /\.widget-grid\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:16px;align-items:stretch\}/, 'widget-grid is a 2-column stretch grid');
+assert.match(styleCss, /\.widget\.span-full\{grid-column:1\/-1\}/, 'span-full spans both columns');
+assert.match(themeCss, /\.minimized-widget-pill\{/, 'minimized pill styled');
+assert.match(themeCss, /\.widget-collapsed[^{]*\{[^}]*align-self:\s*start/i, 'floating dice collapse still defined');
+console.log('✓ Cockpit grid CSS verified');
 
 console.log('All dashboard layout & tab tests passed!');

@@ -21,36 +21,36 @@ export const PALETTES: PaletteDef[] = [
     id: 'charcoal',
     name: 'Charcoal',
     mode: 'dark',
-    canvas: '#17191a',
-    surface: '#222527',
-    surfaceWarm: '#2c3033',
-    text: '#f2f2f2',
-    muted: '#a1a1aa',
-    border: '#383c40',
-    accent: '#f2f2f2',
-    secondary: '#2c3033',
-    swatches: ['#101214', '#17191a', '#222527', '#2c3033', '#a1a1aa', '#f2f2f2'],
-    description: 'Modern dark slate canvas, elevated graphite panels, and crisp chalk text.'
+    canvas: '#141517',
+    surface: '#1c1d20',
+    surfaceWarm: '#24262a',
+    text: '#f3ede2',
+    muted: '#a69f93',
+    border: '#312e2a',
+    accent: '#d4a962',
+    secondary: '#2c2a26',
+    swatches: ['#101214', '#141517', '#1c1d20', '#2c2a26', '#be9454', '#f3ede2'],
+    description: 'Warm obsidian canvas, elevated charcoal panels, antique gold accents, and ivory text.'
   }
 ];
 
-// ponytail: fallback to charcoal always. Supports 'light' alabaster mode.
+// ponytail: fallback to charcoal always. Supports 'light' warm ivory mode.
 export function resolvePalette(raw: string | null | undefined): PaletteDef {
   const base = PALETTES[0];
   if (raw === 'light') {
     return {
       ...base,
       mode: 'light',
-      canvas: '#f8fafc',
-      surface: '#ffffff',
-      surfaceWarm: '#f1f5f9',
-      text: '#0f172a',
-      muted: '#64748b',
-      border: '#e2e8f0',
-      accent: '#0f172a',
-      secondary: '#e2e8f0',
-      swatches: ['#ffffff', '#f8fafc', '#f1f5f9', '#e2e8f0', '#64748b', '#0f172a'],
-      description: 'Crisp alabaster canvas, pure white cards, subtle slate borders, and deep ink text.'
+      canvas: '#f6f1e7',
+      surface: '#fcf9f2',
+      surfaceWarm: '#efe8da',
+      text: '#1f1b16',
+      muted: '#655b4e',
+      border: '#dfd5c3',
+      accent: '#825d24',
+      secondary: '#e6dcc8',
+      swatches: ['#fcf9f2', '#f6f1e7', '#efe8da', '#dfd5c3', '#825d24', '#1f1b16'],
+      description: 'Warm vellum ivory canvas, crisp parchment cards, aged gold accents, and warm ink text.'
     };
   }
   return base;
